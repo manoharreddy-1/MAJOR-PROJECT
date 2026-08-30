@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Description | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/job" class="active">Job Description</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Job Description</h1>
+      <p>Paste or upload the target job description for semantic matching</p>
+    </div>
+
+    <div class="steps">
+      <div class="step completed"><span class="step-number">&#10003;</span> Upload Resume</div>
+      <div class="step-connector"></div>
+      <div class="step active"><span class="step-number">2</span> Job Description</div>
+      <div class="step-connector"></div>
+      <div class="step"><span class="step-number">3</span> Results</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Input Job Description</h2></div>
+        <div class="form-group">
+          <label class="form-label">Target Role / Job Title</label>
+          <input type="text" class="form-input" id="jobTitle" placeholder="e.g. Machine Learning Engineer">
+        </div>
+        <div class="tabs" id="inputTabs">
+          <button class="tab active" data-tab="pasteTab">Paste Text</button>
+          <button class="tab" data-tab="uploadTab">Upload File</button>
+        </div>
+        <div id="pasteTab" class="tab-content active">
+          <div class="form-group">
+            <label class="form-label">Job Description</label>
+            <textarea class="form-textarea" id="jobText" rows="12" placeholder="Paste the full job description here..."></textarea>
+          </div>
+        </div>
+        <div id="uploadTab" class="tab-content">
+          <div class="upload-zone" id="jobUploadZone">
+            <div class="upload-icon">&#128196;</div>
+            <p><strong>Upload job description file</strong></p>
+            <p>PDF or TXT (max 10 MB)</p>
+          </div>
+          <input type="file" id="jobFile" accept=".pdf,.txt" hidden>
+        </div>
+        <button id="analyzeJobBtn" class="btn btn-primary mt-2">Analyze Job Description</button>
+        <div id="jobStatus" class="mt-2"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Extracted Requirements</h2></div>
+        <div id="jobRequirements">
+          <div class="empty-state">
+            <div class="empty-icon">&#128188;</div>
+            <p>Analyze a job description to see requirements</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex mt-3" style="justify-content: flex-end;">
+      <button id="runAnalysisBtn" class="btn btn-primary btn-lg hidden" disabled>Run SBERT Analysis</button>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer &mdash; CSE(AI) Major Project</p></footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let jobId = Store.get('job_id');
+    const jobStatus = document.getElementById('jobStatus');
+    const jobRequirements = document.getElementById('jobRequirements');
+    const runBtn = document.getElementById('runAnalysisBtn');
+
+    UI.initTabs(document.getElementById('inputTabs'));
+    initUploadZone('jobUploadZone', 'jobFile', handleJobFile);
+
+    if (!Store.get('resume_id')) {
+      jobStatus.innerHTML = '<div class="alert alert-warning">Please upload a resume first. <a href="/analyze">Go to Resume Upload</a></div>';
+    }
+
+    if (jobId) loadJob(jobId);
+
+    document.getElementById('analyzeJobBtn').addEventListener('click', analyzeJobText);
+    runBtn.addEventListener('click', runAnalysis);
+
+    async function analyzeJobText() {
+      const text = document.getElementById('jobText').value.trim();
+      const title = document.getElementById('jobTitle').value.trim();
+      if (!text) { jobStatus.innerHTML = '<div class="error-state">Please enter a job description.</div>'; return; }
+
+      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing...</p></div>';
+      try {
+        const res = await API.request('/job/analyze', { method: 'POST', body: { text, title } });
+        jobId = res.data.job_description_id;
+        Store.set('job_id', jobId);
+        Store.set('job_data', res.data.requirements);
+        jobStatus.innerHTML = '<div class="success-state">Job description analyzed.</div>';
+        renderRequirements(res.data.requirements);
+        runBtn.classList.remove('hidden');
+        runBtn.disabled = false;
+      } catch (err) {
+        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+      }
+    }
+
+    async function handleJobFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing file...</p></div>';
+      try {
+        const res = await API.upload('/job/analyze', formData);
+        jobId = res.data.job_description_id;
+        Store.set('job_id', jobId);
+        Store.set('job_data', res.data.requirements);
+        jobStatus.innerHTML = '<div class="success-state">Job description analyzed.</div>';
+        renderRequirements(res.data.requirements);
+        runBtn.classList.remove('hidden');
+        runBtn.disabled = false;
+      } catch (err) {
+        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+      }
+    }
+
+    async function loadJob(id) {
+      try {
+        const res = await API.request(`/job/${id}`);
+        renderRequirements(res.data.requirements);
+        runBtn.classList.remove('hidden');
+        runBtn.disabled = false;
+      } catch (err) { Store.remove('job_id'); }
+    }
+
+    function renderRequirements(req) {
+      if (!req) return;
+      jobRequirements.innerHTML = `
+        <div class="form-group"><label class="form-label">Job Title</label>
+          <input class="form-input" id="reqTitle" value="${req.job_title || ''}"></div>
+        <div class="form-group"><label class="form-label">Required Skills</label>
+          <input class="form-input" id="reqSkills" value="${(req.required_skills || []).join(', ')}"></div>
+        <div class="form-group"><label class="form-label">Preferred Skills</label>
+          <input class="form-input" id="reqPreferred" value="${(req.preferred_skills || []).join(', ')}"></div>
+        <div class="form-group"><label class="form-label">Responsibilities</label>
+          <textarea class="form-textarea" id="reqResp" rows="4">${(req.responsibilities || []).join('\n')}</textarea></div>
+        <div class="form-group"><label class="form-label">Education Requirements</label>
+          <input class="form-input" id="reqEdu" value="${(req.education || []).join(', ')}"></div>
+        <p class="text-muted" style="font-size: 0.8125rem;">Edit requirements before running analysis for better accuracy.</p>`;
+    }
+
+    async function runAnalysis() {
+      if (!Store.get('resume_id') || !jobId) return;
+      runBtn.disabled = true;
+      runBtn.textContent = 'Running SBERT Analysis...';
+      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Computing SBERT embeddings and cosine similarity...</p></div>';
+
+      // Save edited requirements
+      const requirements = {
+        ...Store.get('job_data'),
+        job_title: document.getElementById('reqTitle')?.value,
+        required_skills: document.getElementById('reqSkills')?.value.split(',').map(s => s.trim()).filter(Boolean),
+        preferred_skills: document.getElementById('reqPreferred')?.value.split(',').map(s => s.trim()).filter(Boolean),
+        responsibilities: document.getElementById('reqResp')?.value.split('\n').filter(Boolean),
+        education: document.getElementById('reqEdu')?.value.split(',').map(s => s.trim()).filter(Boolean),
+      };
+
+      try {
+        await API.request(`/job/${jobId}`, { method: 'PUT', body: { requirements } });
+        const res = await API.request('/analyze', {
+          method: 'POST',
+          body: {
+            resume_id: Store.get('resume_id'),
+            job_description_id: jobId,
+            target_role: requirements.job_title,
+          },
+        });
+        Store.set('analysis_id', res.data.analysis_id);
+        Store.set('analysis_data', res.data);
+        window.location.href = '/results';
+      } catch (err) {
+        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run SBERT Analysis';
+      }
+    }
+  </script>
+</body>
+</html>

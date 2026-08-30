@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Improvement | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/results">Results</a></li>
+      <li><a href="/improve" class="active">Improve</a></li>
+      <li><a href="/interview">Interview</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Resume Improvement</h1>
+      <p>AI-generated suggestions grounded in your actual resume data</p>
+    </div>
+    <div id="improveContent">
+      <div class="card text-center">
+        <p class="mb-2">Generate personalized resume improvement suggestions based on your analysis.</p>
+        <button id="generateBtn" class="btn btn-primary btn-lg">Generate Suggestions</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('improveContent');
+    const analysisId = Store.get('analysis_id');
+
+    document.getElementById('generateBtn').addEventListener('click', generate);
+
+    async function generate() {
+      if (!analysisId) {
+        UI.showError(container, 'No analysis found. <a href="/analyze">Run an analysis first</a>');
+        return;
+      }
+      UI.showLoading(container, 'Generating improvement suggestions...');
+      try {
+        const res = await API.request('/resume/improve', {
+          method: 'POST',
+          body: { analysis_id: analysisId },
+        });
+        renderSuggestions(res.data);
+      } catch (err) {
+        UI.showError(container, err.message);
+      }
+    }
+
+    function renderSuggestions(data) {
+      container.innerHTML = `
+        <div class="alert alert-warning mb-3">${data.disclaimer || 'Do not add skills or experience you do not have.'}</div>
+
+        <div class="card mb-3">
+          <h3 class="card-title mb-2">General Suggestions</h3>
+          <ul>${(data.general_suggestions || []).map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}</ul>
+        </div>
+
+        <div class="card mb-3">
+          <h3 class="card-title mb-2">Section-Specific Suggestions</h3>
+          ${(data.section_suggestions || []).map(s => `<div class="question-card">
+            <div class="flex-between"><strong>${s.section}</strong><span class="badge badge-${s.priority === 'high' ? 'error' : s.priority === 'medium' ? 'warning' : 'info'}">${s.priority}</span></div>
+            <p class="mt-1">${s.suggestion}</p>
+          </div>`).join('')}
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3 class="card-title mb-2">Skill Highlighting</h3>
+            <ul>${(data.skill_highlighting || []).map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}</ul>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-2">ATS-Friendly Wording</h3>
+            <ul>${(data.ats_wording || []).map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}</ul>
+          </div>
+        </div>`;
+    }
+  </script>
+</body>
+</html>

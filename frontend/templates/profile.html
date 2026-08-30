@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile & Settings | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile" class="active">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Profile & Settings</h1>
+      <p>System configuration and session information</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-title mb-2">Current Session</h3>
+        <div id="sessionInfo"></div>
+        <button id="clearSession" class="btn btn-danger mt-2">Clear Session Data</button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title mb-2">System Status</h3>
+        <div id="systemStatus">
+          <div class="loading-overlay"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <h3 class="card-title mb-2">About This Project</h3>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        AI Resume Analyzer is a CSE(AI) major project using Sentence-BERT (all-MiniLM-L6-v2)
+        for semantic resume-job matching via cosine similarity. The system extends the CareerBERT
+        research approach with skill gap analysis, resume improvement, interview preparation,
+        and personalized roadmaps.
+      </p>
+      <div class="mt-2">
+        <span class="badge badge-info">SBERT</span>
+        <span class="badge badge-info">Cosine Similarity</span>
+        <span class="badge badge-info">Flask</span>
+        <span class="badge badge-info">MongoDB Atlas</span>
+        <span class="badge badge-info">Hugging Face</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    document.getElementById('sessionInfo').innerHTML = `
+      <p><strong>Resume ID:</strong> ${Store.get('resume_id') || 'None'}</p>
+      <p><strong>Job ID:</strong> ${Store.get('job_id') || 'None'}</p>
+      <p><strong>Analysis ID:</strong> ${Store.get('analysis_id') || 'None'}</p>`;
+
+    document.getElementById('clearSession').addEventListener('click', () => {
+      sessionStorage.clear();
+      location.reload();
+    });
+
+    async function checkHealth() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        document.getElementById('systemStatus').innerHTML = `
+          <p><strong>Status:</strong> <span class="badge badge-success">${data.data?.status || 'unknown'}</span></p>
+          <p><strong>Database:</strong> ${data.data?.database || 'unknown'}</p>
+          <p><strong>SBERT Model:</strong> ${data.data?.sbert_model || 'unknown'}</p>`;
+      } catch (err) {
+        document.getElementById('systemStatus').innerHTML = '<div class="error-state">Could not reach API.</div>';
+      }
+    }
+    checkHealth();
+  </script>
+</body>
+</html>

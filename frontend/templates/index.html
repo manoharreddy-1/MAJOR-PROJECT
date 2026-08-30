@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Resume Analyzer | Deep Learning ATS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/how-it-works">How It Works</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <h1>AI Resume Analyzer</h1>
+    <p class="subtitle">Deep Learning-Based ATS &amp; Personalized Interview Preparation</p>
+    <p class="description">
+      Understand how well your resume matches your target job using SBERT-powered semantic analysis.
+    </p>
+    <div class="hero-actions">
+      <a href="/analyze" class="btn btn-primary btn-lg">Analyze My Resume</a>
+      <a href="/how-it-works" class="btn btn-outline btn-lg">Learn How It Works</a>
+    </div>
+  </section>
+
+  <div class="container">
+    <div class="features-grid">
+      <div class="card feature-card">
+        <div class="feature-icon">&#129504;</div>
+        <h3>SBERT Semantic Matching</h3>
+        <p>Uses Sentence-BERT embeddings and cosine similarity to understand meaning, not just keywords. Matches "CNN with TensorFlow" to "Deep Learning and Computer Vision" requirements.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon">&#128200;</div>
+        <h3>Skill Gap Analysis</h3>
+        <p>Identifies matched, partially matched, and missing skills with semantic similarity thresholds. Get learning objectives for every gap.</p>
+      </div>
+      <div class="card feature-card">
+        <div class="feature-icon">&#127919;</div>
+        <h3>AI Interview Preparation</h3>
+        <p>Generates job-specific interview questions, sample answers grounded in your resume, and a personalized preparation roadmap.</p>
+      </div>
+    </div>
+
+    <div class="card mt-4" style="margin-top: 3rem;">
+      <h2 class="card-title mb-2">How It Works</h2>
+      <div class="grid-3 mt-3">
+        <div>
+          <h4 style="color: var(--accent); margin-bottom: 0.5rem;">1. Upload Resume</h4>
+          <p class="text-muted" style="font-size: 0.875rem;">Upload your PDF resume. We extract text using PyMuPDF with OCR fallback for scanned documents.</p>
+        </div>
+        <div>
+          <h4 style="color: var(--accent); margin-bottom: 0.5rem;">2. Add Job Description</h4>
+          <p class="text-muted" style="font-size: 0.875rem;">Paste or upload the target job description. Review and edit extracted requirements.</p>
+        </div>
+        <div>
+          <h4 style="color: var(--accent); margin-bottom: 0.5rem;">3. Get AI Analysis</h4>
+          <p class="text-muted" style="font-size: 0.875rem;">SBERT computes semantic embeddings. Receive transparent ATS scores, skill gaps, and interview prep.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>AI Resume Analyzer &mdash; CSE(AI) Major Project | SBERT + Cosine Similarity Core Engine</p>
+    <p class="mt-1">Research foundation: CareerBERT semantic resume-job matching approach</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

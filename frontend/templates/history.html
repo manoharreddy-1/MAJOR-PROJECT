@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis History | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/history" class="active">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Analysis History</h1>
+      <p>View your previous resume-job analyses</p>
+    </div>
+    <div id="historyContent">
+      <div class="loading-overlay"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('historyContent');
+
+    async function loadHistory() {
+      try {
+        const res = await API.request('/history');
+        const items = res.data || [];
+        if (!items.length) {
+          UI.showEmpty(container, '&#128203;', 'No analysis history yet. <a href="/analyze">Run your first analysis</a>');
+          return;
+        }
+        container.innerHTML = `<div class="card"><div class="table-responsive"><table>
+          <thead><tr><th>Date</th><th>Target Role</th><th>ATS Score</th><th>Match</th><th>Missing Skills</th><th>Action</th></tr></thead>
+          <tbody>${items.map(item => `<tr>
+            <td>${UI.formatDate(item.created_at)}</td>
+            <td>${item.target_role || '-'}</td>
+            <td><strong>${item.overall_score || '-'}</strong></td>
+            <td><span class="badge badge-${(item.overall_score || 0) >= 65 ? 'success' : 'warning'}">${item.match_label || '-'}</span></td>
+            <td>${(item.top_missing_skills || []).join(', ') || '-'}</td>
+            <td><button class="btn btn-outline" onclick="viewAnalysis('${item.analysis_id}')">View</button></td>
+          </tr>`).join('')}</tbody></table></div></div>`;
+      } catch (err) {
+        UI.showError(container, err.message);
+      }
+    }
+
+    async function viewAnalysis(id) {
+      try {
+        const res = await API.request(`/analysis/${id}`);
+        Store.set('analysis_id', id);
+        Store.set('analysis_data', res.data);
+        window.location.href = '/results';
+      } catch (err) { alert(err.message); }
+    }
+
+    loadHistory();
+  </script>
+</body>
+</html>

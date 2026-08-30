@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skill Gap Analysis | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/results">Results</a></li>
+      <li><a href="/skills" class="active">Skills</a></li>
+      <li><a href="/history">History</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Skill Gap Analysis</h1>
+      <p>SBERT semantic skill matching with configurable thresholds</p>
+    </div>
+    <div id="skillsContent">
+      <div class="loading-overlay"><div class="loading-spinner"></div></div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('skillsContent');
+    const data = Store.get('analysis_data');
+
+    if (!data) {
+      UI.showEmpty(container, '&#128200;', 'No analysis data. <a href="/analyze">Run an analysis first</a>');
+    } else {
+      const skills = data.skill_analysis || {};
+      const thresholds = skills.thresholds || {};
+
+      container.innerHTML = `
+        <div class="info-box mb-3">
+          Skill matching uses SBERT embeddings with thresholds:
+          High &ge; ${thresholds.high || 0.72}, Medium &ge; ${thresholds.medium || 0.55}
+        </div>
+
+        <div class="grid-2 mb-3">
+          <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem;">
+            <h3 class="card-title mb-2">Skills Distribution</h3>
+            <div style="max-width: 180px; max-height: 180px; position: relative;">
+              <canvas id="skillsPieChart" width="180" height="180"></canvas>
+            </div>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: center; padding: 1.5rem;">
+            <h3 class="card-title mb-2">Skill Gap Summary</h3>
+            <p style="margin-bottom: 0.5rem;"><strong>Matched Skills:</strong> <span class="badge badge-success">${(skills.matched || []).length}</span></p>
+            <p style="margin-bottom: 0.5rem;"><strong>Partially Matched:</strong> <span class="badge badge-warning">${(skills.partial || []).length}</span></p>
+            <p style="margin-bottom: 0.5rem;"><strong>Missing Skills:</strong> <span class="badge badge-error">${(skills.missing || []).length}</span></p>
+            <p class="text-muted mt-2" style="font-size: 0.8125rem; line-height: 1.4;">
+              Matched skills exceed the 0.72 similarity threshold. Partial matches fall between 0.55 and 0.72. Missing skills have no close semantic matches in your resume.
+            </p>
+          </div>
+        </div>
+
+        <div class="card mb-3">
+          <h3 class="card-title mb-2">Matched Skills (${(skills.matched || []).length})</h3>
+          ${renderSkillTable(skills.matched, 'success')}
+        </div>
+
+        <div class="card mb-3">
+          <h3 class="card-title mb-2">Partially Matched Skills (${(skills.partial || []).length})</h3>
+          ${renderSkillTable(skills.partial, 'warning')}
+        </div>
+
+        <div class="card mb-3">
+          <h3 class="card-title mb-2">Missing Skills (${(skills.missing || []).length})</h3>
+          ${renderMissingSkills(skills.missing)}
+        </div>`;
+
+      // Render Chart.js doughnut graph
+      const ctx = document.getElementById('skillsPieChart')?.getContext('2d');
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Matched', 'Partial', 'Missing'],
+            datasets: [{
+              data: [(skills.matched || []).length, (skills.partial || []).length, (skills.missing || []).length],
+              backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+              borderColor: '#1e293b',
+              borderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { family: 'Inter', size: 9 }, boxWidth: 10 }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    function renderSkillTable(items, type) {
+      if (!items || !items.length) return '<p class="text-muted">None</p>';
+      return `<div class="table-responsive"><table>
+        <thead><tr><th>Skill</th><th>Importance</th><th>Similarity</th><th>Best Match</th></tr></thead>
+        <tbody>${items.map(s => `<tr>
+          <td><span class="badge badge-${type}">${s.skill}</span></td>
+          <td>${s.importance || '-'}</td>
+          <td>${s.similarity || '-'}</td>
+          <td>${s.best_match || '-'}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function renderMissingSkills(items) {
+      if (!items || !items.length) return '<p class="text-muted">No missing skills detected.</p>';
+      return items.map(s => `<div class="question-card">
+        <div class="flex-between">
+          <strong>${s.skill}</strong>
+          <span class="badge badge-error">${s.importance || 'High'} Priority</span>
+        </div>
+        <p class="text-muted mt-1" style="font-size: 0.875rem;">${s.reason || ''}</p>
+        <p class="mt-1" style="font-size: 0.875rem;"><strong>Learning Objective:</strong> ${s.learning_objective || ''}</p>
+      </div>`).join('');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How It Works | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/how-it-works" class="active">How It Works</a></li>
+      <li><a href="/history">History</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>How It Works</h1>
+      <p>Deep learning semantic matching powered by Sentence-BERT</p>
+    </div>
+
+    <div class="card mb-3">
+      <h3 class="card-title mb-2">Research Foundation</h3>
+      <p style="font-size: 0.875rem; color: var(--text-muted);">
+        This project is inspired by <strong>CareerBERT</strong> ("Matching Resumes to ESCO Jobs in a Shared Embedding Space").
+        We use a pretrained SBERT model (<code>all-MiniLM-L6-v2</code>) — we do NOT claim to have trained this model.
+        Our contribution is the matching algorithm, scoring system, and career preparation extensions.
+      </p>
+    </div>
+
+    <div class="card mb-3">
+      <h3 class="card-title mb-2">Pipeline</h3>
+      <div style="font-size: 0.875rem; line-height: 2;">
+        <p><strong>1. Resume Upload</strong> &rarr; PyMuPDF text extraction &rarr; OCR fallback (Tesseract + OpenCV)</p>
+        <p><strong>2. Information Extraction</strong> &rarr; NLP/NER + section parsing &rarr; Skill normalization</p>
+        <p><strong>3. Job Description Analysis</strong> &rarr; Requirement extraction &rarr; User verification</p>
+        <p><strong>4. SBERT Embeddings</strong> &rarr; Section-level embeddings (skills, experience, projects, education)</p>
+        <p><strong>5. Cosine Similarity</strong> &rarr; Semantic matching between resume and job sections</p>
+        <p><strong>6. ATS Scoring</strong> &rarr; Weighted: 45% Semantic + 30% Skills + 15% Experience + 10% Education</p>
+        <p><strong>7. Skill Gap Analysis</strong> &rarr; SBERT per-skill matching with configurable thresholds</p>
+        <p><strong>8. Generative AI</strong> &rarr; Resume improvement, interview questions, preparation roadmap</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="card-title mb-2">SBERT Semantic Matching</h3>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          Unlike keyword-based ATS, SBERT understands meaning. "Built CNN models using TensorFlow"
+          semantically matches "Knowledge of Deep Learning and Computer Vision" even without exact word overlap.
+        </p>
+      </div>
+      <div class="card">
+        <h3 class="card-title mb-2">Transparent Scoring</h3>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">
+          Every score is calculated from measurable components. No random numbers.
+          Weights and thresholds are configurable in <code>config/settings.py</code>.
+        </p>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/analyze" class="btn btn-primary btn-lg">Start Analysis</a>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer &mdash; CSE(AI) Major Project</p></footer>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

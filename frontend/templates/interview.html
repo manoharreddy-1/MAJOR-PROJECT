@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interview Preparation | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/results">Results</a></li>
+      <li><a href="/interview" class="active">Interview</a></li>
+      <li><a href="/roadmap">Roadmap</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Interview Preparation</h1>
+      <p>Job-specific interview questions based on your resume and target role</p>
+    </div>
+    <div id="interviewContent">
+      <div class="card text-center">
+        <p class="mb-2">Generate personalized interview questions across multiple categories.</p>
+        <button id="generateBtn" class="btn btn-primary btn-lg">Generate Questions</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('interviewContent');
+    const analysisId = Store.get('analysis_id');
+    const resumeId = Store.get('resume_id');
+
+    document.getElementById('generateBtn').addEventListener('click', generate);
+
+    async function generate() {
+      if (!analysisId) { UI.showError(container, 'No analysis found.'); return; }
+      UI.showLoading(container, 'Generating interview questions...');
+      try {
+        const res = await API.request('/interview/generate', {
+          method: 'POST', body: { analysis_id: analysisId },
+        });
+        renderQuestions(res.data.questions);
+      } catch (err) { UI.showError(container, err.message); }
+    }
+
+    function renderQuestions(data) {
+      const categories = [
+        { key: 'technical', label: 'Technical', icon: '&#128187;' },
+        { key: 'resume_based', label: 'Resume Based', icon: '&#128196;' },
+        { key: 'project_based', label: 'Project Based', icon: '&#128736;' },
+        { key: 'behavioral', label: 'Behavioral / HR', icon: '&#128101;' },
+        { key: 'skill_gap', label: 'Skill Gap', icon: '&#128200;' },
+      ];
+
+      container.innerHTML = `
+        <div class="tabs" id="qTabs">
+          ${categories.map((c, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-tab="q_${c.key}">${c.label}</button>`).join('')}
+        </div>
+        ${categories.map((c, i) => `
+          <div id="q_${c.key}" class="tab-content ${i === 0 ? 'active' : ''}">
+            ${renderCategory(data[c.key] || [], c.key)}
+          </div>`).join('')}`;
+
+      UI.initTabs(container);
+    }
+
+    function renderCategory(questions, category) {
+      if (!questions.length) return '<p class="text-muted">No questions generated for this category.</p>';
+      return questions.map((q, i) => `
+        <div class="question-card">
+          <div class="question-text">${i + 1}. ${q.question}</div>
+          <div class="question-meta">
+            ${q.topic ? `<span class="badge badge-info">${q.topic}</span>` : ''}
+            ${q.difficulty ? `<span class="badge badge-neutral">${q.difficulty}</span>` : ''}
+            ${q.competency ? `<span class="badge badge-neutral">${q.competency}</span>` : ''}
+            ${q.skill ? `<span class="badge badge-warning">${q.skill}</span>` : ''}
+          </div>
+          <button class="btn btn-outline" onclick="showAnswer(this, '${encodeURIComponent(q.question)}', '${category}')">Show Sample Answer</button>
+          <div class="sample-answer"></div>
+        </div>`).join('');
+    }
+
+    async function showAnswer(btn, question, category) {
+      const answerDiv = btn.nextElementSibling;
+      if (answerDiv.classList.contains('visible')) {
+        answerDiv.classList.remove('visible');
+        btn.textContent = 'Show Sample Answer';
+        return;
+      }
+      btn.textContent = 'Loading...';
+      btn.disabled = true;
+      try {
+        const res = await API.request('/interview/sample-answer', {
+          method: 'POST',
+          body: { question: decodeURIComponent(question), category, resume_id: resumeId },
+        });
+        answerDiv.innerHTML = `<p><strong>Sample Answer:</strong> ${res.data.answer || ''}</p>
+          ${(res.data.tips || []).length ? `<p class="mt-1"><strong>Tips:</strong> ${res.data.tips.join('; ')}</p>` : ''}`;
+        answerDiv.classList.add('visible');
+        btn.textContent = 'Hide Answer';
+      } catch (err) {
+        answerDiv.innerHTML = `<p class="error-state">${err.message}</p>`;
+        answerDiv.classList.add('visible');
+        btn.textContent = 'Hide Answer';
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

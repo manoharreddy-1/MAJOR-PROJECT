@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preparation Roadmap | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/results">Results</a></li>
+      <li><a href="/interview">Interview</a></li>
+      <li><a href="/roadmap" class="active">Roadmap</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Preparation Roadmap</h1>
+      <p>Personalized learning path based on your skill gaps and target role</p>
+    </div>
+    <div id="roadmapContent">
+      <div class="card text-center">
+        <p class="mb-2">Generate a week-by-week preparation plan tailored to your profile.</p>
+        <button id="generateBtn" class="btn btn-primary btn-lg">Generate Roadmap</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('roadmapContent');
+    const analysisId = Store.get('analysis_id');
+
+    document.getElementById('generateBtn').addEventListener('click', generate);
+
+    async function generate() {
+      if (!analysisId) { UI.showError(container, 'No analysis found.'); return; }
+      UI.showLoading(container, 'Generating personalized roadmap...');
+      try {
+        const res = await API.request('/roadmap/generate', {
+          method: 'POST', body: { analysis_id: analysisId },
+        });
+        renderRoadmap(res.data.roadmap);
+      } catch (err) { UI.showError(container, err.message); }
+    }
+
+    function renderRoadmap(data) {
+      const items = data.roadmap || [];
+      const practice = data.interview_practice_phase || {};
+
+      container.innerHTML = `
+        ${data.summary ? `<div class="info-box mb-3">${data.summary}</div>` : ''}
+        
+        <div class="card mb-3 text-center" style="padding: 1.5rem;">
+          <h3 class="card-title mb-1">Preparation Milestones</h3>
+          <p class="text-muted mb-2" style="font-size: 0.8125rem;">Your progressive journey towards job readiness</p>
+          <div style="display: flex; justify-content: space-between; align-items: center; max-width: 500px; margin: 1.5rem auto 0.5rem auto; position: relative;">
+            <div style="position: absolute; top: 16px; left: 0; right: 0; height: 3px; background: var(--border); z-index: 1;"></div>
+            ${items.map((item, idx) => {
+              const weekNum = item.estimated_week || (idx + 1);
+              const color = item.priority === 'HIGH' ? '#ef4444' : item.priority === 'MEDIUM' ? '#f59e0b' : '#10b981';
+              return `
+                <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;">
+                  <div style="width: 32px; height: 32px; border-radius: 50%; background: ${color}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; border: 3px solid #1e293b; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                    ${weekNum}
+                  </div>
+                  <span class="text-muted mt-1" style="font-size: 0.75rem; font-weight: 600;">Week ${weekNum}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="timeline">
+          ${items.map(item => `
+            <div class="timeline-item ${item.priority?.toLowerCase() || ''}">
+              <div class="flex-between">
+                <strong>${item.topic}</strong>
+                <span class="badge badge-${item.priority === 'HIGH' ? 'error' : item.priority === 'MEDIUM' ? 'warning' : 'info'}">${item.priority} &mdash; Week ${item.estimated_week || '?'}</span>
+              </div>
+              <p class="text-muted mt-1" style="font-size: 0.875rem;">${item.reason || ''}</p>
+              <p class="mt-1" style="font-size: 0.875rem;"><strong>Goal:</strong> ${item.learning_objective || ''}</p>
+              <span class="badge badge-neutral mt-1">${item.stage || ''}</span>
+            </div>`).join('')}
+        </div>
+        ${practice.focus_areas ? `
+          <div class="card mt-3">
+            <h3 class="card-title mb-2">Interview Practice Phase</h3>
+            <p><strong>Focus:</strong> ${(practice.focus_areas || []).join(', ')}</p>
+            <p class="mt-1"><strong>Activities:</strong> ${(practice.recommended_activities || []).join(', ')}</p>
+          </div>` : ''}`;
+    }
+  </script>
+</body>
+</html>

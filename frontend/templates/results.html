@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATS Results | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/results" class="active">Results</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div id="resultsContent">
+      <div class="loading-overlay"><div class="loading-spinner"></div><p>Loading analysis results...</p></div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer &mdash; CSE(AI) Major Project</p></footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const container = document.getElementById('resultsContent');
+
+    async function loadResults() {
+      let data = Store.get('analysis_data');
+      const analysisId = Store.get('analysis_id');
+
+      if (!data && analysisId) {
+        try {
+          const res = await API.request(`/analysis/${analysisId}`);
+          data = res.data;
+        } catch (err) {
+          UI.showError(container, 'No analysis found. Please run an analysis first.');
+          return;
+        }
+      }
+
+      if (!data) {
+        UI.showEmpty(container, '&#128202;', 'No analysis results. <a href="/analyze">Start an analysis</a>');
+        return;
+      }
+
+      renderResults(data);
+    }
+
+    function renderResults(data) {
+      const scores = data.scores || {};
+      const breakdown = data.score_breakdown || {};
+      const skills = data.skill_analysis || {};
+
+      container.innerHTML = `
+        <div class="page-header text-center">
+          <p class="text-muted">TARGET ROLE</p>
+          <h1>${data.target_role || 'Target Role'}</h1>
+          <span class="badge badge-${scores.overall >= 65 ? 'success' : scores.overall >= 50 ? 'warning' : 'error'}">${data.match_label || ''}</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="card text-center">
+            ${UI.createScoreGauge(scores.overall, 'ATS Match Score')}
+            <p class="text-muted mt-2">Overall weighted score from SBERT semantic analysis</p>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-2">Score Breakdown</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <div style="flex: 1.2; min-width: 200px;">
+                ${UI.createProgressBar('Semantic Match', scores.semantic, 'semantic')}
+                ${UI.createProgressBar('Skill Match', scores.skills, 'skills')}
+                ${UI.createProgressBar('Experience Match', scores.experience, 'experience')}
+                ${UI.createProgressBar('Education Match', scores.education, 'education')}
+              </div>
+              <div style="flex: 0.8; min-width: 180px; max-height: 200px; display: flex; justify-content: center; align-items: center;">
+                <canvas id="radarChart" style="max-width: 180px; max-height: 180px;"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mt-3">
+          <h3 class="card-title mb-2">How This Score Was Calculated</h3>
+          <div class="info-box">
+            <p><strong>Semantic Match:</strong> ${scores.semantic}/100 &times; 45% = ${breakdown.components?.semantic?.weighted || 0}</p>
+            <p><strong>Skill Match:</strong> ${scores.skills}/100 &times; 30% = ${breakdown.components?.skills?.weighted || 0}</p>
+            <p><strong>Experience Match:</strong> ${scores.experience}/100 &times; 15% = ${breakdown.components?.experience?.weighted || 0}</p>
+            <p><strong>Education Match:</strong> ${scores.education}/100 &times; 10% = ${breakdown.components?.education?.weighted || 0}</p>
+            <p class="mt-1"><strong>Final: ${scores.overall}/100</strong></p>
+          </div>
+          <p class="text-muted" style="font-size: 0.8125rem;">${data.disclaimer || ''}</p>
+        </div>
+
+        <div class="grid-3 mt-3">
+          <div class="card">
+            <h3 class="card-title mb-2">Matched Skills</h3>
+            <div class="skill-tags">${(skills.matched || []).map(s => `<span class="skill-tag matched">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-2">Partially Matched</h3>
+            <div class="skill-tags">${(skills.partial || []).map(s => `<span class="skill-tag partial">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-2">Missing Skills</h3>
+            <div class="skill-tags">${(skills.missing || []).map(s => `<span class="skill-tag missing">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>
+          </div>
+        </div>
+
+        <div class="grid-2 mt-3">
+          <div class="card">
+            <h3 class="card-title mb-2">Resume Strengths</h3>
+            <ul>${(data.strengths || []).map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}</ul>
+          </div>
+          <div class="card">
+            <h3 class="card-title mb-2">Areas to Improve</h3>
+            <ul>${(data.improvements || []).map(s => `<li style="margin-bottom: 0.5rem;">${s}</li>`).join('')}</ul>
+          </div>
+        </div>
+
+        <div class="flex mt-4" style="gap: 1rem; flex-wrap: wrap; justify-content: center;">
+          <a href="/skills" class="btn btn-primary">Skill Gap Analysis</a>
+          <a href="/improve" class="btn btn-secondary">Resume Improvement</a>
+          <a href="/interview" class="btn btn-outline">Interview Prep</a>
+          <a href="/roadmap" class="btn btn-outline">Preparation Roadmap</a>
+        </div>`;
+
+      // Render Chart.js radar graph
+      const ctx = document.getElementById('radarChart')?.getContext('2d');
+      if (ctx) {
+        new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: ['Semantic', 'Skills', 'Experience', 'Education'],
+            datasets: [{
+              data: [scores.semantic, scores.skills, scores.experience, scores.education],
+              backgroundColor: 'rgba(14, 165, 233, 0.2)',
+              borderColor: 'rgba(14, 165, 233, 1)',
+              borderWidth: 2,
+              pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                beginAtZero: true,
+                ticks: { display: false, stepSize: 20 },
+                pointLabels: { font: { family: 'Inter', size: 9, weight: '600' } }
+              }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      }
+    }
+
+    loadResults();
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Analysis | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze" class="active">Analyze</a></li>
+      <li><a href="/job">Job Description</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>Resume Analysis</h1>
+      <p>Upload your PDF resume for AI-powered information extraction</p>
+    </div>
+
+    <div class="steps">
+      <div class="step active"><span class="step-number">1</span> Upload Resume</div>
+      <div class="step-connector"></div>
+      <div class="step"><span class="step-number">2</span> Job Description</div>
+      <div class="step-connector"></div>
+      <div class="step"><span class="step-number">3</span> Results</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Upload Resume</h2>
+        </div>
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">&#128196;</div>
+          <p><strong>Drag &amp; drop your PDF resume here</strong></p>
+          <p>or click to browse (max 10 MB)</p>
+        </div>
+        <input type="file" id="resumeFile" accept=".pdf" hidden>
+        <div id="uploadStatus" class="mt-2"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Extracted Information</h2>
+        </div>
+        <div id="extractedInfo">
+          <div class="empty-state">
+            <div class="empty-icon">&#128221;</div>
+            <p>Upload a resume to see extracted information</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex mt-3" style="justify-content: flex-end; gap: 1rem;">
+      <button id="saveBtn" class="btn btn-primary hidden" disabled>Save &amp; Continue to Job Description</button>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>AI Resume Analyzer &mdash; CSE(AI) Major Project</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let resumeId = Store.get('resume_id');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const extractedInfo = document.getElementById('extractedInfo');
+    const saveBtn = document.getElementById('saveBtn');
+
+    initUploadZone('uploadZone', 'resumeFile', handleUpload);
+
+    if (resumeId) {
+      loadResume(resumeId);
+    }
+
+    async function handleUpload(file) {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        uploadStatus.innerHTML = '<div class="error-state">Please upload a PDF file.</div>';
+        return;
+      }
+
+      uploadStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Extracting resume...</p></div>';
+      UI.showLoading(extractedInfo, 'Processing resume...');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await API.upload('/resume/upload', formData);
+        resumeId = res.data.resume_id;
+        Store.set('resume_id', resumeId);
+        Store.set('resume_data', res.data.extracted);
+
+        uploadStatus.innerHTML = `<div class="success-state">Resume uploaded successfully${res.data.ocr_used ? ' (OCR used)' : ''}.</div>`;
+        renderExtracted(res.data.extracted);
+        saveBtn.classList.remove('hidden');
+        saveBtn.disabled = false;
+      } catch (err) {
+        uploadStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+        UI.showEmpty(extractedInfo, '&#9888;', 'Extraction failed');
+      }
+    }
+
+    async function loadResume(id) {
+      try {
+        const res = await API.request(`/resume/extract/${id}`);
+        renderExtracted(res.data.extracted);
+        saveBtn.classList.remove('hidden');
+        saveBtn.disabled = false;
+      } catch (err) {
+        Store.remove('resume_id');
+      }
+    }
+
+    function renderExtracted(data) {
+      if (!data) return;
+      extractedInfo.innerHTML = `
+        <div class="form-group"><label class="form-label">Name</label>
+          <input class="form-input" id="extName" value="${data.name || ''}"></div>
+        <div class="form-group"><label class="form-label">Email</label>
+          <input class="form-input" id="extEmail" value="${data.email || ''}"></div>
+        <div class="form-group"><label class="form-label">Phone</label>
+          <input class="form-input" id="extPhone" value="${data.phone || ''}"></div>
+        <div class="form-group"><label class="form-label">Skills</label>
+          <input class="form-input" id="extSkills" value="${(data.skills || []).join(', ')}"></div>
+        <div class="form-group"><label class="form-label">Education</label>
+          <textarea class="form-textarea" id="extEducation" rows="2">${(data.education || []).join('\n')}</textarea></div>
+        <div class="form-group"><label class="form-label">Experience</label>
+          <textarea class="form-textarea" id="extExperience" rows="3">${(data.experience || []).join('\n')}</textarea></div>
+        <div class="form-group"><label class="form-label">Projects</label>
+          <textarea class="form-textarea" id="extProjects" rows="3">${(data.projects || []).join('\n')}</textarea></div>
+        <p class="text-muted mt-1" style="font-size: 0.8125rem;">Review and edit extracted information for accuracy.</p>`;
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      const extracted = {
+        ...Store.get('resume_data'),
+        name: document.getElementById('extName')?.value,
+        email: document.getElementById('extEmail')?.value,
+        phone: document.getElementById('extPhone')?.value,
+        skills: document.getElementById('extSkills')?.value.split(',').map(s => s.trim()).filter(Boolean),
+        education: document.getElementById('extEducation')?.value.split('\n').filter(Boolean),
+        experience: document.getElementById('extExperience')?.value.split('\n').filter(Boolean),
+        projects: document.getElementById('extProjects')?.value.split('\n').filter(Boolean),
+      };
+
+      try {
+        await API.request(`/resume/extract/${resumeId}`, {
+          method: 'PUT',
+          body: { extracted },
+        });
+        Store.set('resume_data', extracted);
+        window.location.href = '/job';
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+  </script>
+</body>
+</html>
