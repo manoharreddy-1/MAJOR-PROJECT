@@ -20,6 +20,10 @@ if %errorlevel% neq 0 (
 )
 
 echo Using Python: %PYTHON_EXE%
+echo.
+echo Installing dependencies from requirements-local.txt ...
+%PYTHON_EXE% -m pip install -r requirements-local.txt -q
+echo.
 echo Starting Flask App on http://127.0.0.1:5000/
 echo Press Ctrl+C in this terminal window to stop the server.
 echo.

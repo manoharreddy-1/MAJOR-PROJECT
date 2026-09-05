@@ -29,6 +29,5 @@
   ],
   "env": {
     "FLASK_DEBUG": "false"
-  },
-  "installCommand": "pip install -r requirements-vercel.txt"
+  }
 }
