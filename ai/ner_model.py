@@ -30,6 +30,9 @@ def get_ner_pipeline():
             )
             logger.info("NER model loaded successfully.")
             return _ner_pipeline
+        except ImportError:
+            logger.info("transformers not installed; NER model unavailable.")
+            return None
         except Exception as exc:
             logger.warning("NER model unavailable: %s", exc)
             return None

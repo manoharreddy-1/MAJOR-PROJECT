@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "app.py",
-      "use": "@vercel/python"
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     },
     {
       "src": "frontend/static/**",
@@ -26,5 +29,6 @@
   ],
   "env": {
     "FLASK_DEBUG": "false"
-  }
+  },
+  "installCommand": "pip install -r requirements-vercel.txt"
 }

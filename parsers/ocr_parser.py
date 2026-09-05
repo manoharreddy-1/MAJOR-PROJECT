@@ -1,22 +1,35 @@
-"""OCR fallback for scanned PDFs using Tesseract and OpenCV."""
+"""OCR fallback for scanned PDFs using Tesseract and OpenCV.
+
+All heavy dependencies (cv2, pytesseract) are optional. When not installed
+(e.g., on Vercel), OCR is simply disabled and the parser falls back to
+text-based PDF extraction only.
+"""
 import logging
 from typing import Optional
 
-import cv2
-import fitz
-import numpy as np
-
 logger = logging.getLogger(__name__)
 
+# --- Optional imports ---
+_OCR_AVAILABLE = False
 try:
-    import pytesseract
-    TESSERACT_AVAILABLE = True
+    import cv2
+    import numpy as np
+    try:
+        import pytesseract
+        _OCR_AVAILABLE = True
+    except ImportError:
+        logger.info("pytesseract not available; OCR will be disabled.")
 except ImportError:
-    TESSERACT_AVAILABLE = False
-    logger.warning("pytesseract not available; OCR will be disabled.")
+    logger.info("opencv not available; OCR will be disabled.")
+
+try:
+    import fitz
+    _FITZ_AVAILABLE = True
+except ImportError:
+    _FITZ_AVAILABLE = False
 
 
-def preprocess_image(image: np.ndarray) -> np.ndarray:
+def preprocess_image(image) -> "np.ndarray":
     """Preprocess image for better OCR accuracy."""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     denoised = cv2.fastNlMeansDenoising(gray, h=10)
@@ -24,9 +37,9 @@ def preprocess_image(image: np.ndarray) -> np.ndarray:
     return binary
 
 
-def ocr_page_image(image: np.ndarray) -> str:
+def ocr_page_image(image) -> str:
     """Run Tesseract OCR on a preprocessed image."""
-    if not TESSERACT_AVAILABLE:
+    if not _OCR_AVAILABLE:
         return ""
     try:
         processed = preprocess_image(image)
@@ -44,8 +57,8 @@ def extract_text_with_ocr(file_bytes: bytes, dpi: int = 200):
     Returns:
         (text, ocr_used)
     """
-    if not TESSERACT_AVAILABLE:
-        logger.warning("OCR requested but Tesseract is not available.")
+    if not _OCR_AVAILABLE or not _FITZ_AVAILABLE:
+        logger.info("OCR requested but dependencies are not available.")
         return "", False
 
     text_parts = []

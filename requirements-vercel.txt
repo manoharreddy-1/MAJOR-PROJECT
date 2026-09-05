@@ -1,0 +1,18 @@
+# Vercel-compatible lightweight requirements
+# Heavy ML deps (torch, transformers, sentence-transformers) are excluded
+# to stay under the 500MB serverless function limit.
+# The app gracefully falls back to keyword-based matching when SBERT is unavailable.
+
+flask>=3.0.0
+flask-cors>=4.0.0
+python-dotenv>=1.0.0
+pymongo>=4.6.0
+werkzeug>=3.0.0
+
+# Document processing (lightweight)
+PyMuPDF>=1.23.0
+Pillow>=10.0.0
+
+# Utilities
+requests>=2.31.0
+numpy>=1.24.0

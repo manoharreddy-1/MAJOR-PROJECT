@@ -33,6 +33,9 @@ def get_sbert_model():
             _model = SentenceTransformer(SBERT_MODEL_NAME)
             logger.info("SBERT model loaded successfully.")
             return _model
+        except ImportError:
+            logger.error("sentence-transformers not installed. SBERT unavailable.")
+            raise
         except Exception as exc:
             logger.error("Failed to load SBERT model: %s", exc)
             raise RuntimeError(
