@@ -34,6 +34,19 @@ def create_app():
         static_folder=static_dir,
         static_url_path="/static",
     )
+    
+    # Ensure Jinja can find templates across any working directory in serverless runtime
+    search_paths = [
+        template_dir,
+        os.path.join(BASE_DIR, "api", "frontend", "templates"),
+        os.path.join(os.getcwd(), "frontend", "templates"),
+        os.path.join(os.getcwd(), "api", "frontend", "templates"),
+    ]
+    existing_paths = [p for p in search_paths if os.path.exists(p)]
+    if existing_paths:
+        from jinja2 import ChoiceLoader, FileSystemLoader
+        app.jinja_loader = ChoiceLoader([FileSystemLoader(p) for p in existing_paths])
+
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
 

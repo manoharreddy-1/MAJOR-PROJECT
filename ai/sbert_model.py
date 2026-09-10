@@ -1,25 +1,22 @@
 """SBERT model singleton for semantic embeddings."""
 import logging
 import threading
-from typing import List, Optional
-
-import numpy as np
-
-from config.settings import SBERT_MODEL_NAME
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
 _model = None
 _model_lock = threading.Lock()
 
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except Exception:
+    _HAS_NUMPY = False
+
 
 def get_sbert_model():
-    """
-    Load and cache SentenceTransformer model (singleton).
-
-    Uses sentence-transformers/all-MiniLM-L6-v2 by default.
-    Model is loaded once and reused across requests.
-    """
+    """Load and cache SentenceTransformer model (singleton)."""
     global _model
     if _model is not None:
         return _model
@@ -28,28 +25,22 @@ def get_sbert_model():
         if _model is not None:
             return _model
         try:
+            from config.settings import SBERT_MODEL_NAME
             from sentence_transformers import SentenceTransformer
             logger.info("Loading SBERT model: %s", SBERT_MODEL_NAME)
             _model = SentenceTransformer(SBERT_MODEL_NAME)
             logger.info("SBERT model loaded successfully.")
             return _model
-        except ImportError:
-            logger.error("sentence-transformers not installed. SBERT unavailable.")
-            raise
         except Exception as exc:
-            logger.error("Failed to load SBERT model: %s", exc)
-            raise RuntimeError(
-                f"Could not load SBERT model '{SBERT_MODEL_NAME}'. "
-                "Ensure sentence-transformers is installed."
-            ) from exc
+            logger.warning("Failed to load SBERT model: %s", exc)
+            raise
 
 
-def encode_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
+def encode_texts(texts: List[str], batch_size: int = 32) -> Any:
     """Encode a list of texts into SBERT embeddings."""
     if not texts:
-        return np.array([])
+        return np.array([]) if _HAS_NUMPY else []
     model = get_sbert_model()
-    # Filter empty strings
     valid_texts = [t if t and t.strip() else " " for t in texts]
     embeddings = model.encode(
         valid_texts,
@@ -61,7 +52,7 @@ def encode_texts(texts: List[str], batch_size: int = 32) -> np.ndarray:
     return embeddings
 
 
-def encode_single(text: str) -> np.ndarray:
+def encode_single(text: str) -> Any:
     """Encode a single text string."""
     if not text or not text.strip():
         text = " "

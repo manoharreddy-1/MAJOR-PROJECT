@@ -9,14 +9,14 @@ The backend is selected automatically based on available dependencies.
 import logging
 import re
 from collections import Counter
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 try:
     import numpy as np
     _HAS_NUMPY = True
-except ImportError:
+except Exception:
     _HAS_NUMPY = False
     logger.info("numpy not available; using keyword-only matching.")
 
@@ -27,7 +27,8 @@ try:
     from sklearn.metrics.pairwise import cosine_similarity as sklearn_cosine_similarity
     _USE_SBERT = True
     logger.info("SBERT backend available for semantic matching.")
-except ImportError:
+except Exception:
+    _USE_SBERT = False
     logger.info("SBERT not available; using keyword-based fallback for matching.")
 
 
@@ -88,11 +89,12 @@ def _cache_key(text: str) -> str:
     return text.strip().lower()[:200]
 
 
-def get_embedding(text: str, use_cache: bool = True) -> np.ndarray:
+def get_embedding(text: str, use_cache: bool = True) -> Any:
     """Get embedding for text with optional caching. Requires SBERT backend."""
     if not _USE_SBERT:
-        # Return a dummy embedding; callers should use text_similarity() instead
-        return np.zeros(384)
+        if _HAS_NUMPY:
+            return np.zeros(384)
+        return [0.0] * 384
 
     if not text or not text.strip():
         return encode_single(" ")
@@ -110,7 +112,7 @@ def get_embedding(text: str, use_cache: bool = True) -> np.ndarray:
     return embedding
 
 
-def cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
+def cosine_sim(a: Any, b: Any) -> float:
     """Calculate cosine similarity between two embedding vectors."""
     if not _USE_SBERT:
         return 0.0
@@ -168,10 +170,10 @@ def best_match_similarity(
 
 def batch_similarity_scores(
     queries: List[str], candidates: List[str]
-) -> np.ndarray:
+) -> Any:
     """Compute similarity matrix between queries and candidates."""
     if not queries or not candidates:
-        return np.array([])
+        return []
 
     if _USE_SBERT:
         query_embs = encode_texts(queries)
@@ -179,8 +181,14 @@ def batch_similarity_scores(
         return sklearn_cosine_similarity(query_embs, candidate_embs)
     else:
         # Fallback: keyword similarity matrix
-        result = np.zeros((len(queries), len(candidates)))
-        for i, q in enumerate(queries):
-            for j, c in enumerate(candidates):
-                result[i, j] = _keyword_similarity(q, c)
-        return result
+        if _HAS_NUMPY:
+            result = np.zeros((len(queries), len(candidates)))
+            for i, q in enumerate(queries):
+                for j, c in enumerate(candidates):
+                    result[i, j] = _keyword_similarity(q, c)
+            return result
+        else:
+            return [
+                [_keyword_similarity(q, c) for c in candidates]
+                for q in queries
+            ]
