@@ -4,7 +4,7 @@ import logging
 from bson import ObjectId
 from flask import Blueprint, request
 
-from api.responses import error_response, success_response
+from routes.responses import error_response, success_response
 from database.models import serialize_doc, utc_now
 from database.mongodb import get_collection, COLLECTIONS
 from services.ats_service import ATSService

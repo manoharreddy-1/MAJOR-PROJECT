@@ -14,9 +14,9 @@ sys.path.insert(0, BASE_DIR)
 load_dotenv()
 
 from config.settings import CORS_ORIGINS, DEBUG, SECRET_KEY
-from api.resume_routes import resume_bp
-from api.job_routes import job_bp
-from api.analysis_routes import analysis_bp
+from routes.resume_routes import resume_bp
+from routes.job_routes import job_bp
+from routes.analysis_routes import analysis_bp
 from database.mongodb import check_connection
 
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +32,7 @@ def create_app():
         __name__,
         template_folder=template_dir,
         static_folder=static_dir,
+        static_url_path="/static",
     )
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB

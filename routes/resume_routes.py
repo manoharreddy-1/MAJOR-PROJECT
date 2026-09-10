@@ -3,7 +3,7 @@ import logging
 
 from flask import Blueprint, request
 
-from api.responses import error_response, success_response
+from routes.responses import error_response, success_response
 from services.resume_service import ResumeService
 from utils.validators import validate_upload
 
