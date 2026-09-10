@@ -5,7 +5,8 @@
       "src": "app.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "50mb"
+        "maxLambdaSize": "50mb",
+        "includeFiles": "frontend/**"
       }
     },
     {
@@ -15,12 +16,12 @@
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "app.py"
-    },
-    {
       "src": "/static/(.*)",
       "dest": "frontend/static/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "app.py"
     },
     {
       "src": "/(.*)",

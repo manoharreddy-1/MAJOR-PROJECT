@@ -11,9 +11,14 @@ import re
 from collections import Counter
 from typing import List, Optional, Tuple
 
-import numpy as np
-
 logger = logging.getLogger(__name__)
+
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
+    logger.info("numpy not available; using keyword-only matching.")
 
 # --- Detect available backend ---
 _USE_SBERT = False

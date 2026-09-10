@@ -4,11 +4,12 @@ import os
 import sys
 
 from dotenv import load_dotenv
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, BASE_DIR)
 
 load_dotenv()
 
@@ -24,10 +25,13 @@ logger = logging.getLogger(__name__)
 
 def create_app():
     """Application factory."""
+    template_dir = os.path.join(BASE_DIR, "frontend", "templates")
+    static_dir = os.path.join(BASE_DIR, "frontend", "static")
+
     app = Flask(
         __name__,
-        template_folder="frontend/templates",
-        static_folder="frontend/static",
+        template_folder=template_dir,
+        static_folder=static_dir,
     )
     app.config["SECRET_KEY"] = SECRET_KEY
     app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
@@ -38,6 +42,22 @@ def create_app():
     app.register_blueprint(resume_bp, url_prefix="/api/resume")
     app.register_blueprint(job_bp, url_prefix="/api/job")
     app.register_blueprint(analysis_bp, url_prefix="/api")
+
+    # Global error handlers
+    @app.errorhandler(404)
+    def not_found(e):
+        return jsonify({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}), 404
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        logger.exception("Unhandled application error: %s", e)
+        return jsonify({
+            "success": False,
+            "error": {
+                "code": "SERVER_ERROR",
+                "message": str(e)
+            }
+        }), 500
 
     # Frontend routes
     @app.route("/")
@@ -84,7 +104,11 @@ def create_app():
     def how_it_works():
         return render_template("how-it-works.html")
 
-    # Health check
+    # Health checks
+    @app.route("/api/ping")
+    def ping():
+        return {"success": True, "message": "pong"}
+
     @app.route("/api/health")
     def health():
         db_ok = check_connection()
@@ -93,7 +117,7 @@ def create_app():
             "data": {
                 "status": "healthy" if db_ok else "degraded",
                 "database": "connected" if db_ok else "disconnected",
-                "sbert_model": "sentence-transformers/all-MiniLM-L6-v2",
+                "sbert_model": "sentence-transformers/all-MiniLM-L6-v2 (or keyword fallback)",
             },
             "message": "Service is running.",
         }
@@ -102,6 +126,8 @@ def create_app():
 
 
 app = create_app()
+handler = app
+application = app
 
 if __name__ == "__main__":
     app.run(debug=DEBUG, host="0.0.0.0", port=5000)

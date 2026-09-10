@@ -146,6 +146,12 @@ def get_collection(name: str) -> Any:
 
 def check_connection() -> bool:
     """Verify MongoDB connectivity."""
+    import os
+    # If on Vercel and URI is default localhost, immediately use in-memory mock
+    if os.getenv("VERCEL") and ("localhost" in MONGODB_URI or "127.0.0.1" in MONGODB_URI):
+        logger.info("Running on Vercel with default localhost URI; using in-memory database mock.")
+        return False
+
     try:
         get_client().admin.command("ping")
         return True
