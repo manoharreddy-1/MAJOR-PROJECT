@@ -80,8 +80,11 @@ def run_analysis():
         return error_response("ANALYSIS_FAILED", "Analysis failed. Please try again.", 500)
 
 
+@analysis_bp.route("/analysis/<analysis_id>", methods=["GET"])
 @analysis_bp.route("/<analysis_id>", methods=["GET"])
 def get_analysis(analysis_id):
+    if not ObjectId.is_valid(analysis_id):
+        return error_response("NOT_FOUND", "Analysis not found.", 404)
     doc = analyses_collection.find_one({"_id": ObjectId(analysis_id)})
     if not doc:
         return error_response("NOT_FOUND", "Analysis not found.", 404)
