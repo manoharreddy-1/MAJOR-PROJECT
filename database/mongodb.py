@@ -1,5 +1,6 @@
 """MongoDB connection and collection accessors and in-memory mock fallback."""
 import logging
+import os
 from typing import Optional, Any, Dict
 
 from pymongo import MongoClient
@@ -146,10 +147,9 @@ def get_collection(name: str) -> Any:
 
 def check_connection() -> bool:
     """Verify MongoDB connectivity."""
-    import os
-    # If on Vercel and URI is default localhost, immediately use in-memory mock
-    if os.getenv("VERCEL") and ("localhost" in MONGODB_URI or "127.0.0.1" in MONGODB_URI):
-        logger.info("Running on Vercel with default localhost URI; using in-memory database mock.")
+    # If URI is default localhost/unset, immediately use mock without network delay
+    if not MONGODB_URI or "localhost" in MONGODB_URI or "127.0.0.1" in MONGODB_URI:
+        logger.info("Localhost/unset MongoDB URI detected; using in-memory database mock.")
         return False
 
     try:
