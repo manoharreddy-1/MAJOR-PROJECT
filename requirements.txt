@@ -1,9 +1,8 @@
-# Vercel-compatible lightweight requirements
-flask>=3.0.0
-flask-cors>=4.0.0
-python-dotenv>=1.0.0
-pymongo>=4.6.0
-werkzeug>=3.0.0
-pypdf>=4.0.0
-requests>=2.31.0
-numpy>=1.24.0
+# Lightweight Vercel-compatible dependencies
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+pymongo==4.6.0
+werkzeug==3.0.1
+pypdf==4.0.0
+requests==2.31.0
