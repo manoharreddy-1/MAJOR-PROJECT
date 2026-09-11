@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/static/(.*)",
+      "destination": "/frontend/static/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/api/index"
     }
