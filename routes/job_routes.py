@@ -49,6 +49,9 @@ def analyze_job():
 
 @job_bp.route("/<job_id>", methods=["GET"])
 def get_job(job_id):
+    from bson import ObjectId
+    if not ObjectId.is_valid(job_id):
+        return error_response("NOT_FOUND", "Job description not found.", 404)
     job = job_service.get_job(job_id)
     if not job:
         return error_response("NOT_FOUND", "Job description not found.", 404)
@@ -57,6 +60,9 @@ def get_job(job_id):
 
 @job_bp.route("/<job_id>", methods=["PUT"])
 def update_job(job_id):
+    from bson import ObjectId
+    if not ObjectId.is_valid(job_id):
+        return error_response("NOT_FOUND", "Job description not found.", 404)
     data = request.get_json()
     if not data or "requirements" not in data:
         return error_response("INVALID_DATA", "Requirements data is required.")

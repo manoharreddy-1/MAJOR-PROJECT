@@ -86,7 +86,7 @@ class VercelPathFixMiddleware:
 app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
 
 
-@app.route("/api/debug_env", methods=["GET", "POST"])
+@app.route("/debug_env", methods=["GET", "POST"])
 def debug_env():
     import flask
     return flask.jsonify({

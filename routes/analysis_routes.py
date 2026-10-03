@@ -81,7 +81,6 @@ def run_analysis():
 
 
 @analysis_bp.route("/analysis/<analysis_id>", methods=["GET"])
-@analysis_bp.route("/<analysis_id>", methods=["GET"])
 def get_analysis(analysis_id):
     if not ObjectId.is_valid(analysis_id):
         return error_response("NOT_FOUND", "Analysis not found.", 404)

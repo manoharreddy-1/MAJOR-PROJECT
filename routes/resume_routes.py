@@ -38,6 +38,9 @@ def upload_resume():
 @resume_bp.route("/extract/<resume_id>", methods=["GET"])
 def get_resume(resume_id):
     """Get extracted resume information."""
+    from bson import ObjectId
+    if not ObjectId.is_valid(resume_id):
+        return error_response("NOT_FOUND", "Resume not found.", 404)
     resume = resume_service.get_resume(resume_id)
     if not resume:
         return error_response("NOT_FOUND", "Resume not found.", 404)
@@ -47,6 +50,9 @@ def get_resume(resume_id):
 @resume_bp.route("/extract/<resume_id>", methods=["PUT"])
 def update_resume(resume_id):
     """Update extracted resume information after user verification."""
+    from bson import ObjectId
+    if not ObjectId.is_valid(resume_id):
+        return error_response("NOT_FOUND", "Resume not found.", 404)
     data = request.get_json()
     if not data or "extracted" not in data:
         return error_response("INVALID_DATA", "Extracted data is required.")
