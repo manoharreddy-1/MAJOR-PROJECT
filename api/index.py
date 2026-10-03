@@ -63,22 +63,16 @@ class VercelPathFixMiddleware:
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        headers_to_check = [
-            "HTTP_X_FORWARDED_PATH",
-            "HTTP_X_MATCHED_PATH",
-            "HTTP_X_ORIGINAL_URI",
-            "HTTP_X_REWRITE_URL",
-            "HTTP_X_FORWARDED_URI",
-            "RAW_URI",
-            "REQUEST_URI",
-        ]
-        for h in headers_to_check:
-            val = environ.get(h)
-            if val:
-                clean = val.split("?")[0]
-                if clean and clean not in ("/api/index", "/api"):
-                    environ["PATH_INFO"] = clean
-                    break
+        import urllib.parse
+        query = environ.get("QUERY_STRING", "")
+        if "path=" in query:
+            params = urllib.parse.parse_qs(query)
+            if "path" in params and params["path"]:
+                orig_path = "/" + params["path"][0].lstrip("/")
+                environ["PATH_INFO"] = orig_path
+                # Clean path from query string so app sees normal query params
+                del params["path"]
+                environ["QUERY_STRING"] = urllib.parse.urlencode(params, doseq=True)
 
         return self.wsgi_app(environ, start_response)
 
