@@ -67,12 +67,17 @@ class VercelPathFixMiddleware:
         query = environ.get("QUERY_STRING", "")
         if "path=" in query:
             params = urllib.parse.parse_qs(query)
-            if "path" in params and params["path"]:
-                orig_path = "/" + params["path"][0].lstrip("/")
-                environ["PATH_INFO"] = orig_path
-                # Clean path from query string so app sees normal query params
+            path_val = params.get("path", [""])[0].strip()
+            if not path_val or path_val == "/":
+                environ["PATH_INFO"] = "/"
+            else:
+                environ["PATH_INFO"] = "/" + path_val.lstrip("/")
+            
+            if "path" in params:
                 del params["path"]
-                environ["QUERY_STRING"] = urllib.parse.urlencode(params, doseq=True)
+            environ["QUERY_STRING"] = urllib.parse.urlencode(params, doseq=True)
+        elif environ.get("PATH_INFO") in ("/api/index", "/api", "/api/"):
+            environ["PATH_INFO"] = "/"
 
         return self.wsgi_app(environ, start_response)
 
@@ -93,16 +98,7 @@ def debug_env():
 
 @app.errorhandler(404)
 def not_found(e):
-    import flask
-    return jsonify({
-        "success": False,
-        "error": {
-            "code": "NOT_FOUND",
-            "message": "Resource not found",
-            "received_path": flask.request.path,
-            "environ_keys": {k: str(v) for k, v in flask.request.environ.items() if isinstance(v, (str, int, float)) and ('PATH' in k or 'URI' in k or 'ROUTE' in k or 'URL' in k)}
-        }
-    }), 404
+    return jsonify({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}), 404
 
 
 @app.errorhandler(Exception)
@@ -115,6 +111,9 @@ def handle_exception(e):
 
 # Frontend routes
 @app.route("/")
+@app.route("/api/index")
+@app.route("/api")
+@app.route("/api/")
 def index():
     return render_template("index.html")
 
