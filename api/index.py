@@ -63,21 +63,38 @@ class VercelPathFixMiddleware:
         self.wsgi_app = wsgi_app
 
     def __call__(self, environ, start_response):
-        raw_path = (
-            environ.get("HTTP_X_MATCHED_PATH")
-            or environ.get("HTTP_X_FORWARDED_PATH")
-            or environ.get("HTTP_X_FORWARDED_URI")
-            or environ.get("REQUEST_URI")
-        )
-        if raw_path:
-            path = raw_path.split("?")[0]
-            if path and path not in ("/api/index", "/api"):
-                environ["PATH_INFO"] = path
+        headers_to_check = [
+            "HTTP_X_FORWARDED_PATH",
+            "HTTP_X_MATCHED_PATH",
+            "HTTP_X_ORIGINAL_URI",
+            "HTTP_X_REWRITE_URL",
+            "HTTP_X_FORWARDED_URI",
+            "RAW_URI",
+            "REQUEST_URI",
+        ]
+        for h in headers_to_check:
+            val = environ.get(h)
+            if val:
+                clean = val.split("?")[0]
+                if clean and clean not in ("/api/index", "/api"):
+                    environ["PATH_INFO"] = clean
+                    break
 
         return self.wsgi_app(environ, start_response)
 
 
 app.wsgi_app = VercelPathFixMiddleware(app.wsgi_app)
+
+
+@app.route("/api/debug_env", methods=["GET", "POST"])
+def debug_env():
+    import flask
+    return flask.jsonify({
+        "environ": {k: str(v) for k, v in flask.request.environ.items() if isinstance(v, (str, int, float))},
+        "headers": dict(flask.request.headers),
+        "path": flask.request.path,
+        "method": flask.request.method,
+    })
 
 
 @app.errorhandler(404)
