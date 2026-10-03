@@ -99,7 +99,16 @@ def debug_env():
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({"success": False, "error": {"code": "NOT_FOUND", "message": "Resource not found"}}), 404
+    import flask
+    return jsonify({
+        "success": False,
+        "error": {
+            "code": "NOT_FOUND",
+            "message": "Resource not found",
+            "received_path": flask.request.path,
+            "environ_keys": {k: str(v) for k, v in flask.request.environ.items() if isinstance(v, (str, int, float)) and ('PATH' in k or 'URI' in k or 'ROUTE' in k or 'URL' in k)}
+        }
+    }), 404
 
 
 @app.errorhandler(Exception)
