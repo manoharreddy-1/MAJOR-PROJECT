@@ -19,6 +19,7 @@ from config.settings import CORS_ORIGINS, DEBUG, SECRET_KEY
 from routes.resume_routes import resume_bp
 from routes.job_routes import job_bp
 from routes.analysis_routes import analysis_bp
+from routes.course_routes import course_bp
 from database.mongodb import check_connection
 
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +56,7 @@ CORS(app, origins=CORS_ORIGINS)
 app.register_blueprint(resume_bp, url_prefix="/api/resume")
 app.register_blueprint(job_bp, url_prefix="/api/job")
 app.register_blueprint(analysis_bp, url_prefix="/api")
+app.register_blueprint(course_bp, url_prefix="/api/course")
 
 
 # WSGI middleware to restore original request path on Vercel rewrites
@@ -151,6 +153,16 @@ def interview_page():
 @app.route("/roadmap")
 def roadmap_page():
     return render_template("roadmap.html")
+
+
+@app.route("/courses")
+def courses_page():
+    return render_template("courses.html")
+
+
+@app.route("/course/<course_id>")
+def course_view_page(course_id):
+    return render_template("course_view.html", course_id=course_id)
 
 
 @app.route("/history")

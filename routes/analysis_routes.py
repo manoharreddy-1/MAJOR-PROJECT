@@ -165,6 +165,38 @@ def generate_interview():
         return error_response("GENERATION_FAILED", "Failed to generate interview questions.", 500)
 
 
+@analysis_bp.route("/interview/more", methods=["POST"])
+def generate_more_interview_questions():
+    """Fetch additional interview questions for a category."""
+    data = request.get_json() or {}
+    analysis_id = data.get("analysis_id")
+    category = data.get("category", "technical")
+    existing = data.get("existing_questions", [])
+
+    if not analysis_id:
+        return error_response("MISSING_ID", "analysis_id is required.")
+
+    doc = analyses_collection.find_one({"_id": ObjectId(analysis_id)})
+    if not doc:
+        return error_response("NOT_FOUND", "Analysis not found.", 404)
+
+    resume_doc = resume_service.get_resume(doc["resume_id"])
+    job_doc = job_service.get_job(doc["job_description_id"])
+
+    try:
+        more_result = interview_service.generate_more_questions(
+            resume=resume_doc.get("extracted", resume_doc) if resume_doc else {},
+            job=job_doc.get("requirements", job_doc) if job_doc else {},
+            category=category,
+            existing_questions=existing,
+            target_role=doc.get("target_role", "")
+        )
+        return success_response(more_result, "Additional questions generated.")
+    except Exception as exc:
+        logger.exception("More questions generation failed: %s", exc)
+        return error_response("GENERATION_FAILED", str(exc), 500)
+
+
 @analysis_bp.route("/interview/sample-answer", methods=["POST"])
 def sample_answer():
     data = request.get_json()

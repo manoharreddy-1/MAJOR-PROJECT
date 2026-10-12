@@ -90,10 +90,11 @@ class MockCollection:
                 return iter(self.items)
         return MockCursor(results)
 
-    def update_one(self, query: dict, update: dict) -> Any:
+    def update_one(self, query: dict, update: dict, upsert: bool = False) -> Any:
         from bson import ObjectId
         doc = self.find_one(query)
         modified_count = 0
+        upserted_id = None
         if doc:
             doc_id_str = str(doc["_id"])
             actual_doc = self.documents[doc_id_str]
@@ -101,11 +102,18 @@ class MockCollection:
                 for k, v in update["$set"].items():
                     actual_doc[k] = v
                 modified_count = 1
+        elif upsert:
+            new_doc = query.copy()
+            if "$set" in update:
+                new_doc.update(update["$set"])
+            insert_res = self.insert_one(new_doc)
+            upserted_id = insert_res.inserted_id
         
         class UpdateResult:
-            def __init__(self, modified_count):
+            def __init__(self, modified_count, upserted_id=None):
                 self.modified_count = modified_count
-        return UpdateResult(modified_count)
+                self.upserted_id = upserted_id
+        return UpdateResult(modified_count, upserted_id)
 
 
 def get_client() -> MongoClient:
@@ -168,4 +176,6 @@ COLLECTIONS = {
     "analyses": "analyses",
     "interview_preparations": "interview_preparations",
     "roadmaps": "roadmaps",
+    "courses": "courses",
+    "chapters": "chapters",
 }

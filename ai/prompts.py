@@ -69,7 +69,8 @@ MISSING SKILLS: {', '.join(missing_skills) or 'None'}
 JOB REQUIREMENTS: {', '.join(job.get('required_skills', []))}
 RESPONSIBILITIES: {'; '.join(job.get('responsibilities', [])[:5])}
 
-Generate specific, relevant questions (not generic). Base technical questions on actual resume skills and projects.
+Generate specific, rigorous, and relevant interview questions (not generic).
+Provide 10 distinct in-depth questions for EACH category below. Base technical questions on actual resume skills and projects.
 
 Return JSON:
 {{

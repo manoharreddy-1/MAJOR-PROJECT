@@ -15,6 +15,7 @@
       <li><a href="/results">Results</a></li>
       <li><a href="/interview">Interview</a></li>
       <li><a href="/roadmap" class="active">Roadmap</a></li>
+      <li><a href="/courses">AI Courses</a></li>
     </ul>
   </nav>
 
@@ -86,7 +87,10 @@
               </div>
               <p class="text-muted mt-1" style="font-size: 0.875rem;">${item.reason || ''}</p>
               <p class="mt-1" style="font-size: 0.875rem;"><strong>Goal:</strong> ${item.learning_objective || ''}</p>
-              <span class="badge badge-neutral mt-1">${item.stage || ''}</span>
+              <div class="flex-between mt-2">
+                <span class="badge badge-neutral">${item.stage || ''}</span>
+                <a href="/courses?topic=${encodeURIComponent(item.topic)}" class="btn btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">&#10024; Generate AI Course</a>
+              </div>
             </div>`).join('')}
         </div>
         ${practice.focus_areas ? `

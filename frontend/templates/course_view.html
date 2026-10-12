@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Viewer | AI Course Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .course-layout-container {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+      min-height: calc(100vh - 160px);
+    }
+    .chapter-sidebar {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      position: sticky;
+      top: 80px;
+      height: fit-content;
+      max-height: calc(100vh - 100px);
+      overflow-y: auto;
+    }
+    .chapter-item {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .chapter-item:hover {
+      background: #f1f5f9;
+    }
+    .chapter-item.active {
+      background: #e0f2fe;
+      border-color: #bae6fd;
+      color: #0369a1;
+      font-weight: 600;
+    }
+    .chapter-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8125rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .chapter-item.active .chapter-num {
+      background: var(--accent);
+      color: white;
+    }
+    .content-area {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+    }
+    .video-container {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+      overflow: hidden;
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      background: #000;
+    }
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    pre code {
+      display: block;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    .code-box {
+      margin-top: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .takeaway-pill {
+      background: #f8fafc;
+      border-left: 3px solid var(--accent);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: 0.875rem;
+    }
+    @media (max-width: 860px) {
+      .course-layout-container {
+        grid-template-columns: 1fr;
+      }
+      .chapter-sidebar {
+        position: relative;
+        top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/courses">All Courses</a></li>
+      <li><a href="/roadmap">Roadmap</a></li>
+      <li><a href="/analyze">Analyze</a></li>
+    </ul>
+  </nav>
+
+  <div class="container" style="max-width: 1200px;">
+    <div id="courseHeader" class="card mt-3" style="padding: 1.25rem 2rem; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+      <div class="flex-between">
+        <div>
+          <span id="courseLevelBadge" style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">Course</span>
+          <h1 id="courseTitle" style="font-size: 1.75rem; font-weight: 700; margin-top: 0.5rem; margin-bottom: 0.25rem;">Loading Course...</h1>
+          <p id="courseSummary" style="color: #cbd5e1; font-size: 0.875rem; max-width: 800px;"></p>
+        </div>
+        <a href="/courses" class="btn btn-outline" style="color: white; border-color: rgba(255,255,255,0.3); font-size: 0.8125rem;">&larr; Back to Courses</a>
+      </div>
+    </div>
+
+    <div class="course-layout-container">
+      <!-- Chapters Navigation Sidebar -->
+      <div class="chapter-sidebar">
+        <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary);">Course Chapters</h3>
+        <div id="chaptersNavList">
+          <p class="text-muted" style="font-size: 0.875rem;">Loading outline...</p>
+        </div>
+      </div>
+
+      <!-- Main Chapter Content Area -->
+      <div class="content-area" id="chapterContentArea">
+        <div id="loadingContent" class="text-center" style="padding: 3rem;">
+          <p class="text-muted">Loading chapter details...</p>
+        </div>
+        
+        <div id="activeChapterContent" style="display: none;">
+          <div class="flex-between mb-3">
+            <h2 id="activeChapterTitle" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);"></h2>
+            <span id="activeChapterDuration" class="badge badge-info"></span>
+          </div>
+
+          <!-- YouTube Video Section -->
+          <div id="videoSection" style="display: none;">
+            <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>&#128250; Video Lecture Tutorial</span>
+            </h3>
+            <div class="video-container" id="videoFrameWrapper">
+              <!-- iframe will be dynamically inserted -->
+            </div>
+          </div>
+
+          <!-- Chapter Concept Explanation -->
+          <div class="mb-4">
+            <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--primary);">Concept Breakdown &amp; Explanation</h3>
+            <div id="chapterExplanationText" style="line-height: 1.7; font-size: 0.9375rem; color: var(--text);"></div>
+          </div>
+
+          <!-- Key Takeaways -->
+          <div class="mb-4" id="takeawaysSection" style="display: none;">
+            <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Key Takeaways</h4>
+            <div id="takeawaysList"></div>
+          </div>
+
+          <!-- Practical Code Examples -->
+          <div class="mb-4" id="codeExamplesSection" style="display: none;">
+            <h3 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--primary);">&#128187; Practical Code Implementation</h3>
+            <div id="codeExamplesContainer"></div>
+          </div>
+
+          <!-- Interactive Code Editor & Coding Challenge -->
+          <div class="mb-4" id="codingChallengeSection" style="display: none; border-top: 2px dashed var(--border); padding-top: 1.5rem;">
+            <div class="flex-between mb-2">
+              <div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+                  <span>&#9874;&#65039; Coding Challenge &amp; Live Compiler</span>
+                </h3>
+                <p id="challengeDesc" class="text-muted mt-1" style="font-size: 0.875rem;"></p>
+              </div>
+              <span id="challengeLangBadge" class="badge badge-info" style="font-size: 0.8125rem;"></span>
+            </div>
+
+            <div class="card" style="padding: 1rem; background: #0f172a; border-radius: var(--radius-lg); margin-top: 1rem;">
+              <div class="flex-between mb-2">
+                <span style="color: #94a3b8; font-size: 0.8125rem; font-family: monospace;">Interactive Editor</span>
+                <button id="runCodeBtn" class="btn btn-primary" style="padding: 0.35rem 1rem; font-size: 0.875rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>&#9654; Run Code &amp; Test</span>
+                </button>
+              </div>
+              <textarea id="liveCodeEditor" style="width: 100%; height: 240px; background: #1e293b; color: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 0.9375rem; border: 1px solid #334155; border-radius: var(--radius); padding: 1rem; resize: vertical; outline: none; line-height: 1.5;"></textarea>
+            </div>
+
+            <!-- Test Cases & Results -->
+            <div id="testCasesContainer" class="mt-3">
+              <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Test Cases &amp; Output</h4>
+              <div id="testCasesList" class="grid-2 mb-3"></div>
+              
+              <!-- Console Output -->
+              <div id="consoleOutputCard" style="display: none; background: #0f172a; border-radius: var(--radius); padding: 1rem; color: #e2e8f0; font-family: monospace; font-size: 0.875rem;">
+                <div style="color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.5rem; text-transform: uppercase;">Standard Output:</div>
+                <pre id="consoleOutputText" style="white-space: pre-wrap; margin: 0;"></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation buttons between chapters -->
+          <div class="flex-between mt-4" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+            <button id="prevChapterBtn" class="btn btn-outline">&larr; Previous Chapter</button>
+            <button id="nextChapterBtn" class="btn btn-primary">Next Chapter &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    const courseId = window.location.pathname.split('/').pop();
+    let currentCourse = null;
+    let currentChapterIndex = 0;
+
+    async function loadCourse() {
+      try {
+        const res = await API.request(`/course/${courseId}`);
+        currentCourse = res.data;
+        renderCourseDetails();
+      } catch (err) {
+        document.getElementById('chapterContentArea').innerHTML = `
+          <div class="text-center" style="padding: 2rem;">
+            <p class="text-danger">Failed to load course: ${err.message}</p>
+            <a href="/courses" class="btn btn-primary mt-2">Return to Courses</a>
+          </div>
+        `;
+      }
+    }
+
+    function renderCourseDetails() {
+      document.getElementById('courseTitle').innerText = currentCourse.name;
+      document.getElementById('courseLevelBadge').innerText = `${currentCourse.level || 'Beginner'} &bull; ${currentCourse.duration || '1 Hour'}`;
+      document.getElementById('courseSummary').innerText = currentCourse.summary || 'Custom generated curriculum.';
+
+      const chapters = currentCourse.chapters && currentCourse.chapters.length > 0
+        ? currentCourse.chapters
+        : (currentCourse.chapters_outline || []).map((c, i) => ({
+            chapter_id: c.chapter_id || (i + 1),
+            name: c.name,
+            content: { explanation: c.about, key_takeaways: [], code_examples: [] }
+          }));
+
+      // Render chapters sidebar
+      const navList = document.getElementById('chaptersNavList');
+      navList.innerHTML = chapters.map((ch, idx) => `
+        <div class="chapter-item ${idx === 0 ? 'active' : ''}" onclick="selectChapter(${idx})" id="navItem_${idx}">
+          <div class="chapter-num">${idx + 1}</div>
+          <div style="font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${ch.name || 'Chapter ' + (idx + 1)}
+          </div>
+        </div>
+      `).join('');
+
+      selectChapter(0);
+    }
+
+    function selectChapter(idx) {
+      currentChapterIndex = idx;
+      const chapters = currentCourse.chapters || currentCourse.chapters_outline || [];
+      if (!chapters[idx]) return;
+
+      // Update sidebar active classes
+      document.querySelectorAll('.chapter-item').forEach((item, i) => {
+        if (i === idx) item.classList.add('active');
+        else item.classList.remove('active');
+      });
+
+      const ch = chapters[idx];
+      const content = ch.content || {};
+
+      document.getElementById('loadingContent').style.display = 'none';
+      document.getElementById('activeChapterContent').style.display = 'block';
+
+      document.getElementById('activeChapterTitle').innerText = `Chapter ${idx + 1}: ${ch.name || ''}`;
+      document.getElementById('activeChapterDuration').innerText = ch.duration || '15 mins';
+
+      // Explanation
+      document.getElementById('chapterExplanationText').innerHTML = (content.explanation || ch.about || 'Content is being generated.')
+        .replace(/\n\n/g, '<br><br>');
+
+      // Video Integration
+      const videoSection = document.getElementById('videoSection');
+      const videoWrapper = document.getElementById('videoFrameWrapper');
+      if (ch.video && ch.video.video_id) {
+        videoWrapper.innerHTML = `
+          <iframe 
+            src="https://www.youtube.com/embed/${ch.video.video_id}" 
+            title="${ch.video.title || 'Tutorial Video'}" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        `;
+        videoSection.style.display = 'block';
+      } else {
+        const queryTopic = currentCourse.name + ' ' + (ch.name || '');
+        const fallbackVid = "eIrMbAQSU34"; // Default Java tutorial video ID
+        const thumbUrl = (ch.video && ch.video.thumbnail) ? ch.video.thumbnail : `https://img.youtube.com/vi/${fallbackVid}/hqdefault.jpg`;
+        const searchUrl = (ch.video && ch.video.youtube_search_url) ? ch.video.youtube_search_url : `https://www.youtube.com/results?search_query=${encodeURIComponent(queryTopic + ' tutorial')}`;
+        
+        videoWrapper.innerHTML = `
+          <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: url('${thumbUrl}') center/cover no-repeat; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white;">
+            <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.75);"></div>
+            <div style="position: relative; z-index: 2; padding: 1.5rem; max-width: 600px;">
+              <div style="font-size: 2.5rem; margin-bottom: 0.5rem; color: #ef4444;">&#9654;&#65039;</div>
+              <h4 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem;">${ch.video && ch.video.title ? ch.video.title : (ch.name + ' - Video Lecture')}</h4>
+              <p style="color: #cbd5e1; font-size: 0.8125rem; margin-bottom: 1rem;">${ch.video && ch.video.channel ? ch.video.channel : 'YouTube Video Tutorial'}</p>
+              <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                <button onclick="playEmbeddedVideo('${fallbackVid}')" class="btn btn-primary" style="font-size: 0.8125rem;">&#9658; Play Video Tutorial</button>
+                <a href="${searchUrl}" target="_blank" class="btn btn-outline" style="color: white; border-color: white; font-size: 0.8125rem;">Open in YouTube &rarr;</a>
+              </div>
+            </div>
+          </div>
+        `;
+        videoSection.style.display = 'block';
+      }
+
+      // Key Takeaways
+      const takeawaysSection = document.getElementById('takeawaysSection');
+      const takeawaysList = document.getElementById('takeawaysList');
+      if (content.key_takeaways && content.key_takeaways.length > 0) {
+        takeawaysList.innerHTML = content.key_takeaways.map(t => `<div class="takeaway-pill">&#10003; ${t}</div>`).join('');
+        takeawaysSection.style.display = 'block';
+      } else {
+        takeawaysSection.style.display = 'none';
+      }
+
+      // Code Examples
+      const codeSection = document.getElementById('codeExamplesSection');
+      const codeContainer = document.getElementById('codeExamplesContainer');
+      if (content.code_examples && content.code_examples.length > 0) {
+        codeContainer.innerHTML = content.code_examples.map(ex => `
+          <div class="code-box">
+            <h5 style="font-weight: 600; margin-bottom: 0.25rem;">${ex.title || 'Code Snippet'}</h5>
+            <pre><code>${escapeHtml(ex.code || '')}</code></pre>
+            ${ex.explanation ? `<p class="text-muted mt-1" style="font-size: 0.8125rem;">${ex.explanation}</p>` : ''}
+          </div>
+        `).join('');
+        codeSection.style.display = 'block';
+      } else {
+        codeSection.style.display = 'none';
+      }
+
+      // Coding Challenge & Live Compiler
+      const challengeSection = document.getElementById('codingChallengeSection');
+      const challenge = content.coding_challenge || null;
+      if (challenge) {
+        document.getElementById('challengeDesc').innerHTML = `<strong>${challenge.title}:</strong> ${challenge.description}`;
+        document.getElementById('challengeLangBadge').innerText = (challenge.language || 'code').toUpperCase();
+        document.getElementById('liveCodeEditor').value = challenge.starter_code || '';
+        
+        // Render Test Cases
+        const tcList = document.getElementById('testCasesList');
+        tcList.innerHTML = (challenge.test_cases || []).map((tc, tcIdx) => `
+          <div class="card" style="padding: 0.75rem; border: 1px solid var(--border); font-size: 0.8125rem;" id="tc_card_${tcIdx}">
+            <div class="flex-between mb-1">
+              <strong>Test Case ${tcIdx + 1}</strong>
+              <span class="badge badge-neutral" id="tc_status_${tcIdx}">Pending</span>
+            </div>
+            <div><strong>Input:</strong> <code>${escapeHtml(tc.input || 'None')}</code></div>
+            <div><strong>Expected:</strong> <code>${escapeHtml(tc.expected_output || '')}</code></div>
+          </div>
+        `).join('');
+
+        document.getElementById('consoleOutputCard').style.display = 'none';
+        challengeSection.style.display = 'block';
+
+        // Bind Run Button
+        document.getElementById('runCodeBtn').onclick = async () => {
+          const runBtn = document.getElementById('runCodeBtn');
+          runBtn.disabled = true;
+          runBtn.innerHTML = 'Executing...';
+          const userCode = document.getElementById('liveCodeEditor').value;
+
+          try {
+            const runRes = await API.request('/course/run-code', {
+              method: 'POST',
+              body: {
+                code: userCode,
+                language: challenge.language || 'python',
+                test_cases: challenge.test_cases || []
+              }
+            });
+
+            const data = runRes.data;
+            const raw = data.raw_execution || {};
+            const consoleCard = document.getElementById('consoleOutputCard');
+            const consoleText = document.getElementById('consoleOutputText');
+            
+            consoleCard.style.display = 'block';
+            consoleText.innerText = (raw.output ? raw.output : '') + (raw.error ? ('\n' + raw.error) : '');
+
+            // Update Test Case badges
+            (data.test_results || []).forEach((tr, tIdx) => {
+              const statusBadge = document.getElementById(`tc_status_${tIdx}`);
+              const card = document.getElementById(`tc_card_${tIdx}`);
+              if (statusBadge && card) {
+                if (tr.passed) {
+                  statusBadge.className = 'badge badge-success';
+                  statusBadge.innerText = 'Passed';
+                  card.style.borderColor = 'var(--success)';
+                } else {
+                  statusBadge.className = 'badge badge-error';
+                  statusBadge.innerText = 'Failed';
+                  card.style.borderColor = 'var(--error)';
+                }
+              }
+            });
+
+            if (data.all_passed) {
+              alert('Congratulations! All test cases passed successfully.');
+            }
+          } catch (err) {
+            alert('Execution failed: ' + err.message);
+          } finally {
+            runBtn.disabled = false;
+            runBtn.innerHTML = '<span>&#9654; Run Code &amp; Test</span>';
+          }
+        };
+      } else {
+        challengeSection.style.display = 'none';
+      }
+
+      // Prev / Next Buttons
+      document.getElementById('prevChapterBtn').disabled = (idx === 0);
+      document.getElementById('nextChapterBtn').disabled = (idx === chapters.length - 1);
+    }
+
+    function playEmbeddedVideo(vidId) {
+      const videoWrapper = document.getElementById('videoFrameWrapper');
+      videoWrapper.innerHTML = `
+        <iframe 
+          src="https://www.youtube.com/embed/${vidId}?autoplay=1" 
+          title="Tutorial Video" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      `;
+    }
+
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    document.getElementById('prevChapterBtn').addEventListener('click', () => {
+      if (currentChapterIndex > 0) {
+        selectChapter(currentChapterIndex - 1);
+      }
+    });
+
+    document.getElementById('nextChapterBtn').addEventListener('click', () => {
+      const chapters = currentCourse.chapters || currentCourse.chapters_outline || [];
+      if (currentChapterIndex < chapters.length - 1) {
+        selectChapter(currentChapterIndex + 1);
+      }
+    });
+
+    loadCourse();
+  </script>
+</body>
+</html>

@@ -51,7 +51,10 @@
       } catch (err) { UI.showError(container, err.message); }
     }
 
+    let currentQuestionsState = {};
+
     function renderQuestions(data) {
+      currentQuestionsState = data || {};
       const categories = [
         { key: 'technical', label: 'Technical', icon: '&#128187;' },
         { key: 'resume_based', label: 'Resume Based', icon: '&#128196;' },
@@ -62,20 +65,25 @@
 
       container.innerHTML = `
         <div class="tabs" id="qTabs">
-          ${categories.map((c, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-tab="q_${c.key}">${c.label}</button>`).join('')}
+          ${categories.map((c, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-tab="q_${c.key}">${c.label} (${(data[c.key] || []).length})</button>`).join('')}
         </div>
         ${categories.map((c, i) => `
           <div id="q_${c.key}" class="tab-content ${i === 0 ? 'active' : ''}">
-            ${renderCategory(data[c.key] || [], c.key)}
+            <div id="list_${c.key}">
+              ${renderCategoryItems(data[c.key] || [], c.key)}
+            </div>
+            <div class="text-center mt-4 mb-3" style="padding-top: 1rem; border-top: 1px dashed var(--border);">
+              <button class="btn btn-outline btn-lg" onclick="askMoreQuestions(this, '${c.key}')">&#10024; Ask More Questions</button>
+            </div>
           </div>`).join('')}`;
 
       UI.initTabs(container);
     }
 
-    function renderCategory(questions, category) {
+    function renderCategoryItems(questions, category) {
       if (!questions.length) return '<p class="text-muted">No questions generated for this category.</p>';
       return questions.map((q, i) => `
-        <div class="question-card">
+        <div class="question-card" id="q_${category}_${i}">
           <div class="question-text">${i + 1}. ${q.question}</div>
           <div class="question-meta">
             ${q.topic ? `<span class="badge badge-info">${q.topic}</span>` : ''}
@@ -86,6 +94,63 @@
           <button class="btn btn-outline" onclick="showAnswer(this, '${encodeURIComponent(q.question)}', '${category}')">Show Sample Answer</button>
           <div class="sample-answer"></div>
         </div>`).join('');
+    }
+
+    async function askMoreQuestions(btn, category) {
+      const originalText = btn.innerHTML;
+      btn.innerHTML = 'Generating 5 More Questions...';
+      btn.disabled = true;
+
+      const existingList = currentQuestionsState[category] || [];
+      const existingTexts = existingList.map(q => q.question);
+
+      try {
+        const res = await API.request('/interview/more', {
+          method: 'POST',
+          body: {
+            analysis_id: analysisId,
+            category: category,
+            existing_questions: existingTexts
+          }
+        });
+
+        const newQuestions = res.data?.questions || [];
+        if (newQuestions.length > 0) {
+          const listContainer = document.getElementById(`list_${category}`);
+          const startIndex = existingList.length;
+          
+          newQuestions.forEach((q, idx) => {
+            existingList.push(q);
+            const cardHtml = `
+              <div class="question-card" style="animation: fadeIn 0.4s ease-in-out;">
+                <div class="question-text">${startIndex + idx + 1}. ${q.question}</div>
+                <div class="question-meta">
+                  ${q.topic ? `<span class="badge badge-info">${q.topic}</span>` : ''}
+                  ${q.difficulty ? `<span class="badge badge-neutral">${q.difficulty}</span>` : ''}
+                  ${q.competency ? `<span class="badge badge-neutral">${q.competency}</span>` : ''}
+                  <span class="badge badge-success">New</span>
+                </div>
+                <button class="btn btn-outline" onclick="showAnswer(this, '${encodeURIComponent(q.question)}', '${category}')">Show Sample Answer</button>
+                <div class="sample-answer"></div>
+              </div>`;
+            listContainer.insertAdjacentHTML('beforeend', cardHtml);
+          });
+
+          // Update tab badge count
+          const tabBtn = document.querySelector(`.tab[data-tab="q_${category}"]`);
+          if (tabBtn) {
+            const catLabel = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+            tabBtn.textContent = `${catLabel} (${existingList.length})`;
+          }
+        } else {
+          alert('No additional questions could be generated right now.');
+        }
+      } catch (err) {
+        alert('Failed to fetch more questions: ' + err.message);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
     }
 
     async function showAnswer(btn, question, category) {

@@ -42,6 +42,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyBNl9TtEJKWC_feqFVjG71gIKK
 GEMINI_API_KEY_ALT = os.getenv("GEMINI_API_KEY_ALT") or "AIzaSyAPF9Cxk0ut4XgV9jyai-lOFh98L1C5DH4"
 GEMINI_MODEL = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
 
+# YouTube Data API Key
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("NEXT_PUBLIC_YOUTUBE_API_KEY") or GEMINI_API_KEY
+
 # SBERT Model
 SBERT_MODEL_NAME = os.getenv("SBERT_MODEL_NAME") or "sentence-transformers/all-MiniLM-L6-v2"
 NER_MODEL_NAME = os.getenv("NER_MODEL_NAME") or "dslim/bert-base-NER"
