@@ -20,6 +20,7 @@ from routes.resume_routes import resume_bp
 from routes.job_routes import job_bp
 from routes.analysis_routes import analysis_bp
 from routes.course_routes import course_bp
+from routes.auth_routes import auth_bp
 from database.mongodb import check_connection
 
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,7 @@ app.register_blueprint(resume_bp, url_prefix="/api/resume")
 app.register_blueprint(job_bp, url_prefix="/api/job")
 app.register_blueprint(analysis_bp, url_prefix="/api")
 app.register_blueprint(course_bp, url_prefix="/api/course")
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 
 # WSGI middleware to restore original request path on Vercel rewrites
@@ -173,6 +175,11 @@ def history_page():
 @app.route("/profile")
 def profile_page():
     return render_template("profile.html")
+
+
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
 
 
 @app.route("/how-it-works")

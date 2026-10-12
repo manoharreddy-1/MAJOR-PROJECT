@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & Registration | AI Resume Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .auth-container {
+      max-width: 440px;
+      margin: 4rem auto;
+      padding: 2.5rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+    }
+    .auth-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 2rem;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 0.75rem;
+      text-align: center;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+    .auth-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .auth-field {
+      margin-bottom: 1.25rem;
+    }
+    .auth-field label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+      color: var(--primary);
+    }
+    .auth-field input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.9375rem;
+      transition: border-color 0.2s;
+    }
+    .auth-field input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/analyze">Analyze</a></li>
+      <li><a href="/courses">AI Courses</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <div class="auth-container">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">&#128100;</div>
+        <h2 id="authTitle" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">Sign In</h2>
+        <p class="text-muted" style="font-size: 0.875rem;">Access your personalized ATS history, courses, and profile</p>
+      </div>
+
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin" onclick="switchAuthMode('login')">Login</div>
+        <div class="auth-tab" id="tabRegister" onclick="switchAuthMode('register')">Register</div>
+      </div>
+
+      <div id="authAlert" style="display: none; padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.875rem;"></div>
+
+      <form id="authForm" onsubmit="handleAuth(event)">
+        <div class="auth-field" id="fullNameGroup" style="display: none;">
+          <label for="fullNameInput">Full Name</label>
+          <input type="text" id="fullNameInput" placeholder="e.g. John Doe">
+        </div>
+
+        <div class="auth-field">
+          <label for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" placeholder="Enter username" required>
+        </div>
+
+        <div class="auth-field" id="emailGroup" style="display: none;">
+          <label for="emailInput">Email Address</label>
+          <input type="email" id="emailInput" placeholder="e.g. user@gmail.com">
+        </div>
+
+        <div class="auth-field">
+          <label for="passwordInput">Password</label>
+          <input type="password" id="passwordInput" placeholder="Enter password" required>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
+          Sign In &rarr;
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted);">
+        Demo Login: Enter any username &amp; password to quickly log in or create an account.
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let mode = 'login';
+
+    function switchAuthMode(newMode) {
+      mode = newMode;
+      const isLogin = mode === 'login';
+      document.getElementById('tabLogin').className = `auth-tab ${isLogin ? 'active' : ''}`;
+      document.getElementById('tabRegister').className = `auth-tab ${!isLogin ? 'active' : ''}`;
+      document.getElementById('authTitle').innerText = isLogin ? 'Sign In' : 'Create Account';
+      document.getElementById('authSubmitBtn').innerText = isLogin ? 'Sign In →' : 'Register Account →';
+      document.getElementById('fullNameGroup').style.display = isLogin ? 'none' : 'block';
+      document.getElementById('emailGroup').style.display = isLogin ? 'none' : 'block';
+      hideAlert();
+    }
+
+    function showAlert(msg, isError = true) {
+      const alertBox = document.getElementById('authAlert');
+      alertBox.style.display = 'block';
+      alertBox.style.background = isError ? '#fef2f2' : '#f0fdf4';
+      alertBox.style.color = isError ? '#ef4444' : '#15803d';
+      alertBox.style.border = `1px solid ${isError ? '#fecaca' : '#bbf7d0'}`;
+      alertBox.innerText = msg;
+    }
+
+    function hideAlert() {
+      document.getElementById('authAlert').style.display = 'none';
+    }
+
+    async function handleAuth(e) {
+      e.preventDefault();
+      hideAlert();
+      const submitBtn = document.getElementById('authSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Processing...';
+
+      const username = document.getElementById('usernameInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      const full_name = document.getElementById('fullNameInput').value.trim();
+      const email = document.getElementById('emailInput').value.trim();
+
+      const endpoint = mode === 'login' ? '/auth/login' : '/auth/register';
+      const payload = { username, password };
+      if (mode === 'register') {
+        payload.full_name = full_name;
+        payload.email = email;
+      }
+
+      try {
+        const res = await API.request(endpoint, {
+          method: 'POST',
+          body: payload
+        });
+
+        const user = res.data?.user || {};
+        // Save user into localStorage / sessionStorage
+        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user_id', user.user_id || username);
+        sessionStorage.setItem('username', user.username || username);
+
+        showAlert('Success! Redirecting...', false);
+        setTimeout(() => {
+          window.location.href = '/profile';
+        }, 600);
+      } catch (err) {
+        showAlert(err.message, true);
+        submitBtn.disabled = false;
+        submitBtn.innerText = mode === 'login' ? 'Sign In →' : 'Register Account →';
+      }
+    }
+
+    // Auto-fill if already logged in
+    const activeUser = localStorage.getItem('user');
+    if (activeUser) {
+      try {
+        const u = JSON.parse(activeUser);
+        if (u.username) document.getElementById('usernameInput').value = u.username;
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>
