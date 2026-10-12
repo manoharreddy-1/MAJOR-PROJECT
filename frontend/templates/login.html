@@ -182,10 +182,10 @@
         sessionStorage.setItem('user_id', user.user_id || username);
         sessionStorage.setItem('username', user.username || username);
 
-        showAlert('Success! Redirecting...', false);
+        showAlert('Success! Redirecting to dashboard...', false);
         setTimeout(() => {
-          window.location.href = '/profile';
-        }, 600);
+          window.location.href = '/home';
+        }, 500);
       } catch (err) {
         showAlert(err.message, true);
         submitBtn.disabled = false;

@@ -118,7 +118,16 @@ def handle_exception(e):
 @app.route("/api/index")
 @app.route("/api")
 @app.route("/api/")
+@app.route("/login")
+def login_page():
+    """Default landing page - Authentication."""
+    return render_template("login.html")
+
+
+@app.route("/home")
+@app.route("/dashboard")
 def index():
+    """Main overview and platform features dashboard."""
     return render_template("index.html")
 
 
@@ -175,11 +184,6 @@ def history_page():
 @app.route("/profile")
 def profile_page():
     return render_template("profile.html")
-
-
-@app.route("/login")
-def login_page():
-    return render_template("login.html")
 
 
 @app.route("/how-it-works")
