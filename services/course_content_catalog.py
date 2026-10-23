@@ -1,4 +1,4 @@
-"""Comprehensive syllabus, concept breakdowns, code examples, coding questions, and test cases for popular topics."""
+"""Comprehensive syllabus, concept breakdowns, code examples, coding questions, test cases, and quizzes for popular topics."""
 from typing import Dict, Any, List
 
 SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
@@ -25,7 +25,6 @@ SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
                         "language": "java",
                         "code": """public class Main {
     public static void main(String[] args) {
-        // Primitive variables
         int score = 95;
         double gpa = 3.85;
         boolean isEnrolled = true;
@@ -45,7 +44,6 @@ SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
                     "description": "Write a Java method that accepts an integer number and returns 'Even' if the number is even, and 'Odd' if it is odd.",
                     "starter_code": """public class Solution {
     public static String checkEvenOdd(int n) {
-        // Write your solution here
         if (n % 2 == 0) {
             return "Even";
         }
@@ -60,10 +58,23 @@ SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
                     "test_cases": [
                         {"input": "4", "expected_output": "Even"},
                         {"input": "7", "expected_output": "Odd"},
-                        {"input": "0", "expected_output": "Even"},
-                        {"input": "-3", "expected_output": "Odd"}
+                        {"input": "0", "expected_output": "Even"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "Which component of the Java ecosystem is responsible for executing compiled bytecode on the host OS?",
+                        "options": ["JDK (Java Development Kit)", "JVM (Java Virtual Machine)", "Javac Compiler", "Java API Library"],
+                        "correct_answer": 1,
+                        "explanation": "The JVM (Java Virtual Machine) interprets and executes the bytecode (.class files) on the underlying platform, enabling cross-platform portability."
+                    },
+                    {
+                        "question": "What is the key characteristic of Java's String class?",
+                        "options": ["Mutable by default", "Immutable", "Inherits from Throwable", "Primitive data type"],
+                        "correct_answer": 1,
+                        "explanation": "Strings in Java are immutable; any modification creates a new String object in the string pool."
+                    }
+                ]
             },
             {
                 "chapter_id": 2,
@@ -114,172 +125,212 @@ SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
 }""",
                     "language": "java",
                     "test_cases": [
-                        {"input": "0", "expected_output": "1"},
-                        {"input": "1", "expected_output": "1"},
                         {"input": "5", "expected_output": "120"},
-                        {"input": "6", "expected_output": "720"}
+                        {"input": "0", "expected_output": "1"},
+                        {"input": "3", "expected_output": "6"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "Which loop guarantees execution of its block at least once regardless of condition?",
+                        "options": ["for loop", "while loop", "do-while loop", "for-each loop"],
+                        "correct_answer": 2,
+                        "explanation": "In a do-while loop, the condition is evaluated after the body executes, ensuring at least one run."
+                    },
+                    {
+                        "question": "What does the 'continue' keyword do inside a loop in Java?",
+                        "options": ["Terminates the program", "Skips to the next iteration of the loop", "Exits the loop entirely", "Restarts the loop from index 0"],
+                        "correct_answer": 1,
+                        "explanation": "'continue' halts the current iteration and jumps directly to the loop condition/increment step."
+                    }
+                ]
             },
             {
                 "chapter_id": 3,
                 "name": "Object-Oriented Programming (OOP) in Java",
-                "about": "Explore the 4 pillars of OOP: Encapsulation, Inheritance, Polymorphism, and Abstraction.",
+                "about": "Learn the 4 core pillars of OOP: Encapsulation, Inheritance, Polymorphism, and Abstraction.",
                 "duration": "25 mins",
-                "explanation": "OOP structures software around real-world entities. Encapsulation hides private fields with public getters/setters. Inheritance allows subclasses to extend base classes with 'extends'. Polymorphism enables method overriding (@Override) and dynamic method dispatch. Abstraction uses abstract classes and interfaces with 'implements'.",
+                "explanation": "Java is intrinsically object-oriented. Encapsulation protects object state using private variables and public getters/setters. Inheritance allows code reuse via the extends keyword. Polymorphism allows methods to behave differently based on the calling object (method overloading and method overriding with @Override). Abstraction hides internal complexity using abstract classes and interfaces.",
                 "key_takeaways": [
-                    "Classes are blueprints; objects are instantiated runtime instances.",
-                    "Encapsulation protects class invariants from direct external manipulation.",
-                    "Java supports single class inheritance and multiple interface implementation.",
-                    "Polymorphism allows treating derived objects as their parent type."
+                    "Encapsulation restricts direct variable access and validates mutations.",
+                    "Java supports single class inheritance and multiple interface implementations.",
+                    "Method overriding requires identical signatures; @Override annotation prevents signature mismatch bugs.",
+                    "Interfaces declare contracts without implementation details (prior to Java 8 default methods)."
                 ],
                 "code_examples": [
                     {
-                        "title": "Inheritance and Polymorphism",
+                        "title": "Polymorphism & Inheritance Hierarchy",
                         "language": "java",
-                        "code": """abstract class Animal {
-    protected String name;
-    public Animal(String name) { this.name = name; }
-    public abstract void speak();
+                        "code": """abstract class Shape {
+    abstract double area();
 }
 
-class Dog extends Animal {
-    public Dog(String name) { super(name); }
+class Circle extends Shape {
+    private double radius;
+    public Circle(double radius) { this.radius = radius; }
     @Override
-    public void speak() {
-        System.out.println(name + " says: Woof!");
-    }
+    double area() { return Math.PI * radius * radius; }
 }
 
 public class OOPDemo {
     public static void main(String[] args) {
-        Animal pet = new Dog("Buddy");
-        pet.speak();
+        Shape c = new Circle(5.0);
+        System.out.printf("Circle Area: %.2f\\n", c.area());
     }
 }""",
-                        "explanation": "Demonstrates an abstract class with a polymorphic method implemented by Dog."
+                        "explanation": "Illustrates runtime polymorphism where an abstract Shape reference holds a Circle instance."
                     }
                 ],
                 "coding_challenge": {
-                    "title": "Reverse a String",
-                    "description": "Implement a method that takes a String and returns its reversed version without using built-in StringBuilder.reverse().",
-                    "starter_code": """public class Solution {
-    public static String reverseString(String s) {
-        char[] chars = s.toCharArray();
-        int left = 0, right = chars.length - 1;
+                    "title": "Reverse an Array In-Place",
+                    "description": "Reverse an array of integers in-place without allocating an extra array.",
+                    "starter_code": """import java.util.Arrays;
+
+public class Solution {
+    public static void reverseArray(int[] arr) {
+        int left = 0, right = arr.length - 1;
         while (left < right) {
-            char temp = chars[left];
-            chars[left] = chars[right];
-            chars[right] = temp;
+            int temp = arr[left];
+            arr[left] = arr[right];
+            arr[right] = temp;
             left++;
             right--;
         }
-        return new String(chars);
     }
 
     public static void main(String[] args) {
-        System.out.println(reverseString("java"));
+        int[] arr = {1, 2, 3, 4, 5};
+        reverseArray(arr);
+        System.out.println(Arrays.toString(arr));
     }
 }""",
                     "language": "java",
                     "test_cases": [
-                        {"input": "java", "expected_output": "avaj"},
-                        {"input": "hello", "expected_output": "olleh"},
-                        {"input": "racecar", "expected_output": "racecar"},
-                        {"input": "a", "expected_output": "a"}
+                        {"input": "[1, 2, 3, 4, 5]", "expected_output": "[5, 4, 3, 2, 1]"},
+                        {"input": "[10, 20]", "expected_output": "[20, 10]"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "Which OOP principle focuses on bundling data and methods while hiding internal representation?",
+                        "options": ["Inheritance", "Polymorphism", "Encapsulation", "Recursion"],
+                        "correct_answer": 2,
+                        "explanation": "Encapsulation restricts direct external access to internal object fields by providing getter and setter methods."
+                    },
+                    {
+                        "question": "Can a Java class extend multiple classes simultaneously?",
+                        "options": ["Yes, using the 'extends' keyword with comma separation", "No, Java supports single class inheritance only", "Yes, if both classes are abstract", "Only in Java 17 and above"],
+                        "correct_answer": 1,
+                        "explanation": "Java prevents multiple class inheritance to avoid the diamond problem, but allows implementing multiple interfaces."
+                    }
+                ]
             },
             {
                 "chapter_id": 4,
-                "name": "Java Collections Framework (ArrayList, HashMap, HashSet)",
-                "about": "Learn data structures in Java: List, Set, Map, and generic algorithms.",
-                "duration": "20 mins",
-                "explanation": "The Java Collections Framework provides standardized interfaces and high-performance data structures. ArrayList offers dynamic arrays with O(1) random access. LinkedList provides fast insertions. HashSet prevents duplicates with O(1) lookup. HashMap stores key-value pairs with hashing algorithms.",
+                "name": "Java Collections Framework: Lists, Sets & Maps",
+                "about": "Harness powerful generic data structures: ArrayList, LinkedList, HashSet, TreeSet, HashMap, and TreeMap.",
+                "duration": "25 mins",
+                "explanation": "The Collections Framework provides pre-built, high-performance data structures and algorithms. List preserves insertion order and allows duplicates (ArrayList offers O(1) random access; LinkedList is optimal for insertions/deletions). Set guarantees uniqueness (HashSet provides O(1) average lookup using hashing; TreeSet keeps elements sorted via red-black tree). Map stores key-value pairs (HashMap gives O(1) average access).",
                 "key_takeaways": [
-                    "List maintains insertion order; Set stores only unique elements.",
-                    "Map stores key-value associations; keys are unique.",
-                    "Always use generics (e.g. List<String> list = new ArrayList<>()) for compile-time type safety."
+                    "ArrayList uses dynamic resizing arrays: O(1) indexed reads, O(n) worst-case insertions.",
+                    "HashSet relies on hashCode() and equals() to enforce uniqueness.",
+                    "HashMap does not maintain order; use LinkedHashMap for insertion order or TreeMap for natural sorting.",
+                    "Collections.sort() uses dual-pivot Quicksort/Timsort."
                 ],
                 "code_examples": [
                     {
-                        "title": "HashMap & Frequency Counting",
+                        "title": "Word Frequency Counter with HashMap",
                         "language": "java",
                         "code": """import java.util.HashMap;
 import java.util.Map;
 
 public class CollectionsDemo {
     public static void main(String[] args) {
-        String[] words = {"apple", "banana", "apple", "orange", "banana", "apple"};
-        Map<String, Integer> freq = new HashMap<>();
+        String[] words = {"apple", "banana", "apple", "cherry", "banana", "apple"};
+        Map<String, Integer> counts = new HashMap<>();
 
-        for (String word : words) {
-            freq.put(word, freq.getOrDefault(word, 0) + 1);
+        for (String w : words) {
+            counts.put(w, counts.getOrDefault(w, 0) + 1);
         }
 
-        System.out.println("Word Frequencies: " + freq);
+        System.out.println("Word frequencies: " + counts);
     }
 }""",
-                        "explanation": "Uses Map.getOrDefault to calculate frequency distribution."
+                        "explanation": "Demonstrates HashMap with getOrDefault() for clean frequency counting."
                     }
                 ],
                 "coding_challenge": {
                     "title": "Find Maximum in Array",
-                    "description": "Write a method that takes an array of integers and returns the maximum element.",
+                    "description": "Find and return the maximum value in an integer array.",
                     "starter_code": """public class Solution {
-    public static int findMax(int[] arr) {
-        int max = arr[0];
-        for (int num : arr) {
-            if (num > max) {
-                max = num;
-            }
+    public static int findMax(int[] nums) {
+        int max = nums[0];
+        for (int n : nums) {
+            if (n > max) max = n;
         }
         return max;
     }
 
     public static void main(String[] args) {
-        int[] nums = {3, 7, 2, 9, 5};
-        System.out.println(findMax(nums));
+        System.out.println(findMax(new int[]{3, 7, 2, 9, 5}));
     }
 }""",
                     "language": "java",
                     "test_cases": [
                         {"input": "[3, 7, 2, 9, 5]", "expected_output": "9"},
-                        {"input": "[-10, -3, -50]", "expected_output": "-3"},
-                        {"input": "[100]", "expected_output": "100"}
+                        {"input": "[-5, -1, -8]", "expected_output": "-1"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "What is the average time complexity for searching a key in a HashMap in Java?",
+                        "options": ["O(n)", "O(log n)", "O(1)", "O(n^2)"],
+                        "correct_answer": 2,
+                        "explanation": "HashMap uses hash buckets to provide average constant time O(1) retrieval."
+                    },
+                    {
+                        "question": "Which collection should be chosen when element uniqueness is strictly required?",
+                        "options": ["ArrayList", "LinkedList", "HashSet", "Vector"],
+                        "correct_answer": 2,
+                        "explanation": "HashSet implements the Set interface, which strictly prohibits duplicate elements."
+                    }
+                ]
             },
             {
                 "chapter_id": 5,
-                "name": "Exception Handling & Robust File I/O",
-                "about": "Handle runtime errors gracefully using try-catch-finally, custom exceptions, and try-with-resources.",
+                "name": "Exception Handling & Robust Systems",
+                "about": "Master try-catch-finally, checked vs unchecked exceptions, throw/throws, and custom exceptions.",
                 "duration": "20 mins",
-                "explanation": "Exceptions in Java are recoverable conditions represented as objects inheriting from Throwable. Checked exceptions must be caught or declared with 'throws'. Unchecked exceptions (RuntimeException) occur at runtime like NullPointerException or IndexOutOfBoundsException. try-with-resources ensures auto-closing of streams.",
+                "explanation": "Exception handling in Java separates error-handling code from regular logic. Checked exceptions (subclasses of Exception excluding RuntimeException) are verified at compile-time and must be caught or declared. Unchecked exceptions (subclasses of RuntimeException and Error) occur during execution. The finally block always executes, ideal for closing resources (or use try-with-resources with AutoCloseable).",
                 "key_takeaways": [
-                    "Use try-catch to intercept expected failures without crashing.",
-                    "finally blocks always execute, guaranteeing cleanup operations.",
-                    "try-with-resources automatically closes AutoCloseable resources like files."
+                    "Checked exceptions force developers to anticipate recoverability at compile-time.",
+                    "try-with-resources automatically closes connections, sockets, and file streams.",
+                    "Never catch generic Throwable or suppress exceptions with empty catch blocks.",
+                    "Custom exceptions should extend Exception (checked) or RuntimeException (unchecked)."
                 ],
                 "code_examples": [
                     {
-                        "title": "Safe Parsing & Try-Catch Block",
+                        "title": "Try-With-Resources and Custom Handling",
                         "language": "java",
                         "code": """public class ExceptionDemo {
-    public static void main(String[] args) {
-        String[] inputs = {"100", "250", "invalid_num", "400"};
+    public static void validateAge(int age) {
+        if (age < 18) {
+            throw new IllegalArgumentException("Age must be 18 or older. Provided: " + age);
+        }
+        System.out.println("Age verified successfully: " + age);
+    }
 
-        for (String str : inputs) {
-            try {
-                int val = Integer.parseInt(str);
-                System.out.println("Parsed: " + val);
-            } catch (NumberFormatException e) {
-                System.err.println("Warning: Cannot parse '" + str + "': " + e.getMessage());
-            }
+    public static void main(String[] args) {
+        try {
+            validateAge(15);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Caught Expected Error: " + e.getMessage());
+        } finally {
+            System.out.println("Cleanup completed.");
         }
     }
 }""",
-                        "explanation": "Handles NumberFormatException when iterating over user input."
+                        "explanation": "Throws and handles IllegalArgumentException with a guaranteed finally block."
                     }
                 ],
                 "coding_challenge": {
@@ -300,16 +351,29 @@ public class CollectionsDemo {
     }
 
     public static void main(String[] args) {
-        System.out.println(isPalindrome("A man, a plan, a canal: Panama"));
+        System.out.println(isPalindrome("racecar"));
     }
 }""",
                     "language": "java",
                     "test_cases": [
                         {"input": "racecar", "expected_output": "true"},
-                        {"input": "hello", "expected_output": "false"},
-                        {"input": "Madam", "expected_output": "true"}
+                        {"input": "hello", "expected_output": "false"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "Which block is guaranteed to execute whether an exception is thrown or caught?",
+                        "options": ["catch block", "finally block", "throws block", "try block"],
+                        "correct_answer": 1,
+                        "explanation": "The 'finally' block always executes after try/catch, guaranteeing cleanup operations."
+                    },
+                    {
+                        "question": "Which of the following is an unchecked (Runtime) exception in Java?",
+                        "options": ["IOException", "SQLException", "NullPointerException", "ClassNotFoundException"],
+                        "correct_answer": 2,
+                        "explanation": "NullPointerException extends RuntimeException and does not need to be explicitly declared in method signatures."
+                    }
+                ]
             }
         ]
     },
@@ -333,14 +397,10 @@ public class CollectionsDemo {
                     {
                         "title": "Dictionary & List Comprehensions",
                         "language": "python",
-                        "code": """# List of numbers
-numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-
-# Filter even squares
+                        "code": """numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 even_squares = [x**2 for x in numbers if x % 2 == 0]
 print(f"Even squares: {even_squares}")
 
-# Dictionary mapping
 square_map = {x: x**2 for x in numbers[:5]}
 print(f"Square mapping: {square_map}")""",
                         "explanation": "Demonstrates pythonic list and dictionary comprehensions."
@@ -362,10 +422,23 @@ print(two_sum([2, 7, 11, 15], 9))""",
                     "language": "python",
                     "test_cases": [
                         {"input": "nums=[2, 7, 11, 15], target=9", "expected_output": "[0, 1]"},
-                        {"input": "nums=[3, 2, 4], target=6", "expected_output": "[1, 2]"},
-                        {"input": "nums=[3, 3], target=6", "expected_output": "[0, 1]"}
+                        {"input": "nums=[3, 2, 4], target=6", "expected_output": "[1, 2]"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary difference between a Python list and a tuple?",
+                        "options": ["Lists are immutable; tuples are mutable", "Lists are mutable; tuples are immutable", "Tuples cannot store integers", "Lists require type annotations"],
+                        "correct_answer": 1,
+                        "explanation": "Lists can have elements modified, added, or removed in place, whereas tuples cannot be modified once created."
+                    },
+                    {
+                        "question": "What is the output of len(set([1, 2, 2, 3, 3, 3]))?",
+                        "options": ["6", "3", "1", "Error"],
+                        "correct_answer": 1,
+                        "explanation": "Sets only store unique elements, so duplicate values are automatically discarded, leaving {1, 2, 3}."
+                    }
+                ]
             },
             {
                 "chapter_id": 2,
@@ -397,7 +470,7 @@ def timing_decorator(func):
 def compute_sum(n):
     return sum(range(n))
 
-print(f"Result: {compute_sum(1000000)}")""",
+print(f"Result: {compute_sum(100000)}")""",
                         "explanation": "Shows how Python decorators enhance function behavior transparently."
                     }
                 ],
@@ -420,10 +493,329 @@ print(is_anagram("anagram", "nagaram"))""",
                     "language": "python",
                     "test_cases": [
                         {"input": "s='anagram', t='nagaram'", "expected_output": "True"},
-                        {"input": "s='rat', t='car'", "expected_output": "False"},
-                        {"input": "s='listen', t='silent'", "expected_output": "True"}
+                        {"input": "s='rat', t='car'", "expected_output": "False"}
                     ]
-                }
+                },
+                "quiz": [
+                    {
+                        "question": "What is the main benefit of using a generator function with 'yield'?",
+                        "options": ["Faster compile time", "Memory-efficient lazy evaluation", "Automatic multithreading", "Type safety enforcement"],
+                        "correct_answer": 1,
+                        "explanation": "'yield' produces values on demand one at a time, avoiding storing entire large sequences in memory."
+                    },
+                    {
+                        "question": "In Python function signatures, what does **kwargs collect?",
+                        "options": ["Arbitrary positional arguments as a tuple", "Arbitrary keyword arguments as a dictionary", "Global variables", "Return types"],
+                        "correct_answer": 1,
+                        "explanation": "**kwargs packages any extra named keyword arguments passed to the function into a dictionary."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 3,
+                "name": "Object-Oriented Python: Classes & Dunder Methods",
+                "about": "Master class definitions, __init__, __str__, __repr__, inheritance, and encapsulation with properties.",
+                "duration": "25 mins",
+                "explanation": "Everything in Python is an object. Classes define blueprints with attributes and methods. Special double-underscore ('dunder') methods allow classes to hook into Python operators like string representation (__str__), equality (__eq__), and length (__len__).",
+                "key_takeaways": [
+                    "__init__ is the instance constructor called on creation.",
+                    "self explicitly represents the instance accessing attributes and methods.",
+                    "@property allows defining getters and setters cleanly."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Custom Class with Properties and Dunder Methods",
+                        "language": "python",
+                        "code": """class BankAccount:
+    def __init__(self, owner: str, balance: float = 0.0):
+        self.owner = owner
+        self._balance = balance
+
+    @property
+    def balance(self) -> float:
+        return self._balance
+
+    def deposit(self, amount: float):
+        if amount > 0:
+            self._balance += amount
+
+    def __str__(self):
+        return f"Account({self.owner}, Balance: ${self._balance:.2f})"
+
+acc = BankAccount("Alice", 250.0)
+acc.deposit(50.0)
+print(acc)""",
+                        "explanation": "Demonstrates @property decorator and custom __str__ method."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Reverse a String",
+                    "description": "Write a Python function that takes a string and returns it reversed.",
+                    "starter_code": """def reverse_string(s: str) -> str:
+    return s[::-1]
+
+print(reverse_string('developer'))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "developer", "expected_output": "repoleved"},
+                        {"input": "python", "expected_output": "nohtyp"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Which method is automatically called when creating a new object instance in Python?",
+                        "options": ["__call__", "__init__", "__new__", "__start__"],
+                        "correct_answer": 1,
+                        "explanation": "__init__ serves as the class constructor in Python to initialize instance attributes."
+                    },
+                    {
+                        "question": "What does the @property decorator enable?",
+                        "options": ["Defines a method to be accessed like an attribute", "Makes a method static", "Caches return values in Redis", "Protects class from inheritance"],
+                        "correct_answer": 0,
+                        "explanation": "@property turns a method into a getter, allowing attribute-style access with validation logic."
+                    }
+                ]
+            }
+        ]
+    },
+    "javascript": {
+        "name": "Modern JavaScript (ES6+) & Frontend Architecture",
+        "category": "Web & Software",
+        "summary": "Master modern JavaScript from arrow functions, destructuring, and closures to Promises, Async/Await, and DOM manipulation.",
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "name": "Modern JS Syntax: ES6+, Destructuring & Closures",
+                "about": "Understand let/const scoping, template literals, destructuring, spread/rest operators, and lexical closures.",
+                "duration": "20 mins",
+                "explanation": "ES6 revolutionized JavaScript by introducing block-scoped declarations (let and const), concise arrow functions that preserve lexical 'this', destructuring assignment for extracting object/array values, and closures where functions retain access to their outer lexical environment.",
+                "key_takeaways": [
+                    "Prefer const by default, let when reassigning; avoid var due to hoisting pitfalls.",
+                    "Arrow functions do not bind their own 'this' or 'arguments'.",
+                    "Destructuring cleanly extracts properties into standalone variables."
+                ],
+                "code_examples": [
+                    {
+                        "title": "ES6 Destructuring and Spread Operators",
+                        "language": "javascript",
+                        "code": """const user = { id: 101, username: 'dev_pro', role: 'Engineer' };
+const { username, role } = user;
+console.log(`User: ${username}, Role: ${role}`);
+
+const skills = ['React', 'Node.js'];
+const expandedSkills = [...skills, 'TypeScript', 'Docker'];
+console.log(expandedSkills);""",
+                        "explanation": "Illustrates object destructuring and array spreading."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Array Filter and Map",
+                    "description": "Write a JavaScript function that doubles all positive numbers in an array and returns the new array.",
+                    "starter_code": """function doublePositives(arr) {
+    return arr.filter(n => n > 0).map(n => n * 2);
+}
+
+console.log(JSON.stringify(doublePositives([-2, 3, 5, -1, 4])));""",
+                    "language": "javascript",
+                    "test_cases": [
+                        {"input": "[-2, 3, 5, -1, 4]", "expected_output": "[6,10,8]"},
+                        {"input": "[-1, -2]", "expected_output": "[]"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the main difference between 'let' and 'const' in JavaScript?",
+                        "options": ["let is function-scoped; const is block-scoped", "const cannot be reassigned; let can be reassigned", "const is hoisted; let is not", "let only stores numbers"],
+                        "correct_answer": 1,
+                        "explanation": "Variables declared with 'const' cannot be reassigned after declaration, while 'let' allows reassignment."
+                    },
+                    {
+                        "question": "What does a closure in JavaScript represent?",
+                        "options": ["A function bundled with references to its surrounding lexical state", "A database connection pool", "An HTML event listener", "An encrypted token"],
+                        "correct_answer": 0,
+                        "explanation": "A closure gives an inner function access to its outer enclosing scope even after the outer function has finished executing."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 2,
+                "name": "Asynchronous Programming: Promises & Async/Await",
+                "about": "Master the JavaScript event loop, microtask queue, Promise chaining, and async/await error handling.",
+                "duration": "25 mins",
+                "explanation": "JavaScript is single-threaded and non-blocking, orchestrated by the Event Loop. Asynchronous operations like HTTP requests (fetch) and file I/O execute via Promises. Async/await provides synchronous-looking syntax over Promises with standard try/catch blocks.",
+                "key_takeaways": [
+                    "Promises have 3 states: Pending, Fulfilled, and Rejected.",
+                    "async functions always return a Promise implicitly.",
+                    "Use Promise.all() to run concurrent independent asynchronous operations."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Async/Await with Error Handling",
+                        "language": "javascript",
+                        "code": """async function fetchUserData(userId) {
+    try {
+        console.log(`Fetching profile for ${userId}...`);
+        const mockResponse = { id: userId, status: 'Active', score: 98 };
+        return mockResponse;
+    } catch (err) {
+        console.error('Fetch error:', err);
+    }
+}
+
+fetchUserData(42).then(data => console.log('Loaded:', data));""",
+                        "explanation": "Shows an async function returning a Promise and structured with try/catch."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Count Vowels in String",
+                    "description": "Write a JavaScript function that counts how many vowels (a, e, i, o, u) exist in a string.",
+                    "starter_code": """function countVowels(str) {
+    const vowels = 'aeiouAEIOU';
+    let count = 0;
+    for (let char of str) {
+        if (vowels.includes(char)) count++;
+    }
+    return count;
+}
+
+console.log(countVowels('JavaScript'));""",
+                    "language": "javascript",
+                    "test_cases": [
+                        {"input": "JavaScript", "expected_output": "3"},
+                        {"input": "xyz", "expected_output": "0"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What does an 'async' keyword in front of a function declaration guarantee?",
+                        "options": ["The function runs on a separate CPU thread", "The function automatically returns a Promise", "The function executes synchronously", "It ignores runtime exceptions"],
+                        "correct_answer": 1,
+                        "explanation": "Marking a function 'async' guarantees that its return value is wrapped in a resolved Promise."
+                    },
+                    {
+                        "question": "Which method is best for executing multiple promises in parallel and failing fast if any fails?",
+                        "options": ["Promise.all()", "Promise.race()", "Promise.resolve()", "Promise.any()"],
+                        "correct_answer": 0,
+                        "explanation": "Promise.all() accepts an iterable of promises and fulfills when all fulfill, or rejects as soon as one rejects."
+                    }
+                ]
+            }
+        ]
+    },
+    "machine learning": {
+        "name": "Machine Learning Foundations & Deep Learning Systems",
+        "category": "AI & Data Science",
+        "summary": "Master core machine learning principles, feature engineering, neural networks, Sentence-BERT semantic models, and model evaluation.",
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "name": "ML Pipeline: Data Preprocessing & Feature Engineering",
+                "about": "Understand training/validation splits, normalization, categorical encoding, and semantic vector embeddings.",
+                "duration": "20 mins",
+                "explanation": "Machine learning systems learn mapping functions from input features to target predictions. Data preprocessing ensures models receive clean, scaled inputs without data leakage. Feature scaling (MinMaxScaler, StandardScaler) and text embeddings (such as Sentence-BERT) convert unstructured content into dense vector representations.",
+                "key_takeaways": [
+                    "Always split data into train, validation, and test sets before fitting transformers.",
+                    "High-cardinality categorical features can be encoded using embeddings or target encoding.",
+                    "Dense sentence embeddings preserve semantic relationships via cosine similarity."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Cosine Similarity for Embedding Comparison",
+                        "language": "python",
+                        "code": """import math
+
+def cosine_similarity(v1, v2):
+    dot = sum(a * b for a, b in zip(v1, v2))
+    norm1 = math.sqrt(sum(a * a for a in v1))
+    norm2 = math.sqrt(sum(b * b for b in v2))
+    return dot / (norm1 * norm2) if (norm1 * norm2) > 0 else 0.0
+
+emb1 = [0.8, 0.6, 0.1]
+emb2 = [0.75, 0.65, 0.05]
+print(f"Similarity: {cosine_similarity(emb1, emb2):.4f}")""",
+                        "explanation": "Computes cosine similarity between two dense embedding vectors."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Calculate Mean Squared Error (MSE)",
+                    "description": "Calculate the Mean Squared Error between true values and predicted values.",
+                    "starter_code": """def calculate_mse(y_true, y_pred):
+    n = len(y_true)
+    return sum((yt - yp) ** 2 for yt, yp in zip(y_true, y_pred)) / n
+
+print(f"{calculate_mse([1.0, 2.0, 3.0], [1.1, 1.9, 3.2]):.4f}")""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "y_true=[1.0, 2.0, 3.0], y_pred=[1.0, 2.0, 3.0]", "expected_output": "0.0000"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary danger of normalizing features using statistics calculated from the entire dataset before splitting?",
+                        "options": ["High memory consumption", "Data leakage from test to train set", "Syntax errors", "Gradient explosion"],
+                        "correct_answer": 1,
+                        "explanation": "Fitting scalers on test data leaks future information into the training phase, giving falsely optimistic evaluations."
+                    },
+                    {
+                        "question": "In semantic vector spaces, what metric measures the orientation angle between two embedding vectors?",
+                        "options": ["Euclidean distance", "Cosine similarity", "Manhattan distance", "Hamming distance"],
+                        "correct_answer": 1,
+                        "explanation": "Cosine similarity calculates the cosine of the angle between two vectors, normalized between -1 and 1."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 2,
+                "name": "Supervised Learning: Classification & Model Evaluation",
+                "about": "Master Logistic Regression, Decision Trees, Precision, Recall, F1-Score, and ROC-AUC curves.",
+                "duration": "25 mins",
+                "explanation": "Supervised classification assigns input instances into discrete classes. Because accuracy is misleading on imbalanced datasets, practitioners evaluate Precision (exactness), Recall (completeness), and F1-Score (harmonic mean).",
+                "key_takeaways": [
+                    "Accuracy is inadequate for imbalanced datasets; use Precision, Recall, and F1.",
+                    "Regularization (L1/L2) penalizes large weights to mitigate overfitting.",
+                    "Cross-validation provides robust generalization estimates."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Precision and Recall Calculation",
+                        "language": "python",
+                        "code": """def evaluate_classification(tp, fp, fn):
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    return {"precision": precision, "recall": recall, "f1": f1}
+
+print(evaluate_classification(80, 20, 10))""",
+                        "explanation": "Computes Precision, Recall, and F1-score from a confusion matrix."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Accuracy Metric Calculation",
+                    "description": "Calculate prediction accuracy as the ratio of correct predictions to total samples.",
+                    "starter_code": """def calculate_accuracy(y_true, y_pred):
+    correct = sum(1 for yt, yp in zip(y_true, y_pred) if yt == yp)
+    return round(correct / len(y_true), 2)
+
+print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "y_true=[1, 0, 1, 1], y_pred=[1, 0, 0, 1]", "expected_output": "0.75"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Which evaluation metric is the harmonic mean of Precision and Recall?",
+                        "options": ["Accuracy", "ROC-AUC", "F1-Score", "Mean Absolute Error"],
+                        "correct_answer": 2,
+                        "explanation": "F1-Score combines Precision and Recall through harmonic mean, penalizing extreme trade-offs."
+                    },
+                    {
+                        "question": "What is the primary role of L2 (Ridge) regularization?",
+                        "options": ["Zeroes out non-informative features completely", "Penalizes squared magnitude of weights to prevent overfitting", "Speeds up data loading", "Performs one-hot encoding"],
+                        "correct_answer": 1,
+                        "explanation": "L2 regularization adds a penalty proportional to the square of model coefficients, shrinking weights smoothly."
+                    }
+                ]
             }
         ]
     }
@@ -432,8 +824,27 @@ print(is_anagram("anagram", "nagaram"))""",
 
 def get_curated_course(topic: str) -> Dict[str, Any]:
     """Retrieve pre-curated full-fidelity course if matching topic, else generate structured curriculum."""
-    topic_lower = topic.lower().strip()
+    topic_lower = (topic or "").lower().strip()
     for key, data in SYLLABUS_KNOWLEDGE_BASE.items():
         if key in topic_lower or topic_lower in key:
             return data
+
+    aliases = {
+        "react": "javascript",
+        "node": "javascript",
+        "web": "javascript",
+        "frontend": "javascript",
+        "backend": "python",
+        "django": "python",
+        "flask": "python",
+        "ai": "machine learning",
+        "deep learning": "machine learning",
+        "nlp": "machine learning",
+        "data science": "machine learning",
+        "sql": "java",
+    }
+    for alias, target in aliases.items():
+        if alias in topic_lower:
+            return SYLLABUS_KNOWLEDGE_BASE.get(target)
+
     return None

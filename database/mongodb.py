@@ -79,7 +79,7 @@ class MockCollection:
                 self.items = items
             def sort(self, key, direction=-1):
                 try:
-                    self.items.sort(key=lambda x: x.get(key), reverse=(direction == -1))
+                    self.items.sort(key=lambda x: str(x.get(key) or ""), reverse=(direction == -1))
                 except Exception:
                     pass
                 return self
@@ -88,6 +88,10 @@ class MockCollection:
                 return self
             def __iter__(self):
                 return iter(self.items)
+            def __len__(self):
+                return len(self.items)
+            def __getitem__(self, idx):
+                return self.items[idx]
         return MockCursor(results)
 
     def update_one(self, query: dict, update: dict, upsert: bool = False) -> Any:

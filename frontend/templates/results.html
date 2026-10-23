@@ -125,11 +125,25 @@
           </div>
         </div>
 
+        <div class="card mt-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 1.5rem 2rem;">
+          <div class="flex-between" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
+            <div>
+              <span style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;">NEW GENERATION AI LEARNING</span>
+              <h3 style="font-size: 1.25rem; font-weight: 800; margin: 0.5rem 0 0.25rem 0; color: white;">Bridge Your Skill Gaps with AI Course Generator</h3>
+              <p style="color: #cbd5e1; font-size: 0.875rem; margin: 0;">Auto-create personalized courses, video lectures, coding compilers, and quizzes targeted to your missing skills.</p>
+            </div>
+            <a href="/courses?topic=${encodeURIComponent((skills.missing && skills.missing[0] && skills.missing[0].skill) || data.target_role || 'Software Engineering')}" class="btn btn-primary" style="background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 700;">
+              &#10024; Generate AI Course &rarr;
+            </a>
+          </div>
+        </div>
+
         <div class="flex mt-4" style="gap: 1rem; flex-wrap: wrap; justify-content: center;">
           <a href="/skills" class="btn btn-primary">Skill Gap Analysis</a>
           <a href="/improve" class="btn btn-secondary">Resume Improvement</a>
           <a href="/interview" class="btn btn-outline">Interview Prep</a>
           <a href="/roadmap" class="btn btn-outline">Preparation Roadmap</a>
+          <a href="/courses" class="btn btn-outline">AI Courses</a>
         </div>`;
 
       // Render Chart.js radar graph

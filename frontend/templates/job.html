@@ -180,16 +180,46 @@
 
       try {
         await API.request(`/job/${jobId}`, { method: 'PUT', body: { requirements } });
+
+        let userId = null;
+        try {
+          const u = JSON.parse(localStorage.getItem('user'));
+          if (u) userId = u.user_id || u.username;
+        } catch (e) {}
+
         const res = await API.request('/analyze', {
           method: 'POST',
           body: {
             resume_id: Store.get('resume_id'),
             job_description_id: jobId,
             target_role: requirements.job_title,
+            user_id: userId,
           },
         });
         Store.set('analysis_id', res.data.analysis_id);
         Store.set('analysis_data', res.data);
+
+        // Cache analysis persistently in localStorage for the active user
+        try {
+          const histItem = {
+            analysis_id: res.data.analysis_id,
+            target_role: res.data.target_role || requirements.job_title || 'Software Role',
+            overall_score: res.data.scores?.overall || 0,
+            match_label: res.data.match_label || 'Analyzed',
+            top_missing_skills: (res.data.skill_analysis?.missing || []).slice(0, 3).map(s => (typeof s === 'string' ? s : s.skill)),
+            created_at: new Date().toISOString(),
+            user_id: userId,
+            full_data: res.data
+          };
+          const localHist = JSON.parse(localStorage.getItem('user_analysis_history') || '[]');
+          const filtered = localHist.filter(h => h.analysis_id !== res.data.analysis_id);
+          filtered.unshift(histItem);
+          localStorage.setItem('user_analysis_history', JSON.stringify(filtered.slice(0, 30)));
+          localStorage.setItem('analysis_' + res.data.analysis_id, JSON.stringify(res.data));
+        } catch (cacheErr) {
+          console.warn('Local history cache error', cacheErr);
+        }
+
         window.location.href = '/results';
       } catch (err) {
         jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;

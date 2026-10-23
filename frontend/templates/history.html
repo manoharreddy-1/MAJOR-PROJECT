@@ -21,50 +21,184 @@
   </nav>
 
   <div class="container">
-    <div class="page-header">
-      <h1>Analysis History</h1>
-      <p>View your previous resume-job analyses</p>
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1>Analysis History</h1>
+        <p>View your previous resume-job ATS analyses and reports</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="/analyze" class="btn btn-primary">+ New Analysis</a>
+        <button id="clearHistoryBtn" onclick="clearAllHistory()" class="btn btn-outline" style="font-size: 0.8125rem;">Clear History</button>
+      </div>
     </div>
+
+    <!-- Search / Filter bar -->
+    <div class="card mb-3" style="padding: 1rem 1.5rem;">
+      <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <input type="text" id="historySearchInput" placeholder="Filter by target role or missing skill..." class="form-input" style="flex: 1; min-width: 240px; margin: 0;" oninput="filterHistoryList()">
+        <span id="historyRecordCount" class="badge badge-neutral" style="font-size: 0.8125rem;">0 analyses recorded</span>
+      </div>
+    </div>
+
     <div id="historyContent">
       <div class="loading-overlay"><div class="loading-spinner"></div></div>
     </div>
   </div>
 
-  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
   <script src="/static/js/app.js"></script>
   <script>
     const container = document.getElementById('historyContent');
+    let allHistoryItems = [];
 
-    async function loadHistory() {
+    function getActiveUserId() {
       try {
-        const res = await API.request('/history');
-        const items = res.data || [];
-        if (!items.length) {
-          UI.showEmpty(container, '&#128203;', 'No analysis history yet. <a href="/analyze">Run your first analysis</a>');
-          return;
-        }
-        container.innerHTML = `<div class="card"><div class="table-responsive"><table>
-          <thead><tr><th>Date</th><th>Target Role</th><th>ATS Score</th><th>Match</th><th>Missing Skills</th><th>Action</th></tr></thead>
-          <tbody>${items.map(item => `<tr>
-            <td>${UI.formatDate(item.created_at)}</td>
-            <td>${item.target_role || '-'}</td>
-            <td><strong>${item.overall_score || '-'}</strong></td>
-            <td><span class="badge badge-${(item.overall_score || 0) >= 65 ? 'success' : 'warning'}">${item.match_label || '-'}</span></td>
-            <td>${(item.top_missing_skills || []).join(', ') || '-'}</td>
-            <td><button class="btn btn-outline" onclick="viewAnalysis('${item.analysis_id}')">View</button></td>
-          </tr>`).join('')}</tbody></table></div></div>`;
-      } catch (err) {
-        UI.showError(container, err.message);
+        const u = JSON.parse(localStorage.getItem('user'));
+        return (u && (u.user_id || u.username)) || null;
+      } catch (e) {
+        return null;
       }
     }
 
+    async function loadHistory() {
+      const userId = getActiveUserId();
+      let serverItems = [];
+
+      try {
+        const query = userId ? `/history?user_id=${encodeURIComponent(userId)}` : '/history';
+        const res = await API.request(query);
+        serverItems = res.data || [];
+      } catch (err) {
+        console.warn('Server history fetch fallback:', err);
+      }
+
+      // Read local cache
+      let localItems = [];
+      try {
+        localItems = JSON.parse(localStorage.getItem('user_analysis_history') || '[]');
+      } catch (e) {}
+
+      // Merge server items and local items (deduplicate by analysis_id)
+      const map = new Map();
+
+      // Put server items first
+      serverItems.forEach(item => {
+        if (item.analysis_id) map.set(String(item.analysis_id), item);
+      });
+
+      // Overlay/merge local items
+      localItems.forEach(item => {
+        if (item.analysis_id) {
+          if (!map.has(String(item.analysis_id))) {
+            map.set(String(item.analysis_id), item);
+          } else {
+            // If local item has full_data cached, preserve it
+            const existing = map.get(String(item.analysis_id));
+            if (item.full_data && !existing.full_data) {
+              existing.full_data = item.full_data;
+            }
+          }
+        }
+      });
+
+      allHistoryItems = Array.from(map.values());
+      // Sort descending by created_at
+      allHistoryItems.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      renderHistoryTable(allHistoryItems);
+    }
+
+    function renderHistoryTable(items) {
+      document.getElementById('historyRecordCount').innerText = `${items.length} analyses recorded`;
+
+      if (!items.length) {
+        UI.showEmpty(container, '&#128203;', 'No analysis history found. <a href="/analyze">Run your first analysis</a>');
+        return;
+      }
+
+      container.innerHTML = `<div class="card"><div class="table-responsive"><table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Target Role</th>
+            <th>ATS Score</th>
+            <th>Match Status</th>
+            <th>Top Missing Skills</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(item => {
+            const score = Math.round(item.overall_score || 0);
+            const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#0284c7' : '#f59e0b';
+            const missingSkills = (item.top_missing_skills || []).map(s => typeof s === 'string' ? s : s.skill).filter(Boolean);
+            return `<tr>
+              <td><span style="font-size: 0.8125rem; color: var(--text-muted);">${UI.formatDate(item.created_at)}</span></td>
+              <td><strong>${item.target_role || 'Software Role'}</strong></td>
+              <td>
+                <span style="font-weight: 800; font-size: 1.05rem; color: ${scoreColor};">${score}%</span>
+              </td>
+              <td><span class="badge badge-${score >= 65 ? 'success' : 'warning'}">${item.match_label || 'Evaluated'}</span></td>
+              <td><span style="font-size: 0.8125rem; color: #64748b;">${missingSkills.slice(0, 3).join(', ') || 'None identified'}</span></td>
+              <td style="text-align: right;">
+                <button class="btn btn-primary" style="padding: 0.35rem 0.85rem; font-size: 0.8125rem;" onclick="viewAnalysis('${item.analysis_id}')">View Report &rarr;</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div></div>`;
+    }
+
+    function filterHistoryList() {
+      const q = (document.getElementById('historySearchInput').value || '').toLowerCase().trim();
+      if (!q) {
+        renderHistoryTable(allHistoryItems);
+        return;
+      }
+      const filtered = allHistoryItems.filter(item => {
+        const role = (item.target_role || '').toLowerCase();
+        const skills = (item.top_missing_skills || []).join(' ').toLowerCase();
+        return role.includes(q) || skills.includes(q);
+      });
+      renderHistoryTable(filtered);
+    }
+
     async function viewAnalysis(id) {
+      if (!id) return;
+
+      // 1. Check local cache first
+      let cachedDoc = null;
+      try {
+        const single = localStorage.getItem('analysis_' + id);
+        if (single) cachedDoc = JSON.parse(single);
+        if (!cachedDoc) {
+          const matched = allHistoryItems.find(it => String(it.analysis_id) === String(id));
+          if (matched && matched.full_data) cachedDoc = matched.full_data;
+        }
+      } catch (e) {}
+
+      // 2. Fetch from server, fallback to cache
       try {
         const res = await API.request(`/analysis/${id}`);
         Store.set('analysis_id', id);
         Store.set('analysis_data', res.data);
         window.location.href = '/results';
-      } catch (err) { alert(err.message); }
+      } catch (err) {
+        if (cachedDoc) {
+          Store.set('analysis_id', id);
+          Store.set('analysis_data', cachedDoc);
+          window.location.href = '/results';
+        } else {
+          alert('Could not retrieve analysis report: ' + err.message);
+        }
+      }
+    }
+
+    function clearAllHistory() {
+      if (!confirm('Are you sure you want to clear your local analysis history?')) return;
+      localStorage.removeItem('user_analysis_history');
+      allHistoryItems = [];
+      renderHistoryTable([]);
     }
 
     loadHistory();

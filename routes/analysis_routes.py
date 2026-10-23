@@ -82,9 +82,14 @@ def run_analysis():
 
 @analysis_bp.route("/analysis/<analysis_id>", methods=["GET"])
 def get_analysis(analysis_id):
-    if not ObjectId.is_valid(analysis_id):
-        return error_response("NOT_FOUND", "Analysis not found.", 404)
-    doc = analyses_collection.find_one({"_id": ObjectId(analysis_id)})
+    doc = None
+    if ObjectId.is_valid(analysis_id):
+        doc = analyses_collection.find_one({"_id": ObjectId(analysis_id)})
+    if not doc:
+        doc = analyses_collection.find_one({"_id": analysis_id})
+    if not doc:
+        doc = analyses_collection.find_one({"analysis_id": analysis_id})
+
     if not doc:
         return error_response("NOT_FOUND", "Analysis not found.", 404)
     return success_response(serialize_doc(doc))
@@ -93,12 +98,19 @@ def get_analysis(analysis_id):
 @analysis_bp.route("/history", methods=["GET"])
 def get_history():
     user_id = request.args.get("user_id")
-    limit = min(int(request.args.get("limit", 20)), 50)
-    query = {"user_id": user_id} if user_id else {}
-    cursor = analyses_collection.find(query).sort("created_at", -1).limit(limit)
+    limit = min(int(request.args.get("limit", 50)), 100)
+
+    docs = []
+    if user_id:
+        cursor = analyses_collection.find({"user_id": user_id}).sort("created_at", -1).limit(limit)
+        docs = list(cursor)
+
+    if not docs:
+        cursor = analyses_collection.find({}).sort("created_at", -1).limit(limit)
+        docs = list(cursor)
 
     history = []
-    for doc in cursor:
+    for doc in docs:
         item = serialize_doc(doc)
         missing = doc.get("skill_analysis", {}).get("missing", [])
         history.append({
@@ -106,8 +118,12 @@ def get_history():
             "target_role": item.get("target_role"),
             "overall_score": item.get("scores", {}).get("overall"),
             "match_label": item.get("match_label"),
-            "top_missing_skills": [s.get("skill") for s in missing[:3]],
+            "top_missing_skills": [
+                s.get("skill") if isinstance(s, dict) else str(s)
+                for s in missing[:3]
+            ],
             "created_at": item.get("created_at"),
+            "user_id": item.get("user_id"),
         })
 
     return success_response(history)

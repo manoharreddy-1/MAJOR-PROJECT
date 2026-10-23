@@ -60,7 +60,18 @@
       </div>
     </div>
 
-    <div style="max-width: 600px; margin: 0 auto;">
+    <div style="max-width: 750px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+      <!-- Recent Analyses Quick Preview -->
+      <div class="card">
+        <div class="flex-between mb-3">
+          <h3 class="card-title" style="margin: 0;">Recent Analysis History</h3>
+          <a href="/history" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Full History &rarr;</a>
+        </div>
+        <div id="profileRecentAnalyses">
+          <p class="text-muted" style="font-size: 0.875rem;">Loading history records...</p>
+        </div>
+      </div>
+
       <!-- Session and Account Information -->
       <div class="card">
         <h3 class="card-title mb-3">Account &amp; Session Info</h3>
@@ -122,15 +133,58 @@
     });
 
     async function loadStats() {
+      let userId = null;
       try {
-        const histRes = await API.request('/history');
-        const items = histRes.data || [];
-        document.getElementById('statAnalysesCount').innerText = items.length;
-        if (items.length > 0) {
-          const sum = items.reduce((acc, it) => acc + (it.overall_score || 0), 0);
-          document.getElementById('statAvgScore').innerText = Math.round(sum / items.length) + '%';
-        }
+        const u = JSON.parse(localStorage.getItem('user'));
+        if (u) userId = u.user_id || u.username;
+      } catch (e) {}
 
+      let serverItems = [];
+      try {
+        const query = userId ? `/history?user_id=${encodeURIComponent(userId)}` : '/history';
+        const histRes = await API.request(query);
+        serverItems = histRes.data || [];
+      } catch (e) {}
+
+      // Read local cache
+      let localItems = [];
+      try {
+        localItems = JSON.parse(localStorage.getItem('user_analysis_history') || '[]');
+      } catch (e) {}
+
+      // Merge items
+      const map = new Map();
+      serverItems.forEach(item => { if (item.analysis_id) map.set(String(item.analysis_id), item); });
+      localItems.forEach(item => { if (item.analysis_id && !map.has(String(item.analysis_id))) map.set(String(item.analysis_id), item); });
+
+      const allItems = Array.from(map.values()).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+      document.getElementById('statAnalysesCount').innerText = allItems.length;
+      if (allItems.length > 0) {
+        const sum = allItems.reduce((acc, it) => acc + (it.overall_score || 0), 0);
+        document.getElementById('statAvgScore').innerText = Math.round(sum / allItems.length) + '%';
+      }
+
+      // Render recent analyses in profile
+      const recentContainer = document.getElementById('profileRecentAnalyses');
+      if (!allItems.length) {
+        recentContainer.innerHTML = '<p class="text-muted" style="font-size: 0.875rem;">No analyses yet. <a href="/analyze">Start your first ATS analysis</a></p>';
+      } else {
+        recentContainer.innerHTML = allItems.slice(0, 3).map(item => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid var(--border);">
+            <div>
+              <div style="font-weight: 600; font-size: 0.9375rem;">${item.target_role || 'Software Role'}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${UI.formatDate(item.created_at)}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span class="badge badge-${(item.overall_score || 0) >= 65 ? 'success' : 'warning'}">${Math.round(item.overall_score || 0)}% ATS Score</span>
+              <a href="/history" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">View</a>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      try {
         const courseRes = await API.request('/course/list');
         const courses = courseRes.data || [];
         document.getElementById('statCoursesCount').innerText = courses.length;

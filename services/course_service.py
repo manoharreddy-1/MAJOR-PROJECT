@@ -259,7 +259,8 @@ Return ONLY valid JSON matching this structure:
                 "explanation": curated_ch["explanation"],
                 "key_takeaways": curated_ch["key_takeaways"],
                 "code_examples": curated_ch["code_examples"],
-                "coding_challenge": curated_ch.get("coding_challenge")
+                "coding_challenge": curated_ch.get("coding_challenge"),
+                "quiz": curated_ch.get("quiz", [])
             }
         else:
             content_res = self.llm.generate_json(prompt)
@@ -288,8 +289,46 @@ Return ONLY valid JSON matching this structure:
                         "test_cases": [
                             {"input": "default", "expected_output": "Success"}
                         ]
-                    }
+                    },
+                    "quiz": [
+                        {
+                            "question": f"What is the primary role of {chapter_name} in software engineering?",
+                            "options": [
+                                f"To provide foundational structure and logic for {chapter_name}",
+                                "To manage direct memory allocation in the hardware",
+                                "To replace operating system drivers",
+                                "None of the above"
+                            ],
+                            "correct_answer": 0,
+                            "explanation": f"{chapter_name} forms an integral conceptual and practical pillar in modern engineering."
+                        },
+                        {
+                            "question": "Which principle ensures robust software architecture?",
+                            "options": [
+                                "Writing modular, testable, and well-structured code",
+                                "Hardcoding parameters in all functions",
+                                "Avoiding error handling and logs",
+                                "Ignoring unit test validations"
+                            ],
+                            "correct_answer": 0,
+                            "explanation": "Modularity and testing ensure maintainability and high code quality."
+                        }
+                    ]
                 }
+            elif not content_res.get("quiz"):
+                content_res["quiz"] = [
+                    {
+                        "question": f"Which best describes the primary focus of {chapter_name}?",
+                        "options": [
+                            f"Core concepts and practical application of {chapter_name}",
+                            "Low-level kernel device management",
+                            "Database indexing only",
+                            "None of the above"
+                        ],
+                        "correct_answer": 0,
+                        "explanation": f"This chapter emphasizes the core paradigms of {chapter_name}."
+                    }
+                ]
 
         # Fetch YouTube video
         video_info = self.fetch_youtube_video(f"{course_name} {chapter_name}")
@@ -352,6 +391,19 @@ Return ONLY valid JSON matching this structure:
             return None
 
         chapters = list(self.chapters_col.find({"course_id": course_id}))
+        if not chapters and course.get("chapters_outline"):
+            # Auto-populate chapters so user never encounters an uninitialized course
+            for ch in course["chapters_outline"]:
+                ch_id = ch.get("chapter_id", 1)
+                ch_name = ch.get("name", f"Chapter {ch_id}")
+                self.generate_chapter_content(
+                    course_id=course_id,
+                    chapter_id=ch_id,
+                    chapter_name=ch_name,
+                    course_name=course.get("name", "Course")
+                )
+            chapters = list(self.chapters_col.find({"course_id": course_id}))
+
         chapters.sort(key=lambda c: c.get("chapter_id", 0))
 
         result = serialize_doc(course)
