@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Resumes Screening &amp; Ranking | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .cutoff-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 0.75rem;
+    }
+    @media (max-width: 640px) {
+      .cutoff-grid { grid-template-columns: 1fr; }
+    }
+    .cutoff-input-group label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.35rem;
+    }
+    .cutoff-input-group input {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+    .bulk-stat-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .bulk-stat-val {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .bulk-stat-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sub-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+    .sub-tab-btn {
+      background: none;
+      border: none;
+      padding: 0.75rem 1.25rem;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .sub-tab-btn.active {
+      color: var(--accent-dark);
+      border-bottom-color: var(--accent);
+    }
+    .sub-tab-btn:hover:not(.active) {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/home">Home</a></li>
+      <li><a href="/resume-analysis" class="active">Resume Analysis</a></li>
+      <li><a href="/courses">AI Courses</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container" style="max-width: 1200px; padding: 2rem 1.5rem;">
+    <!-- Breadcrumb with Switch Mode Button -->
+    <div class="mode-breadcrumb-bar">
+      <div class="mode-breadcrumb">
+        <span>Resume Analysis</span>
+        <span>&rsaquo;</span>
+        <strong>Bulk Resumes</strong>
+        <span style="background: #ede9fe; color: #7c3aed; font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; margin-left: 0.5rem;">Placement &amp; Recruiters</span>
+      </div>
+      <a href="/resume-analysis" class="mode-switch-btn">&#8644; Switch mode</a>
+    </div>
+
+    <!-- Sub-navigation Tabs -->
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" id="tabBtnScreening" onclick="switchBulkTab('screening')">⚡ 1. Bulk Screening Setup</button>
+      <button class="sub-tab-btn" id="tabBtnResults" onclick="switchBulkTab('results')">🏆 2. Ranked Candidate Results</button>
+      <button class="sub-tab-btn" id="tabBtnHistory" onclick="switchBulkTab('history')">📋 3. Screening History</button>
+    </div>
+
+    <!-- TAB 1: SCREENING SETUP & UPLOAD -->
+    <div id="bulkScreeningView">
+      <div class="page-header" style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--primary);">Bulk Resume Screening &amp; Ranking</h1>
+        <p style="color: var(--text-muted);">
+          Upload up to 1000+ resumes (or a single .ZIP archive), enforce CGPA &amp; marks cutoffs, and rank candidates from top performer to least.
+        </p>
+      </div>
+
+      <div class="grid-2" style="gap: 1.5rem;">
+        <!-- Left: Job & Academic Cutoffs -->
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="card-title" style="font-size: 1.15rem;">Job Requirements &amp; Cutoffs</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="prefillSampleJob()" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+              Fill Sample Job
+            </button>
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--primary);">Target Job Title</label>
+            <input type="text" id="bulkJobTitle" class="form-control" placeholder="e.g. AI / Machine Learning Engineer" style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius);">
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <label style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--primary);">Job Description &amp; Required Skills</label>
+            <textarea id="bulkJobDesc" rows="7" class="form-control" placeholder="Paste full job description including technical skills, tools, and responsibilities..." style="width: 100%; padding: 0.65rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 0.875rem;"></textarea>
+          </div>
+
+          <!-- Academic Cutoff Gate -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius); padding: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem;">
+              <span style="font-size: 1.1rem;">🎓</span>
+              <strong style="font-size: 0.9rem; color: var(--primary);">Academic Eligibility Cutoffs</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">(Optional)</span>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Candidates falling below any cutoff will be flagged as "Below Cutoff" and placed behind eligible candidates in the final ranking.
+            </p>
+
+            <div class="cutoff-grid">
+              <div class="cutoff-input-group">
+                <label>Min CGPA (/10)</label>
+                <input type="number" id="minCgpa" step="0.1" min="0" max="10" placeholder="e.g. 7.5">
+              </div>
+              <div class="cutoff-input-group">
+                <label>Min 10th Marks (%)</label>
+                <input type="number" id="minTenth" step="1" min="0" max="100" placeholder="e.g. 70">
+              </div>
+              <div class="cutoff-input-group">
+                <label>Min 12th Marks (%)</label>
+                <input type="number" id="minTwelfth" step="1" min="0" max="100" placeholder="e.g. 70">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Upload Resumes / ZIP -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title" style="font-size: 1.15rem;">Upload Resumes (Up to 1000+)</h2>
+          </div>
+
+          <div class="upload-zone" id="bulkUploadZone" style="border: 2px dashed #94a3b8; border-radius: var(--radius-lg); padding: 2.25rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa;">
+            <div class="upload-icon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">📁</div>
+            <p style="font-weight: 700; color: var(--primary); font-size: 1rem; margin-bottom: 0.25rem;">
+              Drag &amp; drop multiple Resumes or a .ZIP archive here
+            </p>
+            <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Supports <strong>.PDF, .DOCX, .TXT</strong> or <strong>.ZIP</strong> containing resumes
+            </p>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('bulkFilesInput').click()">
+              Browse Files from Computer
+            </button>
+          </div>
+          <input type="file" id="bulkFilesInput" multiple accept=".pdf,.docx,.txt,.zip" hidden>
+
+          <!-- Selected Files Summary -->
+          <div id="bulkFilesSummary" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span id="bulkFilesCountText" style="font-weight: 700; color: #166534; font-size: 0.875rem;"></span>
+              <button type="button" class="btn btn-sm" onclick="clearSelectedBulkFiles()" style="background: none; border: none; color: #dc2626; font-size: 0.8rem; cursor: pointer;">✕ Clear</button>
+            </div>
+            <div id="bulkFileNamesList" style="font-size: 0.75rem; color: #475569; max-height: 80px; overflow-y: auto; margin-top: 0.35rem;"></div>
+          </div>
+
+          <!-- Submit Button -->
+          <div style="margin-top: 1.5rem;">
+            <button type="button" id="startScreeningBtn" class="btn btn-primary" onclick="submitBulkScreening()" style="width: 100%; padding: 0.85rem; font-size: 1rem; justify-content: center; font-weight: 700;">
+              🚀 Run Bulk Screening &amp; Ranking
+            </button>
+          </div>
+
+          <!-- Live Progress State -->
+          <div id="bulkProgressBox" style="display: none; margin-top: 1.25rem; padding: 1.25rem; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius);">
+            <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 0.875rem; margin-bottom: 0.5rem;">
+              <span id="bulkProgressStageText">Processing Resumes...</span>
+              <span id="bulkProgressPercent">0%</span>
+            </div>
+            <div class="progress-bar" style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+              <div id="bulkProgressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #38bdf8); transition: width 0.3s;"></div>
+            </div>
+            <p id="bulkProgressDetails" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem; text-align: center;">
+              Parsing text, validating cutoffs, and executing semantic ATS scoring...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: RANKED RESULTS VIEW -->
+    <div id="bulkResultsView" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+          <h1 id="resultsBatchTitle" style="font-size: 1.75rem; font-weight: 800; color: var(--primary);">
+            Ranked Candidate Results
+          </h1>
+          <p id="resultsBatchSubtitle" style="color: var(--text-muted); font-size: 0.9375rem;">
+            Top performers listed first based on ATS match score &amp; academic eligibility.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="exportCsvBtn" class="btn btn-success" onclick="downloadBatchCsv()" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; background: #16a34a; color: white;">
+            📥 Export Ranked CSV
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="switchBulkTab('screening')">
+            + New Screening
+          </button>
+        </div>
+      </div>
+
+      <!-- Batch Aggregate Stat Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="bulk-stat-card">
+          <div class="bulk-stat-val" id="statTotalResumes">0</div>
+          <div class="bulk-stat-label">Total Resumes</div>
+        </div>
+        <div class="bulk-stat-card" style="border-color: #86efac; background: #f0fdf4;">
+          <div class="bulk-stat-val" style="color: #16a34a;" id="statEligibleCount">0</div>
+          <div class="bulk-stat-label" style="color: #15803d;">Eligible Candidates</div>
+        </div>
+        <div class="bulk-stat-card" style="border-color: #fca5a5; background: #fef2f2;">
+          <div class="bulk-stat-val" style="color: #dc2626;" id="statIneligibleCount">0</div>
+          <div class="bulk-stat-label" style="color: #b91c1c;">Below Cutoff</div>
+        </div>
+        <div class="bulk-stat-card">
+          <div class="bulk-stat-val" id="statAvgScore">0%</div>
+          <div class="bulk-stat-label">Average ATS Score</div>
+        </div>
+        <div class="bulk-stat-card">
+          <div class="bulk-stat-val" style="color: #0284c7;" id="statTopScore">0%</div>
+          <div class="bulk-stat-label">Top ATS Score</div>
+        </div>
+      </div>
+
+      <!-- Filter Controls & Search -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #ffffff; padding: 0.85rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem;">
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-sm btn-primary" id="filterAllBtn" onclick="filterCandidates('all')">All Candidates (<span id="countAll">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="filterEligibleBtn" onclick="filterCandidates('eligible')">Eligible Only (<span id="countEligible">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="filterBelowBtn" onclick="filterCandidates('below')">Below Cutoff (<span id="countBelow">0</span>)</button>
+        </div>
+        <div style="min-width: 260px;">
+          <input type="text" id="candidateSearchInput" onkeyup="searchCandidatesTable()" placeholder="🔍 Search candidate name or skill..." style="width: 100%; padding: 0.45rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.85rem;">
+        </div>
+      </div>
+
+      <!-- Ranked Candidates Table -->
+      <div class="bulk-table-container">
+        <table class="bulk-table" id="candidatesTable">
+          <thead>
+            <tr>
+              <th style="width: 60px; text-align: center;">Rank</th>
+              <th>Candidate Name &amp; Contact</th>
+              <th>Eligibility Status</th>
+              <th>ATS Match Score</th>
+              <th>Academics (CGPA / 10th / 12th)</th>
+              <th>Key Matched Skills</th>
+              <th>Missing Skills</th>
+            </tr>
+          </thead>
+          <tbody id="candidatesTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: SCREENING BATCH HISTORY -->
+    <div id="bulkHistoryView" style="display: none;">
+      <div class="page-header" style="margin-bottom: 1.5rem;">
+        <h1 style="font-size: 1.75rem; font-weight: 800; color: var(--primary);">Screening Batch History</h1>
+        <p style="color: var(--text-muted);">View, inspect, and export previous bulk screening runs.</p>
+      </div>
+
+      <div class="card">
+        <div id="batchesHistoryList">
+          <div class="empty-state">
+            <div class="empty-icon">⏳</div>
+            <p>Loading historical screening batches...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    let currentBatch = null;
+    let selectedFiles = [];
+    let currentCandidateFilter = 'all';
+
+    function getStoredUser() {
+      try {
+        const u = localStorage.getItem('user');
+        return u ? JSON.parse(u) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function isAuthorizedForBulk(user) {
+      if (!user) return false;
+      const role = (user.role || '').trim().toLowerCase();
+      const allowed = ['recruiter', 'placement cell', 'placement', 'admin', 'recruiter/placement cell'];
+      return allowed.includes(role);
+    }
+
+    // Role check and initial setup
+    document.addEventListener('DOMContentLoaded', () => {
+      localStorage.setItem('resume_analysis_mode', 'bulk');
+      const user = getStoredUser();
+
+      // Guard: Redirect unauthorized users
+      if (!isAuthorizedForBulk(user)) {
+        alert('Access denied. Bulk resume screening is available for Placement Cell and Recruiters only.');
+        window.location.href = '/resume-analysis';
+        return;
+      }
+
+      setupDragAndDrop();
+
+      // Route handling for sub-routes
+      const path = window.location.pathname;
+      if (path.includes('/results')) {
+        switchBulkTab('results');
+      } else if (path.includes('/history')) {
+        switchBulkTab('history');
+      }
+    });
+
+    function switchBulkTab(tabName) {
+      document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('bulkScreeningView').style.display = 'none';
+      document.getElementById('bulkResultsView').style.display = 'none';
+      document.getElementById('bulkHistoryView').style.display = 'none';
+
+      if (tabName === 'screening') {
+        document.getElementById('tabBtnScreening').classList.add('active');
+        document.getElementById('bulkScreeningView').style.display = 'block';
+      } else if (tabName === 'results') {
+        document.getElementById('tabBtnResults').classList.add('active');
+        document.getElementById('bulkResultsView').style.display = 'block';
+        if (!currentBatch) {
+          // Check if there is a cached batch in session
+          const cached = Store.get('last_bulk_batch');
+          if (cached) renderBatchResults(cached);
+        }
+      } else if (tabName === 'history') {
+        document.getElementById('tabBtnHistory').classList.add('active');
+        document.getElementById('bulkHistoryView').style.display = 'block';
+        loadBatchHistory();
+      }
+    }
+
+    function setupDragAndDrop() {
+      const zone = document.getElementById('bulkUploadZone');
+      const input = document.getElementById('bulkFilesInput');
+
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.style.borderColor = 'var(--accent)';
+        zone.style.background = '#f0f9ff';
+      });
+
+      zone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        zone.style.borderColor = '#94a3b8';
+        zone.style.background = '#fafafa';
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.style.borderColor = '#94a3b8';
+        zone.style.background = '#fafafa';
+        if (e.dataTransfer.files.length) {
+          handleFilesSelected(e.dataTransfer.files);
+        }
+      });
+
+      input.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+          handleFilesSelected(e.target.files);
+        }
+      });
+    }
+
+    function handleFilesSelected(fileList) {
+      selectedFiles = Array.from(fileList);
+      const summaryBox = document.getElementById('bulkFilesSummary');
+      const countText = document.getElementById('bulkFilesCountText');
+      const namesList = document.getElementById('bulkFileNamesList');
+
+      if (selectedFiles.length === 0) {
+        summaryBox.style.display = 'none';
+        return;
+      }
+
+      summaryBox.style.display = 'block';
+      countText.innerText = `✓ Selected ${selectedFiles.length} resume file(s) / archives ready for screening`;
+      namesList.innerHTML = selectedFiles.map(f => `<div>📄 ${f.name} (${Math.round(f.size / 1024)} KB)</div>`).join('');
+    }
+
+    function clearSelectedBulkFiles() {
+      selectedFiles = [];
+      document.getElementById('bulkFilesInput').value = '';
+      document.getElementById('bulkFilesSummary').style.display = 'none';
+    }
+
+    function prefillSampleJob() {
+      document.getElementById('bulkJobTitle').value = 'AI / Machine Learning Engineer';
+      document.getElementById('bulkJobDesc').value = `We are seeking a high-performing Machine Learning Engineer to join our core AI product team.
+Responsibilities:
+- Build and deploy transformer models and LLM applications using PyTorch and Hugging Face.
+- Conduct data analysis, preprocessing, and feature engineering using NumPy, Pandas, and Scikit-learn.
+- Design scalable REST APIs using Python, FastAPI, and Flask.
+- Collaborate with cloud infrastructure engineers on AWS / GCP.
+
+Required Skills:
+Python, PyTorch, TensorFlow, NumPy, Pandas, Scikit-learn, LLMs, NLP, Docker, Git.
+
+Preferred Skills:
+FastAPI, Kubernetes, SQL, LangChain.`;
+
+      document.getElementById('minCgpa').value = '7.5';
+      document.getElementById('minTenth').value = '70';
+      document.getElementById('minTwelfth').value = '70';
+    }
+
+    async function submitBulkScreening() {
+      const jobDesc = document.getElementById('bulkJobDesc').value.trim();
+      const jobTitle = document.getElementById('bulkJobTitle').value.trim();
+      const minCgpa = document.getElementById('minCgpa').value.trim();
+      const minTenth = document.getElementById('minTenth').value.trim();
+      const minTwelfth = document.getElementById('minTwelfth').value.trim();
+
+      if (!jobDesc) {
+        alert('Please provide a Job Description to match candidate resumes against.');
+        return;
+      }
+
+      if (selectedFiles.length === 0) {
+        alert('Please select or drop at least one resume (PDF, DOCX, TXT) or a .ZIP archive.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('startScreeningBtn');
+      const progressBox = document.getElementById('bulkProgressBox');
+      const progressBar = document.getElementById('bulkProgressBarFill');
+      const progressPercent = document.getElementById('bulkProgressPercent');
+      const stageText = document.getElementById('bulkProgressStageText');
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Screening in progress...';
+      progressBox.style.display = 'block';
+
+      // Animated progress simulation while backend computes
+      let progress = 10;
+      progressBar.style.width = '10%';
+      progressPercent.innerText = '10%';
+      stageText.innerText = 'Uploading and unpacking resume files...';
+
+      const interval = setInterval(() => {
+        if (progress < 85) {
+          progress += Math.floor(Math.random() * 12) + 5;
+          if (progress > 85) progress = 85;
+          progressBar.style.width = `${progress}%`;
+          progressPercent.innerText = `${progress}%`;
+          if (progress > 30 && progress < 60) stageText.innerText = 'Extracting candidate details & evaluating cutoffs...';
+          else if (progress >= 60) stageText.innerText = 'Running SBERT semantic matching & ranking candidates...';
+        }
+      }, 500);
+
+      const formData = new FormData();
+      formData.append('job_description', jobDesc);
+      formData.append('job_title', jobTitle);
+      if (minCgpa) formData.append('min_cgpa', minCgpa);
+      if (minTenth) formData.append('min_tenth', minTenth);
+      if (minTwelfth) formData.append('min_twelfth', minTwelfth);
+
+      selectedFiles.forEach((file) => {
+        formData.append('files', file);
+      });
+
+      const user = getStoredUser();
+      const headers = {};
+      if (user && user.role) headers['X-User-Role'] = user.role;
+      if (user && user.user_id) headers['X-User-Id'] = user.user_id;
+
+      try {
+        const response = await fetch('/api/bulk/analyze', {
+          method: 'POST',
+          headers: headers,
+          body: formData,
+        });
+
+        clearInterval(interval);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error?.message || 'Bulk screening failed');
+        }
+
+        progressBar.style.width = '100%';
+        progressPercent.innerText = '100%';
+        stageText.innerText = 'Completed! Loading ranked results...';
+
+        currentBatch = data.data;
+        Store.set('last_bulk_batch', currentBatch);
+
+        setTimeout(() => {
+          progressBox.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.innerText = '🚀 Run Bulk Screening & Ranking';
+          switchBulkTab('results');
+          renderBatchResults(currentBatch);
+        }, 600);
+
+      } catch (err) {
+        clearInterval(interval);
+        progressBox.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.innerText = '🚀 Run Bulk Screening & Ranking';
+        alert('Error: ' + err.message);
+      }
+    }
+
+    function renderBatchResults(batch) {
+      currentBatch = batch;
+      document.getElementById('resultsBatchTitle').innerText = `${batch.job_title || 'Candidate Screening'} — Ranked Results`;
+      document.getElementById('resultsBatchSubtitle').innerText = `Batch ID: ${batch.batch_id} | Created: ${UI.formatDate(batch.created_at)} | Filtered by cutoffs`;
+
+      document.getElementById('statTotalResumes').innerText = batch.total_resumes || 0;
+      document.getElementById('statEligibleCount').innerText = batch.eligible_count || 0;
+      document.getElementById('statIneligibleCount').innerText = batch.below_cutoff_count || 0;
+      document.getElementById('statAvgScore').innerText = `${batch.avg_score || 0}%`;
+      document.getElementById('statTopScore').innerText = `${batch.top_score || 0}%`;
+
+      document.getElementById('countAll').innerText = batch.total_resumes || 0;
+      document.getElementById('countEligible').innerText = batch.eligible_count || 0;
+      document.getElementById('countBelow').innerText = batch.below_cutoff_count || 0;
+
+      filterCandidates('all');
+    }
+
+    function filterCandidates(type) {
+      currentCandidateFilter = type;
+      document.getElementById('filterAllBtn').className = type === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+      document.getElementById('filterEligibleBtn').className = type === 'eligible' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+      document.getElementById('filterBelowBtn').className = type === 'below' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+
+      if (!currentBatch || !currentBatch.candidates) return;
+
+      let filtered = currentBatch.candidates;
+      if (type === 'eligible') {
+        filtered = filtered.filter(c => c.is_eligible);
+      } else if (type === 'below') {
+        filtered = filtered.filter(c => !c.is_eligible);
+      }
+
+      renderTableRows(filtered);
+    }
+
+    function renderTableRows(candidates) {
+      const tbody = document.getElementById('candidatesTableBody');
+      if (!candidates || candidates.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No candidates matching this criteria.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = candidates.map(c => {
+        let rankBadgeClass = 'rank-normal';
+        if (c.rank === 1) rankBadgeClass = 'rank-gold';
+        else if (c.rank === 2) rankBadgeClass = 'rank-silver';
+        else if (c.rank === 3) rankBadgeClass = 'rank-bronze';
+
+        const cutoffBadge = c.is_eligible
+          ? `<span class="cutoff-pill cutoff-eligible">✓ Eligible</span>`
+          : `<span class="cutoff-pill cutoff-ineligible" title="${(c.cutoff_reasons || []).join(', ')}">✕ Below Cutoff</span>`;
+
+        const scoreColor = c.ats_score >= 75 ? '#16a34a' : c.ats_score >= 50 ? '#0284c7' : '#dc2626';
+
+        const matchedTags = (c.matched_skills || []).slice(0, 4).map(s => `<span class="skill-pill-badge" style="background:#e0f2fe; border-color:#bae6fd; color:#0369a1; font-size:0.75rem;">${s}</span>`).join(' ') || '<span style="color:#94a3b8; font-size:0.75rem;">None</span>';
+        const missingTags = (c.missing_skills || []).slice(0, 3).map(s => `<span class="skill-pill-badge" style="background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-size:0.75rem;">${s}</span>`).join(' ') || '<span style="color:#16a34a; font-size:0.75rem;">None</span>';
+
+        const cgpaStr = c.cgpa !== null && c.cgpa !== undefined ? `${c.cgpa} / 10` : 'N/A';
+        const tenthStr = c.tenth_pct !== null && c.tenth_pct !== undefined ? `${c.tenth_pct}%` : 'N/A';
+        const twelfthStr = c.twelfth_pct !== null && c.twelfth_pct !== undefined ? `${c.twelfth_pct}%` : 'N/A';
+
+        return `
+          <tr>
+            <td style="text-align: center;">
+              <span class="rank-badge ${rankBadgeClass}">${c.rank}</span>
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--primary);">${c.candidate_name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${c.email} &bull; ${c.phone}</div>
+              <div style="font-size: 0.72rem; color: #94a3b8;">${c.filename}</div>
+            </td>
+            <td>${cutoffBadge}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <strong style="color: ${scoreColor}; font-size: 1.05rem;">${c.ats_score}%</strong>
+                <div style="flex: 1; height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden; min-width: 60px;">
+                  <div style="width: ${c.ats_score}%; height: 100%; background: ${scoreColor};"></div>
+                </div>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">${c.match_label || ''}</div>
+            </td>
+            <td style="font-size: 0.8125rem;">
+              <div><strong>CGPA:</strong> ${cgpaStr}</div>
+              <div><strong>10th:</strong> ${tenthStr} | <strong>12th:</strong> ${twelfthStr}</div>
+            </td>
+            <td><div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">${matchedTags}</div></td>
+            <td><div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">${missingTags}</div></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function searchCandidatesTable() {
+      const q = document.getElementById('candidateSearchInput').value.toLowerCase().trim();
+      if (!currentBatch || !currentBatch.candidates) return;
+
+      let list = currentBatch.candidates;
+      if (currentCandidateFilter === 'eligible') list = list.filter(c => c.is_eligible);
+      else if (currentCandidateFilter === 'below') list = list.filter(c => !c.is_eligible);
+
+      if (q) {
+        list = list.filter(c => {
+          return (c.candidate_name || '').toLowerCase().includes(q) ||
+                 (c.email || '').toLowerCase().includes(q) ||
+                 (c.matched_skills || []).some(s => s.toLowerCase().includes(q)) ||
+                 (c.all_skills || []).some(s => s.toLowerCase().includes(q));
+        });
+      }
+      renderTableRows(list);
+    }
+
+    function downloadBatchCsv() {
+      if (!currentBatch || !currentBatch.batch_id) {
+        alert('No active batch results to download.');
+        return;
+      }
+      const user = getStoredUser();
+      const role = user ? (user.role || '') : '';
+      window.location.href = `/api/bulk/export/${currentBatch.batch_id}?role=${encodeURIComponent(role)}`;
+    }
+
+    async function loadBatchHistory() {
+      const listContainer = document.getElementById('batchesHistoryList');
+      const user = getStoredUser();
+      const headers = {};
+      if (user && user.role) headers['X-User-Role'] = user.role;
+
+      try {
+        const res = await fetch('/api/bulk/batches', { headers });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error?.message || 'Failed to fetch history');
+        }
+
+        const batches = data.data || [];
+        if (batches.length === 0) {
+          listContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📁</div>
+              <p>No bulk screening runs recorded yet. Start your first screening!</p>
+            </div>
+          `;
+          return;
+        }
+
+        listContainer.innerHTML = `
+          <table class="bulk-table">
+            <thead>
+              <tr>
+                <th>Batch Name &amp; Role</th>
+                <th>Resumes</th>
+                <th>Eligible</th>
+                <th>Average ATS Score</th>
+                <th>Top Score</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${batches.map(b => `
+                <tr>
+                  <td>
+                    <div style="font-weight: 700; color: var(--primary);">${b.batch_name || b.job_title}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Batch ID: ${b.batch_id}</div>
+                  </td>
+                  <td><strong>${b.total_resumes}</strong></td>
+                  <td><span class="cutoff-pill cutoff-eligible">${b.eligible_count} Eligible</span></td>
+                  <td>${b.avg_score}%</td>
+                  <td><strong style="color: #0284c7;">${b.top_score}%</strong></td>
+                  <td style="font-size: 0.8125rem;">${UI.formatDate(b.created_at)}</td>
+                  <td>
+                    <button class="btn btn-sm btn-primary" onclick="loadBatchDetails('${b.batch_id}')">View</button>
+                    <a href="/api/bulk/export/${b.batch_id}?role=${encodeURIComponent(user?.role || '')}" class="btn btn-sm btn-secondary" style="text-decoration:none;">CSV</a>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        listContainer.innerHTML = `<div class="error-state">Could not load batch history: ${err.message}</div>`;
+      }
+    }
+
+    async function loadBatchDetails(batchId) {
+      const user = getStoredUser();
+      const headers = {};
+      if (user && user.role) headers['X-User-Role'] = user.role;
+
+      try {
+        const res = await fetch(`/api/bulk/batch/${batchId}`, { headers });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error?.message || 'Failed to load batch');
+
+        currentBatch = data.data;
+        Store.set('last_bulk_batch', currentBatch);
+        switchBulkTab('results');
+        renderBatchResults(currentBatch);
+      } catch (e) {
+        alert('Error loading batch: ' + e.message);
+      }
+    }
+  </script>
+</body>
+</html>

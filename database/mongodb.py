@@ -182,4 +182,5 @@ COLLECTIONS = {
     "roadmaps": "roadmaps",
     "courses": "courses",
     "chapters": "chapters",
+    "bulk_batches": "bulk_batches",
 }

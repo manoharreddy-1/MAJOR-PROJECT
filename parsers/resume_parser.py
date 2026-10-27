@@ -56,6 +56,7 @@ class ResumeParser:
             "achievements": self._extract_achievements(multiline_text),
             "technologies": [],
             "summary": self._extract_summary(multiline_text),
+            "academics": self._extract_academics(multiline_text),
         }
 
         # Extract technologies from skills, projects, and experience
@@ -159,3 +160,87 @@ class ResumeParser:
         if summary:
             return summary[:1000]
         return text[:500]
+
+    def _extract_academics(self, text: str) -> Dict[str, Optional[float]]:
+        """Extract CGPA, 10th percentage, and 12th percentage from resume text."""
+        return {
+            "cgpa": self._extract_cgpa(text),
+            "tenth_pct": self._extract_tenth_marks(text),
+            "twelfth_pct": self._extract_twelfth_marks(text),
+        }
+
+    def _extract_cgpa(self, text: str) -> Optional[float]:
+        """Extract CGPA/GPA value from text (normalized to 10 scale if <= 10)."""
+        # Look in education section first, then full text
+        edu_section = extract_section(text, SECTION_KEYWORDS["education"]) or ""
+        search_targets = [edu_section, text]
+
+        patterns = [
+            r"(?:cgpa|gpa|grade\s*point)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)(?:\s*/\s*(?:10|4))?",
+            r"([0-9]+\.[0-9]+)\s*(?:/\s*10)?\s*(?:cgpa|gpa)",
+            r"([0-9]+\.[0-9]+)\s*/\s*10\.0?",
+            r"(?:score|pointer)\s*[:=-]?\s*([0-9]+\.[0-9]+)",
+        ]
+
+        for target in search_targets:
+            if not target:
+                continue
+            for pat in patterns:
+                m = re.search(pat, target, re.IGNORECASE)
+                if m:
+                    try:
+                        val = float(m.group(1))
+                        # If on 4.0 scale (e.g. 3.8/4.0), convert to 10 scale
+                        if "/ 4" in m.group(0) or "/4" in m.group(0) or (val <= 4.0 and "/ 10" not in m.group(0) and "10" not in m.group(0) and val > 1.0):
+                            if "/ 4" in m.group(0) or "/4" in m.group(0):
+                                return round((val / 4.0) * 10.0, 2)
+                        if 1.0 <= val <= 10.0:
+                            return round(val, 2)
+                        elif 40.0 <= val <= 100.0:
+                            # Percentage given instead of CGPA -> convert roughly to CGPA
+                            return round(val / 9.5, 2)
+                    except ValueError:
+                        pass
+        return None
+
+    def _extract_tenth_marks(self, text: str) -> Optional[float]:
+        """Extract 10th standard / SSC / Secondary school percentage."""
+        patterns = [
+            r"(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)[^\n\r\d]{1,30}([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"([0-9]+(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:10th|class\s*x\b|ssc|matriculation|secondary)",
+            r"(?:10th|class\s*x\b|ssc)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
+        ]
+        for pat in patterns:
+            m = re.search(pat, text, re.IGNORECASE)
+            if m:
+                try:
+                    val = float(m.group(1))
+                    if val <= 10.0:  # CGPA format in 10th
+                        return round(val * 9.5, 1)  # CBSE standard formula
+                    if 35.0 <= val <= 100.0:
+                        return round(val, 1)
+                except ValueError:
+                    pass
+        return None
+
+    def _extract_twelfth_marks(self, text: str) -> Optional[float]:
+        """Extract 12th standard / HSC / Intermediate / Senior secondary percentage."""
+        patterns = [
+            r"(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary|puc|pre[- ]university)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary|puc)[^\n\r\d]{1,30}([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"([0-9]+(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary)",
+            r"(?:12th|class\s*xii\b|hsc|intermediate)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
+        ]
+        for pat in patterns:
+            m = re.search(pat, text, re.IGNORECASE)
+            if m:
+                try:
+                    val = float(m.group(1))
+                    if val <= 10.0:  # CGPA format in 12th
+                        return round(val * 9.5, 1)
+                    if 35.0 <= val <= 100.0:
+                        return round(val, 1)
+                except ValueError:
+                    pass
+        return None

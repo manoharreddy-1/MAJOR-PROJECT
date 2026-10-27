@@ -2,6 +2,7 @@
 import hashlib
 import logging
 import uuid
+from typing import Optional
 from flask import Blueprint, request
 
 from routes.responses import error_response, success_response
@@ -14,6 +15,50 @@ auth_bp = Blueprint("auth", __name__)
 users_col = get_collection(COLLECTIONS["users"])
 
 
+BULK_ALLOWED_ROLES = {"recruiter", "placement cell", "placement", "admin", "recruiter/placement cell"}
+
+
+def get_request_user(req) -> Optional[dict]:
+    """Resolve current user from headers, tokens, query params, cookies or body."""
+    auth_header = req.headers.get("Authorization", "")
+    user_id = None
+    if auth_header.startswith("Bearer token_"):
+        user_id = auth_header.replace("Bearer token_", "").strip()
+
+    user_id = user_id or req.headers.get("X-User-Id") or req.args.get("user_id") or req.cookies.get("user_id")
+    username = req.headers.get("X-Username") or req.args.get("username") or req.cookies.get("username")
+
+    col = get_collection(COLLECTIONS["users"])
+    if user_id:
+        u = col.find_one({"user_id": user_id})
+        if u:
+            return u
+    if username:
+        u = col.find_one({"username": username})
+        if u:
+            return u
+
+    # Check X-User-Role direct header, cookie, or query
+    header_role = req.headers.get("X-User-Role") or req.args.get("role") or req.cookies.get("role") or req.cookies.get("user_role")
+    if header_role:
+        return {"role": header_role, "username": username or "custom_user"}
+
+    return None
+
+
+def is_bulk_authorized(req) -> bool:
+    """Check if the requesting user has Recruiter or Placement Cell authorization."""
+    user = get_request_user(req)
+    if not user:
+        direct_role = req.headers.get("X-User-Role") or req.args.get("role")
+        if direct_role:
+            return direct_role.strip().lower() in BULK_ALLOWED_ROLES
+        return False
+
+    role = (user.get("role") or "").strip().lower()
+    return role in BULK_ALLOWED_ROLES
+
+
 def hash_password(password: str) -> str:
     """Hash password using SHA-256 with salt."""
     salt = "ai_resume_analyzer_salt_"
@@ -21,12 +66,14 @@ def hash_password(password: str) -> str:
 
 
 def ensure_default_users():
-    """Ensure standard demo/student users exist in the collection."""
+    """Ensure standard demo/student/recruiter users exist in the collection."""
     try:
         col = get_collection(COLLECTIONS["users"])
         for uname, pwd, name, em, role in [
-            ("student", "student123", "Student Candidate", "student@example.edu", "Learner"),
-            ("demo", "demo123", "Demo User", "demo@example.edu", "Candidate"),
+            ("student", "student123", "Student Candidate", "student@example.edu", "Student"),
+            ("recruiter", "recruiter123", "Campus Recruiter", "recruiter@company.com", "Recruiter"),
+            ("placement", "placement123", "Placement Officer", "placement@college.edu", "Placement Cell"),
+            ("demo", "demo123", "Demo Recruiter", "demo@example.edu", "Recruiter"),
         ]:
             if not col.find_one({"username": uname}):
                 col.insert_one({
@@ -68,13 +115,14 @@ def register():
         return error_response("USER_EXISTS", f"Username '{username}' already taken.")
 
     user_id = str(uuid.uuid4())[:12]
+    role = (data.get("role") or "Student").strip()
     user_doc = {
         "user_id": user_id,
         "username": username,
         "password_hash": hash_password(password),
         "full_name": full_name,
         "email": email,
-        "role": "Learner",
+        "role": role,
         "avatar": f"https://api.dicebear.com/7.x/bottts/svg?seed={username}",
         "created_at": utc_now(),
     }
@@ -99,7 +147,7 @@ def login():
     if not username or not password:
         return error_response("VALIDATION_ERROR", "Username and password are required.")
 
-    if username in ("student", "demo"):
+    if username in ("student", "demo", "recruiter", "placement"):
         ensure_default_users()
 
     user = users_col.find_one({"username": username})

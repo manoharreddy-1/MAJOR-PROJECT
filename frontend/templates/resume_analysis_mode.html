@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Analysis Modes | AI Resume Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <ul class="navbar-nav">
+      <li><a href="/home">Home</a></li>
+      <li><a href="/resume-analysis" class="active">Resume Analysis</a></li>
+      <li><a href="/courses">AI Courses</a></li>
+      <li><a href="/history">History</a></li>
+      <li><a href="/profile">Profile</a></li>
+    </ul>
+  </nav>
+
+  <div class="container" style="max-width: 1000px; padding: 2.5rem 1.5rem;">
+    <div class="page-header" style="text-align: center; margin-bottom: 2.5rem;">
+      <div style="display: inline-block; padding: 0.35rem 1rem; background: #e0f2fe; color: #0284c7; border-radius: 999px; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.75rem;">
+        SELECT WORKFLOW MODE
+      </div>
+      <h1 style="font-size: 2.25rem; font-weight: 800; color: var(--primary); margin-bottom: 0.75rem;">
+        Resume Analysis
+      </h1>
+      <p style="font-size: 1.05rem; color: var(--text-muted); max-width: 650px; margin: 0 auto;">
+        Choose whether you want to analyze an individual candidate resume or conduct high-volume batch screening with academic cutoff filtering.
+      </p>
+      <div id="userRoleIndicator" style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+    </div>
+
+    <!-- Mode Selector Grid -->
+    <div class="mode-selector-grid">
+      <!-- 1. Single Resume Card -->
+      <a href="/resume-analysis/single" id="singleCard" class="mode-card" onclick="selectMode('single')">
+        <div class="mode-badge-wrap">
+          <span class="mode-role-badge">All Roles</span>
+          <span id="singleLastUsed" class="mode-last-used-badge" style="display: none;">★ Last Used</span>
+        </div>
+
+        <div>
+          <div class="mode-icon-box mode-icon-single">
+            📄
+          </div>
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+            Single Resume
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9375rem; line-height: 1.5; margin-bottom: 1.25rem;">
+            Analyze one resume against a job description.
+          </p>
+
+          <ul class="mode-features-list">
+            <li><span class="check">✓</span> Deep semantic ATS score &amp; section breakdown</li>
+            <li><span class="check">✓</span> Atomic missing skills &amp; AI course roadmaps</li>
+            <li><span class="check">✓</span> Interactive "Create Resume with AI" optimizer</li>
+            <li><span class="check">✓</span> Instant PDF &amp; Word DOCX exports</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f1f5f9;">
+          <button class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Launch Single Analysis &rarr;
+          </button>
+        </div>
+      </a>
+
+      <!-- 2. Bulk Resumes Card -->
+      <div id="bulkCard" class="mode-card" onclick="handleBulkCardClick(event)">
+        <div class="mode-badge-wrap">
+          <span id="bulkRoleBadge" class="mode-role-badge">Recruiter / Placement</span>
+          <span id="bulkLastUsed" class="mode-last-used-badge" style="display: none;">★ Last Used</span>
+        </div>
+
+        <div>
+          <div class="mode-icon-box mode-icon-bulk">
+            👥
+          </div>
+          <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+            Bulk Resumes
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.9375rem; line-height: 1.5; margin-bottom: 1.25rem;">
+            Upload up to 1000+ resumes, filter by CGPA, 10th/12th marks and job description, and get a ranked list from top performer to least.
+          </p>
+
+          <ul class="mode-features-list">
+            <li><span class="check">✓</span> Multi-file and ZIP archive ingestion (1000+ resumes)</li>
+            <li><span class="check">✓</span> Academic cutoff gates (CGPA, 10th %, 12th %)</li>
+            <li><span class="check">✓</span> Automated ranking (Highest ATS performer &rarr; Least)</li>
+            <li><span class="check">✓</span> Batch summary stats and 1-click ranked CSV export</li>
+          </ul>
+        </div>
+
+        <!-- Role Tooltip / Status Notice -->
+        <div id="bulkRestrictedNotice" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius); padding: 0.65rem 0.85rem; font-size: 0.8125rem; color: #b45309; margin-top: 1rem;" title="Available for Placement Cell / Recruiters only.">
+          🔒 <strong>Access Note:</strong> Available for Placement Cell / Recruiters only.
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f1f5f9;">
+          <a href="/resume-analysis/bulk" id="bulkBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            Launch Bulk Screening &rarr;
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  <script>
+    function getStoredUser() {
+      try {
+        const u = localStorage.getItem('user');
+        return u ? JSON.parse(u) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function isAuthorizedForBulk(user) {
+      if (!user) return false;
+      const role = (user.role || '').trim().toLowerCase();
+      const allowed = ['recruiter', 'placement cell', 'placement', 'admin', 'recruiter/placement cell'];
+      return allowed.includes(role);
+    }
+
+    function selectMode(mode) {
+      localStorage.setItem('resume_analysis_mode', mode);
+    }
+
+    function handleBulkCardClick(event) {
+      const user = getStoredUser();
+      if (!isAuthorizedForBulk(user)) {
+        event.preventDefault();
+        alert('Bulk Resume Screening is available for Placement Cell / Recruiters only.');
+        return false;
+      }
+      selectMode('bulk');
+      window.location.href = '/resume-analysis/bulk';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = getStoredUser();
+      const roleIndicator = document.getElementById('userRoleIndicator');
+      const bulkCard = document.getElementById('bulkCard');
+      const bulkBtn = document.getElementById('bulkBtn');
+      const bulkNotice = document.getElementById('bulkRestrictedNotice');
+
+      if (user) {
+        roleIndicator.innerHTML = `Current account: <strong>${user.full_name || user.username}</strong> (<span style="color: var(--accent-dark); font-weight: 600;">${user.role || 'Student'}</span>)`;
+      }
+
+      // Check Role-awareness
+      const canBulk = isAuthorizedForBulk(user);
+      if (!canBulk) {
+        // Student user: show Bulk card as disabled with tooltip
+        bulkCard.classList.add('disabled');
+        bulkCard.setAttribute('title', 'Available for Placement Cell / Recruiters only.');
+        bulkNotice.style.display = 'block';
+        if (bulkBtn) {
+          bulkBtn.classList.add('disabled');
+          bulkBtn.style.pointerEvents = 'none';
+          bulkBtn.innerText = 'Restricted (Recruiters Only)';
+          bulkBtn.style.background = '#94a3b8';
+          bulkBtn.style.borderColor = '#94a3b8';
+        }
+      } else {
+        bulkCard.style.cursor = 'pointer';
+      }
+
+      // Highlight Last-Used Mode
+      const lastMode = localStorage.getItem('resume_analysis_mode');
+      if (lastMode === 'single') {
+        const singleCard = document.getElementById('singleCard');
+        const badge = document.getElementById('singleLastUsed');
+        if (singleCard) singleCard.classList.add('last-used');
+        if (badge) badge.style.display = 'inline-block';
+      } else if (lastMode === 'bulk' && canBulk) {
+        const badge = document.getElementById('bulkLastUsed');
+        if (bulkCard) bulkCard.classList.add('last-used');
+        if (badge) badge.style.display = 'inline-block';
+      }
+    });
+  </script>
+</body>
+</html>

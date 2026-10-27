@@ -9,7 +9,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, send_from_directory
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
@@ -20,7 +20,8 @@ from routes.resume_routes import resume_bp
 from routes.job_routes import job_bp
 from routes.analysis_routes import analysis_bp
 from routes.course_routes import course_bp
-from routes.auth_routes import auth_bp
+from routes.auth_routes import auth_bp, get_request_user, BULK_ALLOWED_ROLES
+from routes.bulk_routes import bulk_bp
 from database.mongodb import check_connection
 
 logging.basicConfig(level=logging.INFO)
@@ -59,6 +60,7 @@ app.register_blueprint(job_bp, url_prefix="/api/job")
 app.register_blueprint(analysis_bp, url_prefix="/api")
 app.register_blueprint(course_bp, url_prefix="/api/course")
 app.register_blueprint(auth_bp, url_prefix="/api/auth")
+app.register_blueprint(bulk_bp, url_prefix="/api/bulk")
 
 
 # WSGI middleware to restore original request path on Vercel rewrites
@@ -131,9 +133,38 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/resume-analysis")
+def resume_analysis_mode_page():
+    """Mode selector: Choose between Single Resume and Bulk Resumes."""
+    return render_template("resume_analysis_mode.html")
+
+
+@app.route("/resume-analysis/single")
 @app.route("/analyze")
 def analyze_page():
+    """Single Resume Analysis (existing flow, unchanged)."""
     return render_template("analyze.html")
+
+
+@app.route("/resume-analysis/bulk")
+@app.route("/resume-analysis/bulk/results")
+@app.route("/resume-analysis/bulk/history")
+def bulk_analysis_page():
+    """Bulk Screening Flow: Job setup -> Upload -> Live Progress -> Ranked results."""
+    user = get_request_user(request)
+    role = (user.get("role") if user else request.headers.get("X-User-Role") or request.args.get("role") or "").strip().lower()
+
+    if role and role not in BULK_ALLOWED_ROLES:
+        # Backend rejection: Student users cannot access bulk screening
+        return jsonify({
+            "success": False,
+            "error": {
+                "code": "FORBIDDEN",
+                "message": "Access denied. Bulk analysis is available for Placement Cell and Recruiters only."
+            }
+        }), 403
+
+    return render_template("bulk_analysis.html")
 
 
 @app.route("/job")

@@ -7,8 +7,21 @@ const API = {
 
   async request(endpoint, options = {}) {
     const url = `${this.base}${endpoint}`;
+    let storedUser = null;
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser) storedUser = JSON.parse(rawUser);
+    } catch (e) {}
+
+    const authHeaders = {};
+    if (storedUser) {
+      if (storedUser.role) authHeaders['X-User-Role'] = storedUser.role;
+      if (storedUser.user_id) authHeaders['X-User-Id'] = storedUser.user_id;
+      if (storedUser.token) authHeaders['Authorization'] = `Bearer ${storedUser.token}`;
+    }
+
     const config = {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers: { 'Content-Type': 'application/json', ...authHeaders, ...options.headers },
       ...options,
     };
 
@@ -33,8 +46,22 @@ const API = {
   },
 
   upload(endpoint, formData) {
+    let storedUser = null;
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser) storedUser = JSON.parse(rawUser);
+    } catch (e) {}
+
+    const authHeaders = {};
+    if (storedUser) {
+      if (storedUser.role) authHeaders['X-User-Role'] = storedUser.role;
+      if (storedUser.user_id) authHeaders['X-User-Id'] = storedUser.user_id;
+      if (storedUser.token) authHeaders['Authorization'] = `Bearer ${storedUser.token}`;
+    }
+
     return fetch(`${this.base}${endpoint}`, {
       method: 'POST',
+      headers: authHeaders,
       body: formData,
     }).then(async (res) => {
       const data = await res.json();
@@ -204,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // User IS logged in: reveal all features, analysis, courses, history, and profile
       navList.innerHTML = `
         <li><a href="/home" ${path === '/home' || path === '/dashboard' ? 'class="active"' : ''}>Home</a></li>
-        <li><a href="/analyze" ${path === '/analyze' ? 'class="active"' : ''}>Analyze</a></li>
+        <li><a href="/resume-analysis" ${path.startsWith('/resume-analysis') || path === '/analyze' ? 'class="active"' : ''}>Resume Analysis</a></li>
         <li><a href="/courses" ${path.startsWith('/course') ? 'class="active"' : ''}>AI Courses</a></li>
         <li><a href="/history" ${path === '/history' ? 'class="active"' : ''}>History</a></li>
         <li><a href="/profile" ${path === '/profile' ? 'class="active"' : ''}>Profile</a></li>
