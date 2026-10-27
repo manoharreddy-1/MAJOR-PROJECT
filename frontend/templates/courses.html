@@ -277,15 +277,37 @@
 
     // Check URL parameters (e.g., coming from Skill Gaps: /courses?topic=FastAPI)
     const urlParams = new URLSearchParams(window.location.search);
-    const paramTopic = urlParams.get('topic');
-    if (paramTopic) {
+    const rawTopic = urlParams.get('topic');
+    if (rawTopic) {
+      const cleanTopic = rawTopic.replace(/^[&\s+\-•*,]+/, '').trim();
       document.getElementById('courseModal').style.display = 'block';
-      document.getElementById('topicInput').value = paramTopic;
+      document.getElementById('topicInput').value = cleanTopic;
+
+      // Smart category selection based on topic
+      const topicLower = cleanTopic.toLowerCase();
+      if (/java|spring|sql|docker|kubernetes|react|javascript|node|c\+\+|c#|backend|frontend|api|microservices/.test(topicLower)) {
+        selectedCategory = 'Software & Coding';
+      } else if (/ai|machine learning|deep learning|data|nlp|vision|tensorflow|pytorch/.test(topicLower)) {
+        selectedCategory = 'Data Science & AI';
+      } else {
+        selectedCategory = 'Technology & Science';
+      }
+
+      // Sync category UI cards
+      document.querySelectorAll('.category-card').forEach(c => {
+        if (c.getAttribute('data-category') === selectedCategory) {
+          c.classList.add('selected');
+        } else {
+          c.classList.remove('selected');
+        }
+      });
+
       // Switch directly to step 2
       document.getElementById('step1').style.display = 'none';
       document.getElementById('step2').style.display = 'block';
       document.getElementById('stepIndicator1').classList.remove('active');
       document.getElementById('stepIndicator2').classList.add('active');
+      document.getElementById('courseModal').scrollIntoView({ behavior: 'smooth' });
     }
 
     // Modal open/close

@@ -47,18 +47,53 @@ def _tokenize(text: str) -> List[str]:
 
 def _keyword_similarity(text_a: str, text_b: str) -> float:
     """
-    Compute keyword overlap similarity (Jaccard-like with frequency weighting).
+    Compute keyword similarity with token containment and alias awareness.
     Returns a value in [0, 1].
     """
     if not text_a or not text_b:
         return 0.0
-    tokens_a = Counter(_tokenize(text_a))
-    tokens_b = Counter(_tokenize(text_b))
+
+    a_clean = text_a.strip().lower()
+    b_clean = text_b.strip().lower()
+
+    # Exact match
+    if a_clean == b_clean:
+        return 1.0
+
+    # Skill alias match
+    try:
+        from utils.skill_normalizer import normalize_skill_name
+        norm_a = normalize_skill_name(text_a)
+        norm_b = normalize_skill_name(text_b)
+        if norm_a and norm_b and norm_a.lower() == norm_b.lower():
+            return 1.0
+    except Exception:
+        pass
+
+    tokens_a = set(_tokenize(text_a))
+    tokens_b = set(_tokenize(text_b))
+
     if not tokens_a or not tokens_b:
         return 0.0
-    # Intersection-over-union on token sets
-    common = set(tokens_a.keys()) & set(tokens_b.keys())
-    union = set(tokens_a.keys()) | set(tokens_b.keys())
+
+    # Token subset / containment (e.g. "Java" in "Core Java", "Spring" in "Spring Boot")
+    if tokens_a.issubset(tokens_b) or tokens_b.issubset(tokens_a):
+        return 0.90
+
+    # If text_b is a larger document/snippet and query appears in it as a phrase or word
+    if len(tokens_b) > 10:
+        if re.search(r'\b' + re.escape(a_clean) + r'\b', b_clean):
+            return 0.85
+        # Check if majority of query tokens are present
+        common_count = len(tokens_a & tokens_b)
+        if common_count == len(tokens_a):
+            return 0.85
+        elif common_count > 0 and common_count / len(tokens_a) >= 0.6:
+            return 0.65
+
+    # Standard Jaccard overlap on token sets
+    common = tokens_a & tokens_b
+    union = tokens_a | tokens_b
     if not union:
         return 0.0
     return len(common) / len(union)
@@ -79,6 +114,8 @@ def _keyword_best_match(query: str, candidates: List[str]) -> Tuple[float, Optio
             best_sim = sim
             best_text = cand
             best_idx = i
+            if best_sim >= 0.99:
+                break
     return best_sim, best_text, best_idx
 
 

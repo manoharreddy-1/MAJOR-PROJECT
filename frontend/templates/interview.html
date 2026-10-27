@@ -15,23 +15,25 @@
       <li><a href="/results">Results</a></li>
       <li><a href="/interview" class="active">Interview</a></li>
       <li><a href="/roadmap">Roadmap</a></li>
+      <li><a href="/courses">AI Courses</a></li>
     </ul>
   </nav>
 
   <div class="container">
     <div class="page-header">
       <h1>Interview Preparation</h1>
-      <p>Job-specific interview questions based on your resume and target role</p>
+      <p>Job-specific interview questions grounded in your resume and target role</p>
     </div>
     <div id="interviewContent">
-      <div class="card text-center">
-        <p class="mb-2">Generate personalized interview questions across multiple categories.</p>
-        <button id="generateBtn" class="btn btn-primary btn-lg">Generate Questions</button>
+      <div class="card text-center" style="padding: 2.5rem 1rem;">
+        <h3 class="mb-1" style="font-weight: 700;">Role-Specific Technical &amp; Behavioral Questions</h3>
+        <p class="text-muted mb-3" style="font-size: 0.875rem;">Generate 50 rigorous questions customized to your job requirements and resume projects.</p>
+        <button id="generateBtn" class="btn btn-primary btn-lg">&#10024; Generate Interview Questions</button>
       </div>
     </div>
   </div>
 
-  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
   <script src="/static/js/app.js"></script>
   <script>
     const container = document.getElementById('interviewContent');
@@ -41,20 +43,25 @@
     document.getElementById('generateBtn').addEventListener('click', generate);
 
     async function generate() {
-      if (!analysisId) { UI.showError(container, 'No analysis found.'); return; }
-      UI.showLoading(container, 'Generating interview questions...');
+      if (!analysisId) {
+        UI.showError(container, 'No analysis found. Please run an analysis first on the <a href="/analyze">Analyze page</a>.');
+        return;
+      }
+      UI.showLoading(container, 'Generating personalized interview questions for your target role...');
       try {
         const res = await API.request('/interview/generate', {
           method: 'POST', body: { analysis_id: analysisId },
         });
-        renderQuestions(res.data.questions);
+        const targetRole = res.data.target_role || (Store.get('analysis_data') || {}).target_role || 'Target Position';
+        renderQuestions(res.data.questions, targetRole);
       } catch (err) { UI.showError(container, err.message); }
     }
 
     let currentQuestionsState = {};
 
-    function renderQuestions(data) {
+    function renderQuestions(data, targetRole) {
       currentQuestionsState = data || {};
+      const roleText = targetRole || (Store.get('analysis_data') || {}).target_role || 'Target Role';
       const categories = [
         { key: 'technical', label: 'Technical', icon: '&#128187;' },
         { key: 'resume_based', label: 'Resume Based', icon: '&#128196;' },
@@ -64,6 +71,25 @@
       ];
 
       container.innerHTML = `
+        <div class="card mb-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border: none; padding: 1.5rem;">
+          <div class="flex-between">
+            <div>
+              <span class="badge" style="background: #0284c7; color: white; margin-bottom: 0.5rem; display: inline-block;">
+                Grounded in Job Description &amp; Resume
+              </span>
+              <h2 style="font-size: 1.35rem; font-weight: 800; color: white; margin: 0.25rem 0;">
+                ${roleText} Interview Preparation
+              </h2>
+              <p style="color: #cbd5e1; font-size: 0.8125rem; margin: 0;">
+                50 rigorous interview questions tailored directly to your target role and candidate background.
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge badge-success" style="font-size: 0.8125rem;">10 Questions / Category</span>
+            </div>
+          </div>
+        </div>
+
         <div class="tabs" id="qTabs">
           ${categories.map((c, i) => `<button class="tab ${i === 0 ? 'active' : ''}" data-tab="q_${c.key}">${c.label} (${(data[c.key] || []).length})</button>`).join('')}
         </div>
@@ -98,85 +124,95 @@
 
     async function askMoreQuestions(btn, category) {
       const originalText = btn.innerHTML;
-      btn.innerHTML = 'Generating 5 More Questions...';
+      btn.innerHTML = '<span class="spinner-small"></span> Generating 5 more questions...';
       btn.disabled = true;
 
-      const existingList = currentQuestionsState[category] || [];
-      const existingTexts = existingList.map(q => q.question);
-
       try {
+        const existing = (currentQuestionsState[category] || []).map(q => q.question);
         const res = await API.request('/interview/more', {
           method: 'POST',
           body: {
             analysis_id: analysisId,
             category: category,
-            existing_questions: existingTexts
+            existing_questions: existing
           }
         });
 
-        const newQuestions = res.data?.questions || [];
+        const newQuestions = res.data.questions || [];
         if (newQuestions.length > 0) {
+          currentQuestionsState[category] = currentQuestionsState[category].concat(newQuestions);
           const listContainer = document.getElementById(`list_${category}`);
-          const startIndex = existingList.length;
-          
-          newQuestions.forEach((q, idx) => {
-            existingList.push(q);
-            const cardHtml = `
-              <div class="question-card" style="animation: fadeIn 0.4s ease-in-out;">
-                <div class="question-text">${startIndex + idx + 1}. ${q.question}</div>
-                <div class="question-meta">
-                  ${q.topic ? `<span class="badge badge-info">${q.topic}</span>` : ''}
-                  ${q.difficulty ? `<span class="badge badge-neutral">${q.difficulty}</span>` : ''}
-                  ${q.competency ? `<span class="badge badge-neutral">${q.competency}</span>` : ''}
-                  <span class="badge badge-success">New</span>
-                </div>
-                <button class="btn btn-outline" onclick="showAnswer(this, '${encodeURIComponent(q.question)}', '${category}')">Show Sample Answer</button>
-                <div class="sample-answer"></div>
-              </div>`;
-            listContainer.insertAdjacentHTML('beforeend', cardHtml);
-          });
+          const startIdx = existing.length;
 
-          // Update tab badge count
-          const tabBtn = document.querySelector(`.tab[data-tab="q_${category}"]`);
+          const newHtml = newQuestions.map((q, i) => `
+            <div class="question-card" id="q_${category}_${startIdx + i}" style="border-left: 3px solid var(--accent); animation: fadeIn 0.3s ease;">
+              <div class="question-text">${startIdx + i + 1}. ${q.question}</div>
+              <div class="question-meta">
+                ${q.topic ? `<span class="badge badge-info">${q.topic}</span>` : ''}
+                ${q.difficulty ? `<span class="badge badge-neutral">${q.difficulty}</span>` : ''}
+                ${q.competency ? `<span class="badge badge-neutral">${q.competency}</span>` : ''}
+                ${q.skill ? `<span class="badge badge-warning">${q.skill}</span>` : ''}
+                <span class="badge badge-success">&#10024; New</span>
+              </div>
+              <button class="btn btn-outline" onclick="showAnswer(this, '${encodeURIComponent(q.question)}', '${category}')">Show Sample Answer</button>
+              <div class="sample-answer"></div>
+            </div>
+          `).join('');
+
+          listContainer.insertAdjacentHTML('beforeend', newHtml);
+
+          const tabBtn = document.querySelector(`button[data-tab="q_${category}"]`);
           if (tabBtn) {
-            const catLabel = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-            tabBtn.textContent = `${catLabel} (${existingList.length})`;
+            tabBtn.innerText = `${category.replace('_', ' ').replace(/\\b\\w/g, l => l.toUpperCase())} (${currentQuestionsState[category].length})`;
           }
-        } else {
-          alert('No additional questions could be generated right now.');
         }
       } catch (err) {
-        alert('Failed to fetch more questions: ' + err.message);
+        alert('Failed to generate more questions: ' + err.message);
       } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
     }
 
-    async function showAnswer(btn, question, category) {
+    async function showAnswer(btn, questionEncoded, category) {
+      const question = decodeURIComponent(questionEncoded);
       const answerDiv = btn.nextElementSibling;
-      if (answerDiv.classList.contains('visible')) {
-        answerDiv.classList.remove('visible');
+
+      if (answerDiv.style.display === 'block') {
+        answerDiv.style.display = 'none';
         btn.textContent = 'Show Sample Answer';
         return;
       }
-      btn.textContent = 'Loading...';
+
       btn.disabled = true;
+      btn.textContent = 'Generating Answer...';
+
       try {
         const res = await API.request('/interview/sample-answer', {
           method: 'POST',
-          body: { question: decodeURIComponent(question), category, resume_id: resumeId },
+          body: {
+            question: question,
+            category: category,
+            resume_id: resumeId,
+          },
         });
-        answerDiv.innerHTML = `<p><strong>Sample Answer:</strong> ${res.data.answer || ''}</p>
-          ${(res.data.tips || []).length ? `<p class="mt-1"><strong>Tips:</strong> ${res.data.tips.join('; ')}</p>` : ''}`;
-        answerDiv.classList.add('visible');
-        btn.textContent = 'Hide Answer';
+        const ans = res.data;
+        answerDiv.innerHTML = `
+          <div class="mt-2" style="background: #f1f5f9; padding: 1.15rem; border-radius: var(--radius); border-left: 3px solid var(--accent);">
+            <div style="font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Sample Answer (STAR Method):</div>
+            <p style="font-size: 0.875rem; line-height: 1.6; color: #1e293b; margin-bottom: 0.75rem;">${ans.answer}</p>
+            ${ans.tips ? `<div style="font-size: 0.8125rem; color: #475569;"><strong>Tips:</strong><ul style="margin: 0.25rem 0 0 1.25rem;">${ans.tips.map(t => `<li>${t}</li>`).join('')}</ul></div>` : ''}
+          </div>
+        `;
+        answerDiv.style.display = 'block';
+        btn.textContent = 'Hide Sample Answer';
       } catch (err) {
-        answerDiv.innerHTML = `<p class="error-state">${err.message}</p>`;
-        answerDiv.classList.add('visible');
-        btn.textContent = 'Hide Answer';
+        answerDiv.innerHTML = `<p class="text-danger mt-1">Failed to generate answer: ${err.message}</p>`;
+        answerDiv.style.display = 'block';
+        btn.textContent = 'Show Sample Answer';
+      } finally {
+        btn.disabled = false;
       }
-      btn.disabled = false;
     }
   </script>
 </body>

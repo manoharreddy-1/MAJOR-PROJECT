@@ -818,6 +818,133 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
                 ]
             }
         ]
+    },
+    "sql": {
+        "name": "SQL & Relational Database Architecture",
+        "category": "Software & Coding",
+        "summary": "Master relational database management, schema design, complex joins, subqueries, indexing, and query optimization.",
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "name": "SQL Fundamentals: Schema & Queries",
+                "about": "Learn DDL, DML, SELECT statements, WHERE filtering, and table constraints.",
+                "duration": "15 mins",
+                "explanation": "Structured Query Language (SQL) is the standard language for relational database management systems. DDL (CREATE, ALTER, DROP) manages schema, while DML (SELECT, INSERT, UPDATE, DELETE) manipulates data rows with ACID guarantees.",
+                "key_takeaways": [
+                    "Relational databases ensure ACID transactions (Atomicity, Consistency, Isolation, Durability).",
+                    "Primary keys enforce unique entity identification; foreign keys guarantee referential integrity.",
+                    "WHERE filters individual rows before grouping; HAVING filters aggregated groups."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Basic SQL Filtering & Aggregation",
+                        "language": "sql",
+                        "code": "SELECT department, COUNT(*) AS employee_count, AVG(salary) AS avg_salary\nFROM employees\nWHERE status = 'ACTIVE'\nGROUP BY department\nHAVING COUNT(*) > 5\nORDER BY avg_salary DESC;",
+                        "explanation": "Aggregates active employees per department and filters groups with more than 5 members."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Select High Earners",
+                    "description": "Write a query to retrieve active employees with salary greater than 50000.",
+                    "starter_code": "SELECT name, salary FROM employees WHERE salary > 50000;",
+                    "language": "sql",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Which SQL clause filters records after GROUP BY aggregation?",
+                        "options": ["WHERE", "HAVING", "LIMIT", "ORDER BY"],
+                        "correct_answer": 1,
+                        "explanation": "HAVING filters aggregate groups, whereas WHERE filters individual rows before grouping."
+                    }
+                ]
+            }
+        ]
+    },
+    "docker": {
+        "name": "Docker & Containerization for Developers",
+        "category": "Software & Coding",
+        "summary": "Learn container packaging, Dockerfile instructions, image layers, volumes, and multi-container orchestration.",
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "name": "Docker Basics: Containers & Images",
+                "about": "Understand container virtualization, Docker CLI, running containers, and port mapping.",
+                "duration": "15 mins",
+                "explanation": "Docker packages applications and dependencies into standardized containers that execute consistently across development, staging, and production environments using kernel namespaces and cgroups.",
+                "key_takeaways": [
+                    "Containers share the host OS kernel and startup in milliseconds.",
+                    "A Docker image is an immutable template; a container is a running instance.",
+                    "Port forwarding (-p host:container) allows external network traffic to reach internal ports."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Multi-stage Dockerfile Example",
+                        "language": "bash",
+                        "code": "FROM eclipse-temurin:17-jdk-alpine AS builder\nWORKDIR /app\nCOPY . .\nRUN ./mvnw clean package -DskipTests\n\nFROM eclipse-temurin:17-jre-alpine\nWORKDIR /app\nCOPY --from=builder /app/target/*.jar app.jar\nEXPOSE 8080\nENTRYPOINT [\"java\", \"-jar\", \"app.jar\"]",
+                        "explanation": "Multi-stage Dockerfile produces a lightweight final image without build-time dependencies."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Define Base Dockerfile",
+                    "description": "Write a basic Dockerfile that sets WORKDIR and runs a script.",
+                    "starter_code": "FROM alpine:3.19\nWORKDIR /app\nCMD [\"echo\", \"Success\"]",
+                    "language": "bash",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary benefit of multi-stage Docker builds?",
+                        "options": ["Faster compile times only", "Significantly smaller and more secure production images", "Enables direct root kernel access", "Eliminates network requirements"],
+                        "correct_answer": 1,
+                        "explanation": "Multi-stage builds discard build tools and intermediate artifacts, producing lean production images."
+                    }
+                ]
+            }
+        ]
+    },
+    "soft skills": {
+        "name": "Workplace Communication & Interview Soft Skills",
+        "category": "Technology & Science",
+        "summary": "Master technical communication, the STAR interview methodology, conflict resolution, and agile collaboration.",
+        "chapters": [
+            {
+                "chapter_id": 1,
+                "name": "STAR Method & Verbal Technical Walkthroughs",
+                "about": "Structure behavioral and technical answers using Situation, Task, Action, and Result.",
+                "duration": "15 mins",
+                "explanation": "The STAR framework is the industry-standard methodology for answering behavioral and technical scenario interview questions. It ensures answers remain concise, structured, and grounded in measurable results.",
+                "key_takeaways": [
+                    "Situation: Set the context and business problem clearly in 1-2 sentences.",
+                    "Task: Define your specific ownership and deliverable.",
+                    "Action: Detail your technical and collaborative execution.",
+                    "Result: Quantify the outcome (performance improvements, user satisfaction, deadlines met)."
+                ],
+                "code_examples": [
+                    {
+                        "title": "STAR Response Framework Script",
+                        "language": "python",
+                        "code": "# STAR response template\nsituation = 'Our backend API experienced latency spikes under peak user traffic.'\ntask = 'My goal was to diagnose bottlenecks and maintain < 200ms response SLA.'\naction = 'I profiled database queries, added Redis caching, and indexed active columns.'\nresult = 'Average latency dropped by 45%, successfully handling 10k concurrent requests.'\nprint(f'{situation}\\n{task}\\n{action}\\n{result}')",
+                        "explanation": "Structured template converting raw work experience into compelling interview narratives."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Format STAR Response",
+                    "description": "Write a function that outputs a concise STAR answer summary.",
+                    "starter_code": "def solution():\n    return 'Success'\n\nprint(solution())",
+                    "language": "python",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Which phase of the STAR method highlights the measurable business or engineering outcome?",
+                        "options": ["Situation", "Task", "Action", "Result"],
+                        "correct_answer": 3,
+                        "explanation": "The Result phase concludes the answer with concrete metrics and achievements."
+                    }
+                ]
+            }
+        ]
     }
 }
 
@@ -825,6 +952,9 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
 def get_curated_course(topic: str) -> Dict[str, Any]:
     """Retrieve pre-curated full-fidelity course if matching topic, else generate structured curriculum."""
     topic_lower = (topic or "").lower().strip()
+    # Remove leading punctuation
+    topic_lower = re.sub(r"^[&\s+\-•*,]+", "", topic_lower).strip()
+
     for key, data in SYLLABUS_KNOWLEDGE_BASE.items():
         if key in topic_lower or topic_lower in key:
             return data
@@ -837,11 +967,26 @@ def get_curated_course(topic: str) -> Dict[str, Any]:
         "backend": "python",
         "django": "python",
         "flask": "python",
+        "fastapi": "python",
         "ai": "machine learning",
         "deep learning": "machine learning",
         "nlp": "machine learning",
         "data science": "machine learning",
-        "sql": "java",
+        "spring": "java",
+        "spring boot": "java",
+        "microservices": "java",
+        "sql": "sql",
+        "mysql": "sql",
+        "postgres": "sql",
+        "postgresql": "sql",
+        "database": "sql",
+        "docker": "docker",
+        "kubernetes": "docker",
+        "container": "docker",
+        "soft skills": "soft skills",
+        "soft skill": "soft skills",
+        "communication": "soft skills",
+        "interview": "soft skills",
     }
     for alias, target in aliases.items():
         if alias in topic_lower:

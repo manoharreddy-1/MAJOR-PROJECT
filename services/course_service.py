@@ -80,9 +80,20 @@ class CourseService:
             "collections": {"id": "9kgt37Xp71k", "title": "Java Collections Framework Full Tutorial", "channel": "Amigoscode"},
             "exception": {"id": "1XAfapoKshY", "title": "Java Exception Handling Tutorial", "channel": "Telusko"},
             "java": {"id": "eIrMbAQSU34", "title": "Java Tutorial for Beginners", "channel": "Programming with Mosh"},
+            "spring boot": {"id": "9SGDpanrc8U", "title": "Spring Boot Tutorial for Beginners", "channel": "Amigoscode"},
+            "spring": {"id": "9SGDpanrc8U", "title": "Spring Framework Tutorial", "channel": "Amigoscode"},
+            "sql": {"id": "HXV3zeRR3h4", "title": "SQL Tutorial - Full Database Course for Beginners", "channel": "freeCodeCamp.org"},
+            "database": {"id": "HXV3zeRR3h4", "title": "Relational Database Design and SQL", "channel": "freeCodeCamp.org"},
+            "docker": {"id": "fqMOX6JJhGo", "title": "Docker Tutorial for Beginners", "channel": "Programming with Mosh"},
+            "kubernetes": {"id": "X48VuDVv0do", "title": "Kubernetes Tutorial for Beginners", "channel": "TechWorld with Nana"},
+            "react": {"id": "bMknfKXIFA8", "title": "React Course - Beginner's Tutorial for React", "channel": "freeCodeCamp.org"},
+            "javascript": {"id": "W6NZfCO5SIk", "title": "JavaScript Tutorial for Beginners: Crash Course", "channel": "Programming with Mosh"},
+            "soft skill": {"id": "7sxpKhIbr0E", "title": "Soft Skills for Software Developers", "channel": "freeCodeCamp.org"},
+            "communication": {"id": "7sxpKhIbr0E", "title": "Effective Workplace Communication & Interview Skills", "channel": "YouTube Education"},
+            "interview": {"id": "7sxpKhIbr0E", "title": "Technical Interview Preparation and Behavioral Skills", "channel": "YouTube Education"},
             "python": {"id": "_uQrJ0TkZlc", "title": "Python Tutorial for Beginners - Full Course", "channel": "Programming with Mosh"},
             "data structures": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms in Java", "channel": "freeCodeCamp.org"},
-            "spring boot": {"id": "9SGDpanrc8U", "title": "Spring Boot Tutorial for Beginners", "channel": "Amigoscode"}
+            "microservices": {"id": "rv4LlELmVVE", "title": "Microservices Architecture Tutorial", "channel": "freeCodeCamp.org"},
         }
 
         for k, v in topic_video_map.items():
@@ -95,8 +106,21 @@ class CourseService:
                     "channel": v["channel"]
                 }
 
-        # Fallback search video ID if network fails or quota is exhausted
-        default_id = "eIrMbAQSU34" if "java" in query_lower else "_uQrJ0TkZlc" if "python" in query_lower else "kqtD5dpn9C8"
+        # Fallback search video ID by domain if network fails or quota is exhausted
+        if any(w in query_lower for w in ["java", "spring", "hibernate", "jvm"]):
+            default_id = "eIrMbAQSU34"
+        elif any(w in query_lower for w in ["sql", "mysql", "postgres", "database"]):
+            default_id = "HXV3zeRR3h4"
+        elif any(w in query_lower for w in ["docker", "kubernetes", "devops", "cloud", "aws"]):
+            default_id = "fqMOX6JJhGo"
+        elif any(w in query_lower for w in ["react", "javascript", "frontend", "html", "css", "node"]):
+            default_id = "W6NZfCO5SIk"
+        elif any(w in query_lower for w in ["soft skill", "communication", "interview", "behavioral"]):
+            default_id = "7sxpKhIbr0E"
+        elif "python" in query_lower:
+            default_id = "_uQrJ0TkZlc"
+        else:
+            default_id = "eIrMbAQSU34"
         return {
             "video_id": default_id,
             "title": f"Educational Tutorial: {query}",
@@ -274,22 +298,9 @@ Return ONLY valid JSON matching this structure:
                         "Practical application in real-world scenarios"
                     ],
                     "code_examples": [
-                        {
-                            "title": f"Implementing {chapter_name}",
-                            "language": "python",
-                            "code": f"# Implementation for {chapter_name}\ndef execute_task():\n    print('Executing: {chapter_name}')\n\nexecute_task()",
-                            "explanation": f"Basic code example demonstrating {chapter_name}."
-                        }
+                        self._build_domain_code_example(course_name, chapter_name)
                     ],
-                    "coding_challenge": {
-                        "title": f"{chapter_name} Challenge",
-                        "description": f"Write a solution to demonstrate mastery of {chapter_name}.",
-                        "starter_code": "def solution():\n    # Implement solution\n    return 'Success'\n\nprint(solution())",
-                        "language": "python",
-                        "test_cases": [
-                            {"input": "default", "expected_output": "Success"}
-                        ]
-                    },
+                    "coding_challenge": self._build_domain_coding_challenge(course_name, chapter_name),
                     "quiz": [
                         {
                             "question": f"What is the primary role of {chapter_name} in software engineering?",
@@ -414,3 +425,91 @@ Return ONLY valid JSON matching this structure:
         """Retrieve list of courses for dashboard and explore views."""
         courses = list(self.courses_col.find().sort("created_at", -1).limit(limit))
         return [serialize_doc(c) for c in courses]
+
+    def _build_domain_code_example(self, course_name: str, chapter_name: str) -> Dict[str, str]:
+        c_lower = course_name.lower()
+        if any(w in c_lower for w in ["java", "spring", "hibernate", "jvm"]):
+            return {
+                "title": f"Java Implementation: {chapter_name}",
+                "language": "java",
+                "code": f"public class Main {{\n    public static void main(String[] args) {{\n        System.out.println(\"Executing module: {chapter_name}\");\n        // Core business logic\n        boolean isReady = true;\n        System.out.println(\"Module Status: \" + (isReady ? \"Active\" : \"Pending\"));\n    }}\n}}",
+                "explanation": f"Demonstrates core Java syntax and execution structure for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["sql", "mysql", "postgres", "database"]):
+            return {
+                "title": f"SQL Schema & Query: {chapter_name}",
+                "language": "sql",
+                "code": f"-- Query definition for {chapter_name}\nSELECT id, name, status, created_at\nFROM learning_records\nWHERE module_name = '{chapter_name}'\nORDER BY created_at DESC\nLIMIT 10;",
+                "explanation": f"Demonstrates structured SQL data query operations for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["docker", "kubernetes", "devops", "cloud", "aws"]):
+            return {
+                "title": f"Container Config: {chapter_name}",
+                "language": "bash",
+                "code": f"# Dockerfile / Script for {chapter_name}\nFROM alpine:3.19\nWORKDIR /app\nRUN echo \"Configuring {chapter_name}\"\nCMD [\"echo\", \"Container running successfully\"]",
+                "explanation": f"Demonstrates containerization and environment configuration for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["react", "javascript", "frontend", "html", "css", "node"]):
+            return {
+                "title": f"JavaScript / React Component: {chapter_name}",
+                "language": "javascript",
+                "code": f"// Component implementation for {chapter_name}\nfunction executeTask() {{\n    console.log('Running: {chapter_name}');\n    return {{ status: 'success', timestamp: Date.now() }};\n}}\nexecuteTask();",
+                "explanation": f"Demonstrates modular JavaScript implementation for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["soft skill", "communication", "interview", "behavioral"]):
+            return {
+                "title": f"Framework: {chapter_name}",
+                "language": "python",
+                "code": f"# STAR response framework for: {chapter_name}\ndef star_response(situation, task, action, result):\n    return f'S: {{situation}}\\nT: {{task}}\\nA: {{action}}\\nR: {{result}}'\n\nprint(star_response('Production outage', 'Restore API', 'Identified deadlock & patched', 'Resolved in 15 mins'))",
+                "explanation": f"Provides structured verbal response framework for {chapter_name}."
+            }
+        else:
+            return {
+                "title": f"Python Implementation: {chapter_name}",
+                "language": "python",
+                "code": f"# Implementation for {chapter_name}\ndef execute_task():\n    print('Executing: {chapter_name}')\n    return True\n\nexecute_task()",
+                "explanation": f"Basic code example demonstrating {chapter_name}."
+            }
+
+    def _build_domain_coding_challenge(self, course_name: str, chapter_name: str) -> Dict[str, Any]:
+        c_lower = course_name.lower()
+        if any(w in c_lower for w in ["java", "spring"]):
+            return {
+                "title": f"{chapter_name} Challenge",
+                "description": f"Write a Java method that verifies initialization of {chapter_name}.",
+                "starter_code": "public class Solution {\n    public static String checkStatus() {\n        // Return 'Success' when module is initialized\n        return \"Success\";\n    }\n}",
+                "language": "java",
+                "test_cases": [
+                    {"input": "checkStatus()", "expected_output": "Success"}
+                ]
+            }
+        elif any(w in c_lower for w in ["sql", "mysql", "database"]):
+            return {
+                "title": f"{chapter_name} SQL Challenge",
+                "description": "Write a query to retrieve all active records.",
+                "starter_code": "-- Write your SQL query below\nSELECT 'Success' AS result;",
+                "language": "sql",
+                "test_cases": [
+                    {"input": "default", "expected_output": "Success"}
+                ]
+            }
+        elif any(w in c_lower for w in ["react", "javascript", "frontend", "node"]):
+            return {
+                "title": f"{chapter_name} Challenge",
+                "description": f"Write a function to return verified output for {chapter_name}.",
+                "starter_code": "function solution() {\n    return 'Success';\n}\nconsole.log(solution());",
+                "language": "javascript",
+                "test_cases": [
+                    {"input": "solution()", "expected_output": "Success"}
+                ]
+            }
+        else:
+            return {
+                "title": f"{chapter_name} Challenge",
+                "description": f"Write a solution to demonstrate mastery of {chapter_name}.",
+                "starter_code": "def solution():\n    # Implement solution\n    return 'Success'\n\nprint(solution())",
+                "language": "python",
+                "test_cases": [
+                    {"input": "default", "expected_output": "Success"}
+                ]
+            }

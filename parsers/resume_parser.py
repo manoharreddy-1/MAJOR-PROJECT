@@ -4,7 +4,12 @@ import re
 from typing import Any, Dict, List, Optional
 
 from utils.text_cleaner import clean_text, extract_section
-from utils.skill_normalizer import deduplicate_skills, extract_skills_from_text
+from utils.skill_normalizer import (
+    clean_skill_candidate,
+    deduplicate_skills,
+    extract_skills_from_text,
+    normalize_skill_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +21,10 @@ PHONE_PATTERN = re.compile(
 URL_PATTERN = re.compile(r"https?://[^\s]+|www\.[^\s]+")
 
 SECTION_KEYWORDS = {
-    "skills": ["skills", "technical skills", "core competencies", "technologies"],
-    "experience": ["experience", "work experience", "employment", "professional experience"],
-    "education": ["education", "academic", "qualification"],
-    "projects": ["projects", "personal projects", "academic projects"],
+    "skills": ["technical skills", "skills", "core competencies", "technologies", "tech stack", "tools & technologies"],
+    "experience": ["experience", "work experience", "employment", "professional experience", "internship", "internships"],
+    "education": ["education", "academic background", "academics", "qualification", "qualifications"],
+    "projects": ["projects", "personal projects", "academic projects", "key projects"],
     "certifications": ["certifications", "certificates", "licenses"],
     "achievements": ["achievements", "awards", "honors", "accomplishments"],
 }
@@ -33,35 +38,34 @@ class ResumeParser:
 
     def parse(self, text: str) -> Dict[str, Any]:
         """Parse resume text into structured fields."""
-        text = clean_text(text)
-        if not text:
+        multiline_text = clean_text(text, preserve_newlines=True)
+        if not multiline_text:
             raise ValueError("Resume text is empty.")
 
         result = {
-            "raw_text": text,
-            "name": self._extract_name(text),
-            "email": self._extract_email(text),
-            "phone": self._extract_phone(text),
-            "urls": URL_PATTERN.findall(text),
-            "skills": self._extract_skills(text),
-            "experience": self._extract_experience(text),
-            "education": self._extract_education(text),
-            "projects": self._extract_projects(text),
-            "certifications": self._extract_certifications(text),
-            "achievements": self._extract_achievements(text),
+            "raw_text": multiline_text,
+            "name": self._extract_name(multiline_text),
+            "email": self._extract_email(multiline_text),
+            "phone": self._extract_phone(multiline_text),
+            "urls": URL_PATTERN.findall(multiline_text),
+            "skills": self._extract_skills(multiline_text),
+            "experience": self._extract_experience(multiline_text),
+            "education": self._extract_education(multiline_text),
+            "projects": self._extract_projects(multiline_text),
+            "certifications": self._extract_certifications(multiline_text),
+            "achievements": self._extract_achievements(multiline_text),
             "technologies": [],
-            "summary": self._extract_summary(text),
+            "summary": self._extract_summary(multiline_text),
         }
 
-        # Extract technologies from skills and projects
-        tech_text = " ".join(result["skills"]) + " " + " ".join(result["projects"])
+        # Extract technologies from skills, projects, and experience
+        tech_text = " ".join(result["skills"]) + " " + " ".join(result["projects"]) + " " + " ".join(result["experience"])
         result["technologies"] = extract_skills_from_text(tech_text, result["skills"])
 
         # Enrich with NER if available and name is not yet extracted
         if self.ner_model and not result.get("name"):
             try:
-                # Name is always at the very top; only process the first 250 chars to speed up inference
-                entities = self.ner_model.extract_entities(text[:250])
+                entities = self.ner_model.extract_entities(multiline_text[:250])
                 result["ner_entities"] = entities
                 if entities.get("persons"):
                     result["name"] = entities["persons"][0]
@@ -83,25 +87,37 @@ class ResumeParser:
         lines = [l.strip() for l in text.split("\n") if l.strip()]
         if not lines:
             return None
-        # First non-email, non-phone line is often the name
         for line in lines[:5]:
             if EMAIL_PATTERN.search(line) or PHONE_PATTERN.search(line):
                 continue
             if len(line.split()) <= 5 and len(line) < 60:
-                # Avoid section headers
-                if not any(kw in line.lower() for kw in ["resume", "curriculum", "cv"]):
+                if not any(kw in line.lower() for kw in ["resume", "curriculum", "cv", "portfolio", "github", "linkedin"]):
                     return line
         return lines[0] if lines else None
 
     def _extract_skills(self, text: str) -> List[str]:
+        skills = []
         section = extract_section(text, SECTION_KEYWORDS["skills"])
         source = section if section else text
-        # Split by common delimiters
-        raw_skills = re.split(r"[,|•\n;]", source)
-        skills = [s.strip() for s in raw_skills if s.strip() and len(s.strip()) < 50]
-        extracted = extract_skills_from_text(source)
-        skills.extend(extracted)
-        return deduplicate_skills(skills)[:50]
+
+        # 1. Direct standard extraction across the section
+        skills.extend(extract_skills_from_text(source))
+
+        # 2. Parse subcategory items (e.g. Languages: Java, Python; Web: React, Node)
+        raw_skills = re.split(r"[,|•\n;/\\]", source)
+        for s in raw_skills:
+            candidate = clean_skill_candidate(s)
+            if candidate:
+                norm = normalize_skill_name(candidate)
+                if norm:
+                    skills.append(norm)
+
+        # 3. Also supplement with skills extracted from projects section
+        projects_section = extract_section(text, SECTION_KEYWORDS["projects"])
+        if projects_section:
+            skills.extend(extract_skills_from_text(projects_section))
+
+        return deduplicate_skills(skills)[:40]
 
     def _extract_experience(self, text: str) -> List[str]:
         section = extract_section(text, SECTION_KEYWORDS["experience"])

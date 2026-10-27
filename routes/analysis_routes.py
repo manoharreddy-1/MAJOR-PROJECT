@@ -237,8 +237,8 @@ def sample_answer():
 
 @analysis_bp.route("/roadmap/generate", methods=["POST"])
 def generate_roadmap():
-    data = request.get_json()
-    analysis_id = data.get("analysis_id") if data else None
+    data = request.get_json() or {}
+    analysis_id = data.get("analysis_id")
     if not analysis_id:
         return error_response("MISSING_ID", "analysis_id is required.")
 
@@ -249,6 +249,10 @@ def generate_roadmap():
     resume_doc = resume_service.get_resume(doc["resume_id"])
     job_doc = job_service.get_job(doc["job_description_id"])
 
+    weeks = data.get("weeks", 4)
+    hours_per_week = data.get("hours_per_week", 15)
+    focus = data.get("focus", "balanced")
+
     try:
         result = roadmap_service.generate(
             resume=resume_doc.get("extracted", resume_doc),
@@ -256,6 +260,9 @@ def generate_roadmap():
             analysis=serialize_doc(doc),
             user_id=data.get("user_id"),
             analysis_id=analysis_id,
+            weeks=weeks,
+            hours_per_week=hours_per_week,
+            focus=focus,
         )
         return success_response(result, "Preparation roadmap generated.")
     except Exception as exc:

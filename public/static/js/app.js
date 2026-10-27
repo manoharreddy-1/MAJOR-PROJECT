@@ -169,9 +169,58 @@ function initUploadZone(zoneId, inputId, onFile) {
 document.addEventListener('DOMContentLoaded', () => {
   UI.initNavToggle();
 
-  // Highlight active nav link
+  // Authentication Guard & Dynamic Navigation Bar
   const path = window.location.pathname;
+  const isLoginPage = (path === '/' || path === '/login');
+  
+  // Check user session
+  let user = null;
+  try {
+    const rawUser = localStorage.getItem('user');
+    if (rawUser) user = JSON.parse(rawUser);
+  } catch (e) {}
+
+  // 1. If not logged in and attempting to access protected features, redirect to /login
+  if (!user && !isLoginPage) {
+    window.location.href = '/login';
+    return;
+  }
+
+  // 2. If logged in and on the login page, redirect directly to dashboard /home
+  if (user && isLoginPage) {
+    window.location.href = '/home';
+    return;
+  }
+
+  // 3. Dynamically configure navigation bar visibility based on auth state
+  const navList = document.querySelector('.navbar-nav');
+  if (navList) {
+    if (!user) {
+      // User NOT logged in: only show Login link, hide all feature tabs
+      navList.innerHTML = `
+        <li><a href="/login" class="active">Login</a></li>
+      `;
+    } else {
+      // User IS logged in: reveal all features, analysis, courses, history, and profile
+      navList.innerHTML = `
+        <li><a href="/home" ${path === '/home' || path === '/dashboard' ? 'class="active"' : ''}>Home</a></li>
+        <li><a href="/analyze" ${path === '/analyze' ? 'class="active"' : ''}>Analyze</a></li>
+        <li><a href="/courses" ${path.startsWith('/course') ? 'class="active"' : ''}>AI Courses</a></li>
+        <li><a href="/history" ${path === '/history' ? 'class="active"' : ''}>History</a></li>
+        <li><a href="/profile" ${path === '/profile' ? 'class="active"' : ''}>Profile</a></li>
+        <li><a href="javascript:void(0)" onclick="logoutUser()" style="color: #ef4444; font-weight: 600;">Sign Out</a></li>
+      `;
+    }
+  }
+
+  // Highlight active nav link fallback
   document.querySelectorAll('.navbar-nav a').forEach((link) => {
     if (link.getAttribute('href') === path) link.classList.add('active');
   });
 });
+
+function logoutUser() {
+  localStorage.removeItem('user');
+  sessionStorage.clear();
+  window.location.href = '/login';
+}

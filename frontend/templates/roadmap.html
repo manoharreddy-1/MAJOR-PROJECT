@@ -6,6 +6,143 @@
   <title>Preparation Roadmap | AI Resume Analyzer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .planner-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+    .planner-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .planner-control label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .planner-control select, .planner-control input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 0.9375rem;
+      background: #f8fafc;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    .planner-control select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: white;
+    }
+    .metric-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+      font-size: 0.875rem;
+    }
+    .day-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .day-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: var(--radius);
+      padding: 1rem 1.15rem;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .day-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06);
+      transform: translateY(-2px);
+    }
+    .day-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      background: #0284c7;
+      color: white;
+      margin-bottom: 0.5rem;
+    }
+    .day-hours {
+      float: right;
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .day-topic {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.4rem;
+    }
+    .day-task {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 0.5rem;
+    }
+    .day-checkpoint {
+      font-size: 0.75rem;
+      background: #f1f5f9;
+      border-left: 3px solid #10b981;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0 4px 4px 0;
+      color: #334155;
+    }
+    .week-container {
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.75rem;
+      box-shadow: var(--shadow);
+    }
+    .week-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1rem;
+    }
+    .btn-toggle-days {
+      background: none;
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.75rem;
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .btn-toggle-days:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -22,83 +159,259 @@
   <div class="container">
     <div class="page-header">
       <h1>Preparation Roadmap</h1>
-      <p>Personalized learning path based on your skill gaps and target role</p>
+      <p>Customized week-by-week and day-by-day learning schedule targeting your specific skill gaps</p>
     </div>
+
+    <!-- Interactive Plan Configuration Card -->
+    <div class="planner-card">
+      <div class="flex-between">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;">
+            &#128197; Customize Your Preparation Plan
+          </h2>
+          <p class="text-muted" style="font-size: 0.875rem;">
+            Tell us your available preparation timeline and hours so we can allocate study time to your lagging skills.
+          </p>
+        </div>
+        <div id="metricPill" class="metric-pill">
+          <span>&#9201; Total: 60 Hours (4 Wks &times; 15 Hrs/Wk)</span>
+        </div>
+      </div>
+
+      <div class="planner-grid">
+        <div class="planner-control">
+          <label for="weeksSelect">&#128197; Preparation Duration</label>
+          <select id="weeksSelect">
+            <option value="1">1 Week (Crash Course / Urgent Prep)</option>
+            <option value="2">2 Weeks (Fast-Track Sprint)</option>
+            <option value="4" selected>4 Weeks (Standard - Recommended)</option>
+            <option value="6">6 Weeks (Solid Foundation)</option>
+            <option value="8">8 Weeks (Comprehensive Mastery)</option>
+            <option value="12">12 Weeks (Full Career Transition)</option>
+          </select>
+        </div>
+
+        <div class="planner-control">
+          <label for="hoursSelect">&#9201; Study Hours per Week</label>
+          <select id="hoursSelect">
+            <option value="5">5 Hours / Week (Casual / Working)</option>
+            <option value="10">10 Hours / Week (Moderate)</option>
+            <option value="15" selected>15 Hours / Week (Recommended)</option>
+            <option value="20">20 Hours / Week (Intensive)</option>
+            <option value="30">30+ Hours / Week (Full-Time Bootcamp)</option>
+          </select>
+        </div>
+
+        <div class="planner-control">
+          <label for="focusSelect">&#127919; Learning Emphasis</label>
+          <select id="focusSelect">
+            <option value="balanced" selected>Balanced (Theory + Hands-on + Interview)</option>
+            <option value="hands-on">Hands-on Mini Projects First</option>
+            <option value="interview">Interview &amp; Coding Drills First</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="text-align: right; margin-top: 1rem;">
+        <button id="generateBtn" class="btn btn-primary btn-lg">&#10024; Generate Day-Wise Preparation Plan</button>
+      </div>
+    </div>
+
+    <!-- Output Container -->
     <div id="roadmapContent">
-      <div class="card text-center">
-        <p class="mb-2">Generate a week-by-week preparation plan tailored to your profile.</p>
-        <button id="generateBtn" class="btn btn-primary btn-lg">Generate Roadmap</button>
+      <div class="card text-center" style="padding: 2.5rem 1rem;">
+        <p class="text-muted mb-2">Configure your timeline above and click <strong>Generate Day-Wise Preparation Plan</strong>.</p>
       </div>
     </div>
   </div>
 
-  <footer class="footer"><p>AI Resume Analyzer</p></footer>
+  <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
   <script src="/static/js/app.js"></script>
   <script>
     const container = document.getElementById('roadmapContent');
+    const weeksSelect = document.getElementById('weeksSelect');
+    const hoursSelect = document.getElementById('hoursSelect');
+    const focusSelect = document.getElementById('focusSelect');
+    const metricPill = document.getElementById('metricPill');
+    const generateBtn = document.getElementById('generateBtn');
+
     const analysisId = Store.get('analysis_id');
 
-    document.getElementById('generateBtn').addEventListener('click', generate);
+    // Update live study hours calculation
+    function updateMetricPill() {
+      const w = parseInt(weeksSelect.value) || 4;
+      const h = parseInt(hoursSelect.value) || 15;
+      const total = w * h;
+      metricPill.innerHTML = `<span>&#9201; Total: ${total} Hours (${w} Wks &times; ${h} Hrs/Wk)</span>`;
+    }
+
+    weeksSelect.addEventListener('change', updateMetricPill);
+    hoursSelect.addEventListener('change', updateMetricPill);
+    updateMetricPill();
+
+    generateBtn.addEventListener('click', generate);
 
     async function generate() {
-      if (!analysisId) { UI.showError(container, 'No analysis found.'); return; }
-      UI.showLoading(container, 'Generating personalized roadmap...');
+      if (!analysisId) {
+        UI.showError(container, 'No analysis found. Please run an analysis first on the <a href="/analyze">Analyze page</a>.');
+        return;
+      }
+
+      const weeks = parseInt(weeksSelect.value) || 4;
+      const hours = parseInt(hoursSelect.value) || 15;
+      const focus = focusSelect.value || 'balanced';
+
+      UI.showLoading(container, `Crafting your personalized ${weeks}-week, day-wise preparation schedule...`);
+
       try {
         const res = await API.request('/roadmap/generate', {
-          method: 'POST', body: { analysis_id: analysisId },
+          method: 'POST',
+          body: {
+            analysis_id: analysisId,
+            weeks: weeks,
+            hours_per_week: hours,
+            focus: focus
+          },
         });
         renderRoadmap(res.data.roadmap);
-      } catch (err) { UI.showError(container, err.message); }
+      } catch (err) {
+        UI.showError(container, 'Failed to generate roadmap: ' + err.message);
+      }
     }
 
     function renderRoadmap(data) {
-      const items = data.roadmap || [];
+      if (!data) {
+        container.innerHTML = '<p class="text-danger">Failed to parse roadmap data.</p>';
+        return;
+      }
+
+      const weeklyPlan = data.weekly_plan || data.roadmap || [];
+      const totalWeeks = data.total_weeks || weeklyPlan.length || 4;
+      const hoursPerWeek = data.hours_per_week || 15;
+      const totalHours = data.total_hours || (totalWeeks * hoursPerWeek);
       const practice = data.interview_practice_phase || {};
 
       container.innerHTML = `
-        ${data.summary ? `<div class="info-box mb-3">${data.summary}</div>` : ''}
-        
-        <div class="card mb-3 text-center" style="padding: 1.5rem;">
-          <h3 class="card-title mb-1">Preparation Milestones</h3>
-          <p class="text-muted mb-2" style="font-size: 0.8125rem;">Your progressive journey towards job readiness</p>
-          <div style="display: flex; justify-content: space-between; align-items: center; max-width: 500px; margin: 1.5rem auto 0.5rem auto; position: relative;">
-            <div style="position: absolute; top: 16px; left: 0; right: 0; height: 3px; background: var(--border); z-index: 1;"></div>
-            ${items.map((item, idx) => {
-              const weekNum = item.estimated_week || (idx + 1);
+        <!-- High-level Summary Card -->
+        <div class="card mb-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border: none; padding: 1.75rem;">
+          <div class="flex-between">
+            <div>
+              <span class="badge" style="background: #0284c7; color: white; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: inline-block;">
+                Personalized Preparation Roadmap
+              </span>
+              <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; color: white;">
+                ${data.target_role || 'Target Role'} Career Roadmap
+              </h2>
+              <p style="color: #cbd5e1; font-size: 0.875rem; max-width: 750px; line-height: 1.5;">
+                ${data.summary || 'Structured day-wise preparation designed to close your identified skill gaps.'}
+              </p>
+            </div>
+            <div style="text-align: right; min-width: 160px;">
+              <div style="font-size: 2rem; font-weight: 800; color: #38bdf8;">${totalHours}</div>
+              <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Total Study Hours</div>
+              <div style="font-size: 0.8125rem; color: #cbd5e1; margin-top: 0.25rem;">${totalWeeks} Weeks &bull; ${hoursPerWeek}h / Wk</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones Bar -->
+        <div class="card mb-4 text-center" style="padding: 1.5rem;">
+          <h3 class="card-title mb-1">Weekly Milestones Overview</h3>
+          <p class="text-muted mb-3" style="font-size: 0.8125rem;">Your progressive journey towards job interview readiness</p>
+          <div style="display: flex; justify-content: space-between; align-items: center; max-width: 650px; margin: 1rem auto; position: relative;">
+            <div style="position: absolute; top: 18px; left: 0; right: 0; height: 3px; background: #e2e8f0; z-index: 1;"></div>
+            ${weeklyPlan.map((item, idx) => {
+              const weekNum = item.week_number || item.estimated_week || (idx + 1);
               const color = item.priority === 'HIGH' ? '#ef4444' : item.priority === 'MEDIUM' ? '#f59e0b' : '#10b981';
               return `
                 <div style="position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: ${color}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; border: 3px solid #1e293b; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                  <div style="width: 36px; height: 36px; border-radius: 50%; background: ${color}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9375rem; border: 3px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);">
                     ${weekNum}
                   </div>
-                  <span class="text-muted mt-1" style="font-size: 0.75rem; font-weight: 600;">Week ${weekNum}</span>
+                  <span style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-top: 0.35rem;">Week ${weekNum}</span>
+                  <span class="text-muted" style="font-size: 0.6875rem; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.topic}</span>
                 </div>
               `;
             }).join('')}
           </div>
         </div>
 
-        <div class="timeline">
-          ${items.map(item => `
-            <div class="timeline-item ${item.priority?.toLowerCase() || ''}">
-              <div class="flex-between">
-                <strong>${item.topic}</strong>
-                <span class="badge badge-${item.priority === 'HIGH' ? 'error' : item.priority === 'MEDIUM' ? 'warning' : 'info'}">${item.priority} &mdash; Week ${item.estimated_week || '?'}</span>
+        <!-- Week-by-Week & Day-Wise Activities List -->
+        <div id="weeksList">
+          ${weeklyPlan.map((week, wIdx) => {
+            const weekNum = week.week_number || week.estimated_week || (wIdx + 1);
+            const days = week.daily_activities || [];
+            const priorityBadge = week.priority === 'HIGH' ? 'badge-error' : week.priority === 'MEDIUM' ? 'badge-warning' : 'badge-success';
+
+            return `
+              <div class="week-container" id="week_${weekNum}">
+                <div class="week-header">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                      <span class="badge ${priorityBadge}">${week.priority || 'HIGH'} PRIORITY</span>
+                      <span class="badge badge-neutral">Week ${weekNum} &bull; ${week.stage || 'Skill Building'}</span>
+                      <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted);">&#9201; ${week.weekly_hours || hoursPerWeek} Hours</span>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--primary); margin-bottom: 0.25rem;">
+                      ${week.topic}
+                    </h3>
+                    <p class="text-muted" style="font-size: 0.875rem; line-height: 1.4;">
+                      ${week.learning_objective || week.reason || 'Master core concepts and hands-on implementation.'}
+                    </p>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <a href="/courses?topic=${encodeURIComponent(week.topic)}" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">
+                      &#10024; Generate AI Course for ${week.topic.split(' ')[0]}
+                    </a>
+                  </div>
+                </div>
+
+                <!-- Day-Wise Activities -->
+                <div>
+                  <h4 style="font-size: 0.9375rem; font-weight: 700; color: #475569; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+                    &#128197; Day-by-Day Activity Schedule (Week ${weekNum})
+                  </h4>
+                  <div class="day-grid">
+                    ${days.map(d => `
+                      <div class="day-card">
+                        <div class="day-hours">&#9201; ${d.hours || '2.5'}h</div>
+                        <span class="day-badge">${d.day}</span>
+                        <div class="day-topic">${d.topic}</div>
+                        <div class="day-task"><strong>Task:</strong> ${d.practical_task || d.learning_goal || ''}</div>
+                        ${d.checkpoint ? `<div class="day-checkpoint"><strong>Checkpoint:</strong> ${d.checkpoint}</div>` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
               </div>
-              <p class="text-muted mt-1" style="font-size: 0.875rem;">${item.reason || ''}</p>
-              <p class="mt-1" style="font-size: 0.875rem;"><strong>Goal:</strong> ${item.learning_objective || ''}</p>
-              <div class="flex-between mt-2">
-                <span class="badge badge-neutral">${item.stage || ''}</span>
-                <a href="/courses?topic=${encodeURIComponent(item.topic)}" class="btn btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">&#10024; Generate AI Course</a>
-              </div>
-            </div>`).join('')}
+            `;
+          }).join('')}
         </div>
+
+        <!-- Interview Practice Phase -->
         ${practice.focus_areas ? `
-          <div class="card mt-3">
-            <h3 class="card-title mb-2">Interview Practice Phase</h3>
-            <p><strong>Focus:</strong> ${(practice.focus_areas || []).join(', ')}</p>
-            <p class="mt-1"><strong>Activities:</strong> ${(practice.recommended_activities || []).join(', ')}</p>
-          </div>` : ''}`;
+          <div class="card mt-4" style="border-left: 4px solid var(--accent); padding: 1.75rem;">
+            <h3 class="card-title mb-2">&#127919; Interview Practice &amp; Final Phase</h3>
+            <div class="grid-2 mt-2">
+              <div>
+                <h4 style="font-size: 0.9375rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Core Focus Areas:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.6;">
+                  ${(practice.focus_areas || []).map(f => `<li>${f}</li>`).join('')}
+                </ul>
+              </div>
+              <div>
+                <h4 style="font-size: 0.9375rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">Recommended Preparation Activities:</h4>
+                <ul style="padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.6;">
+                  ${(practice.recommended_activities || []).map(a => `<li>${a}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+            <div class="mt-3 text-right">
+              <a href="/interview" class="btn btn-outline">&#128187; Go to AI Interview Questions &rarr;</a>
+            </div>
+          </div>
+        ` : ''}
+      `;
     }
   </script>
 </body>

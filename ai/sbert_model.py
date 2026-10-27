@@ -1,7 +1,12 @@
 """SBERT model singleton for semantic embeddings."""
 import logging
+import os
 import threading
 from typing import Any, List, Optional
+
+# Enable offline mode for huggingface hub if local cache exists
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +32,13 @@ def get_sbert_model():
         try:
             from config.settings import SBERT_MODEL_NAME
             from sentence_transformers import SentenceTransformer
+
             logger.info("Loading SBERT model: %s", SBERT_MODEL_NAME)
-            _model = SentenceTransformer(SBERT_MODEL_NAME)
+            try:
+                _model = SentenceTransformer(SBERT_MODEL_NAME, local_files_only=True)
+            except Exception:
+                _model = SentenceTransformer(SBERT_MODEL_NAME)
+
             logger.info("SBERT model loaded successfully.")
             return _model
         except Exception as exc:

@@ -1,9 +1,10 @@
-"""Resume improvement suggestions via Generative AI."""
+"""Resume improvement suggestions via Generative AI and grounded heuristics."""
 import logging
 from typing import Any, Dict, List
 
 from ai.llm_model import LLMModel
 from ai.prompts import resume_improvement_prompt
+from ai.dynamic_generator import generate_grounded_resume_improvement
 
 logger = logging.getLogger(__name__)
 
@@ -33,20 +34,26 @@ class ImprovementService:
         )
 
         result = self.llm.generate_json(prompt)
+
+        # Ensure valid structure
+        if not result or not isinstance(result, dict) or "general_suggestions" not in result:
+            result = generate_grounded_resume_improvement(prompt)
+
         result["matched_skills"] = matched
         result["missing_skills"] = missing
+        result["target_role"] = analysis.get("target_role") or job.get("job_title", "Target Role")
         return result
 
     def _identify_weak_sections(self, analysis: Dict) -> List[str]:
         weak = []
         scores = analysis.get("scores", {})
-        if scores.get("experience", 100) < 60:
+        if scores.get("experience", 100) < 65:
             weak.append("experience")
-        if scores.get("skills", 100) < 60:
+        if scores.get("skills", 100) < 70:
             weak.append("skills")
-        if scores.get("semantic", 100) < 60:
+        if scores.get("semantic", 100) < 65:
             weak.append("summary")
         semantic = analysis.get("semantic_details", {})
-        if semantic.get("projects_semantic", 100) < 55:
+        if semantic.get("projects_semantic", 100) < 60:
             weak.append("projects")
         return weak
