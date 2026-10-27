@@ -477,10 +477,45 @@ Return ONLY valid JSON matching this structure:
         }
 
     def get_course_details(self, course_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve full course details along with generated chapters."""
+        """Retrieve full course details along with generated chapters, with auto self-healing."""
         course = self.courses_col.find_one({"course_id": course_id})
         if not course:
             return None
+
+        c_name = course.get("name", "Course")
+        c_lower = c_name.lower()
+        is_java_course = any(k in c_lower for k in ["java", "jvm", "spring"])
+
+        # Auto-healing: If course had old placeholder "Fundamental Principles" chapters, upgrade to real curriculum
+        if any("fundamental principles of" in (ch.get("name") or "").lower() for ch in course.get("chapters_outline", [])):
+            from services.course_content_catalog import get_curated_course
+            curated = get_curated_course(c_name)
+            if curated and curated.get("chapters"):
+                new_outline = [
+                    {
+                        "chapter_id": c["chapter_id"],
+                        "name": c["name"],
+                        "about": c["about"],
+                        "duration": c.get("duration", "15 mins"),
+                        "coding_challenge": c.get("coding_challenge")
+                    }
+                    for c in curated["chapters"]
+                ]
+                course["chapters_outline"] = new_outline
+                self.courses_col.update_one(
+                    {"course_id": course_id},
+                    {"$set": {"chapters_outline": new_outline}}
+                )
+                self.chapters_col.delete_many({"course_id": course_id})
+                for c in curated["chapters"]:
+                    ch_id = c["chapter_id"]
+                    ch_name = c["name"]
+                    self.generate_chapter_content(
+                        course_id=course_id,
+                        chapter_id=ch_id,
+                        chapter_name=ch_name,
+                        course_name=c_name
+                    )
 
         chapters = list(self.chapters_col.find({"course_id": course_id}))
         if not chapters and course.get("chapters_outline"):
@@ -495,6 +530,16 @@ Return ONLY valid JSON matching this structure:
                     course_name=course.get("name", "Course")
                 )
             chapters = list(self.chapters_col.find({"course_id": course_id}))
+
+        # Auto-healing: If any chapter has missing video, or Java video on non-Java course, fix it immediately
+        for ch in chapters:
+            v = ch.get("video")
+            if not v or not v.get("video_id") or (not is_java_course and v.get("video_id") == "eIrMbAQSU34"):
+                ch["video"] = self.fetch_youtube_video(f"{c_name} {ch.get('name', '')}")
+                self.chapters_col.update_one(
+                    {"course_id": course_id, "chapter_id": ch.get("chapter_id")},
+                    {"$set": {"video": ch["video"]}}
+                )
 
         chapters.sort(key=lambda c: c.get("chapter_id", 0))
 
