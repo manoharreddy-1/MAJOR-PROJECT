@@ -31,48 +31,9 @@ class CourseService:
 
     def fetch_youtube_video(self, query: str) -> Optional[Dict[str, str]]:
         """Fetch the most relevant educational YouTube video for a topic/chapter."""
-        api_key = YOUTUBE_API_KEY
-        if not api_key:
-            return None
+        query_lower = (query or "").lower().strip()
 
-        url = "https://www.googleapis.com/youtube/v3/search"
-        params = {
-            "part": "snippet",
-            "q": f"{query} programming tutorial",
-            "maxResults": 1,
-            "type": "video",
-            "order": "relevance",
-            "relevanceLanguage": "en",
-            "videoCategoryId": "27",  # Education category
-            "safeSearch": "strict",
-            "videoDuration": "medium",
-            "key": api_key,
-        }
-
-        try:
-            resp = requests.get(url, params=params, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                items = data.get("items", [])
-                if items:
-                    item = items[0]
-                    video_id = item.get("id", {}).get("videoId")
-                    snippet = item.get("snippet", {})
-                    if video_id:
-                        return {
-                            "video_id": video_id,
-                            "title": snippet.get("title", ""),
-                            "description": snippet.get("description", ""),
-                            "thumbnail": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
-                            "channel": snippet.get("channelTitle", ""),
-                        }
-            else:
-                logger.warning("YouTube API error (status %s): %s", resp.status_code, resp.text[:200])
-        except Exception as e:
-            logger.warning("Failed to fetch YouTube video for '%s': %s", query, e)
-
-        # Direct mapping for top programming topics so video embed & thumbnail always work
-        query_lower = query.lower()
+        # Direct instant mapping for top programming topics so video embed & thumbnail always work in 0ms
         topic_video_map = {
             "java basics": {"id": "eIrMbAQSU34", "title": "Java Tutorial for Beginners - Programming with Mosh", "channel": "Programming with Mosh"},
             "control flow": {"id": "A74TOX803D0", "title": "Java Control Flow, Loops and Conditionals", "channel": "freeCodeCamp.org"},
@@ -92,7 +53,10 @@ class CourseService:
             "communication": {"id": "7sxpKhIbr0E", "title": "Effective Workplace Communication & Interview Skills", "channel": "YouTube Education"},
             "interview": {"id": "7sxpKhIbr0E", "title": "Technical Interview Preparation and Behavioral Skills", "channel": "YouTube Education"},
             "python": {"id": "_uQrJ0TkZlc", "title": "Python Tutorial for Beginners - Full Course", "channel": "Programming with Mosh"},
-            "data structures": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms in Java", "channel": "freeCodeCamp.org"},
+            "data structures": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms", "channel": "freeCodeCamp.org"},
+            "machine learning": {"id": "i_LwzRVP7bg", "title": "Machine Learning for Everybody - Full Course", "channel": "freeCodeCamp.org"},
+            "deep learning": {"id": "aircAruvnKk", "title": "Deep Learning Crash Course for Beginners", "channel": "3Blue1Brown"},
+            "data science": {"id": "LHBE6Q9XlzI", "title": "Data Science Full Course 2024", "channel": "freeCodeCamp.org"},
             "microservices": {"id": "rv4LlELmVVE", "title": "Microservices Architecture Tutorial", "channel": "freeCodeCamp.org"},
         }
 
@@ -106,7 +70,43 @@ class CourseService:
                     "channel": v["channel"]
                 }
 
-        # Fallback search video ID by domain if network fails or quota is exhausted
+        # If API key available and not yet found, try quick fetch with short timeout
+        api_key = YOUTUBE_API_KEY
+        if api_key and api_key.startswith("AIza"):
+            try:
+                url = "https://www.googleapis.com/youtube/v3/search"
+                params = {
+                    "part": "snippet",
+                    "q": f"{query} programming tutorial",
+                    "maxResults": 1,
+                    "type": "video",
+                    "order": "relevance",
+                    "relevanceLanguage": "en",
+                    "videoCategoryId": "27",
+                    "safeSearch": "strict",
+                    "videoDuration": "medium",
+                    "key": api_key,
+                }
+                resp = requests.get(url, params=params, timeout=1.5)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    items = data.get("items", [])
+                    if items:
+                        item = items[0]
+                        video_id = item.get("id", {}).get("videoId")
+                        snippet = item.get("snippet", {})
+                        if video_id:
+                            return {
+                                "video_id": video_id,
+                                "title": snippet.get("title", ""),
+                                "description": snippet.get("description", ""),
+                                "thumbnail": snippet.get("thumbnails", {}).get("high", {}).get("url", ""),
+                                "channel": snippet.get("channelTitle", ""),
+                            }
+            except Exception:
+                pass
+
+        # Fallback search video ID by domain
         if any(w in query_lower for w in ["java", "spring", "hibernate", "jvm"]):
             default_id = "eIrMbAQSU34"
         elif any(w in query_lower for w in ["sql", "mysql", "postgres", "database"]):
@@ -117,10 +117,11 @@ class CourseService:
             default_id = "W6NZfCO5SIk"
         elif any(w in query_lower for w in ["soft skill", "communication", "interview", "behavioral"]):
             default_id = "7sxpKhIbr0E"
-        elif "python" in query_lower:
+        elif any(w in query_lower for w in ["python", "data", "machine learning", "ai", "pandas", "numpy"]):
             default_id = "_uQrJ0TkZlc"
         else:
             default_id = "eIrMbAQSU34"
+
         return {
             "video_id": default_id,
             "title": f"Educational Tutorial: {query}",
@@ -132,7 +133,7 @@ class CourseService:
 
     def generate_course_layout(
         self,
-        topic: str,
+        topic: Any,
         category: str = "Technology & Science",
         level: str = "Beginner",
         duration: str = "1 Hour",
@@ -143,6 +144,17 @@ class CourseService:
         user_id: str = None
     ) -> Dict[str, Any]:
         """Generate course layout/outline using Gemini AI."""
+        if isinstance(topic, dict):
+            category = topic.get("category", category)
+            level = topic.get("level", level)
+            duration = topic.get("duration", duration)
+            num_chapters = int(topic.get("num_chapters", num_chapters))
+            include_video = topic.get("include_video", include_video)
+            description = topic.get("description", description)
+            user_name = topic.get("user_name", user_name)
+            user_id = topic.get("user_id", user_id)
+            topic = topic.get("topic") or topic.get("name") or topic.get("title") or "Programming Course"
+
         prompt = f"""
 You are an expert curriculum designer and educator.
 Create a structured course layout for:
@@ -228,11 +240,23 @@ Return ONLY valid JSON in the exact following schema:
             "chapters_outline": response.get("chapters", []),
             "created_by": user_id or "anonymous",
             "user_name": user_name or "Learner",
-            "publish": False,
+            "publish": True,
             "created_at": utc_now(),
         }
 
         self.courses_col.insert_one(doc)
+
+        # Pre-populate chapter contents immediately so course is 100% ready to view
+        for ch in doc["chapters_outline"]:
+            ch_id = ch.get("chapter_id", 1)
+            ch_name = ch.get("name", f"Chapter {ch_id}")
+            self.generate_chapter_content(
+                course_id=course_id,
+                chapter_id=ch_id,
+                chapter_name=ch_name,
+                course_name=doc["name"]
+            )
+
         return {"course_id": course_id, "course": serialize_doc(doc)}
 
     def generate_chapter_content(
@@ -368,20 +392,18 @@ Return ONLY valid JSON matching this structure:
         if not course:
             raise ValueError(f"Course {course_id} not found")
 
-        chapters_outline = course.get("chapters_outline", [])
-        course_name = course.get("name", "Course")
-        generated_chapters = []
-
-        for ch in chapters_outline:
-            ch_id = ch.get("chapter_id", 1)
-            ch_name = ch.get("name", f"Chapter {ch_id}")
-            ch_data = self.generate_chapter_content(
-                course_id=course_id,
-                chapter_id=ch_id,
-                chapter_name=ch_name,
-                course_name=course_name
-            )
-            generated_chapters.append(ch_data)
+        chapters = list(self.chapters_col.find({"course_id": course_id}))
+        if not chapters and course.get("chapters_outline"):
+            for ch in course["chapters_outline"]:
+                ch_id = ch.get("chapter_id", 1)
+                ch_name = ch.get("name", f"Chapter {ch_id}")
+                self.generate_chapter_content(
+                    course_id=course_id,
+                    chapter_id=ch_id,
+                    chapter_name=ch_name,
+                    course_name=course.get("name", "Course")
+                )
+            chapters = list(self.chapters_col.find({"course_id": course_id}))
 
         # Mark course as published
         self.courses_col.update_one(
@@ -392,7 +414,7 @@ Return ONLY valid JSON matching this structure:
         return {
             "course_id": course_id,
             "published": True,
-            "chapters_count": len(generated_chapters)
+            "chapters_count": len(chapters) or len(course.get("chapters_outline", []))
         }
 
     def get_course_details(self, course_id: str) -> Optional[Dict[str, Any]]:

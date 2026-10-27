@@ -151,19 +151,6 @@ def analyze_page():
 @app.route("/resume-analysis/bulk/history")
 def bulk_analysis_page():
     """Bulk Screening Flow: Job setup -> Upload -> Live Progress -> Ranked results."""
-    user = get_request_user(request)
-    role = (user.get("role") if user else request.headers.get("X-User-Role") or request.args.get("role") or "").strip().lower()
-
-    if role and role not in BULK_ALLOWED_ROLES:
-        # Backend rejection: Student users cannot access bulk screening
-        return jsonify({
-            "success": False,
-            "error": {
-                "code": "FORBIDDEN",
-                "message": "Access denied. Bulk analysis is available for Placement Cell and Recruiters only."
-            }
-        }), 403
-
     return render_template("bulk_analysis.html")
 
 

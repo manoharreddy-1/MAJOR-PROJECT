@@ -43,38 +43,33 @@ class TestModeNavigation:
         assert "Upload Resume" in html2
         assert "Switch mode" in html2
 
-    def test_student_cannot_access_bulk_routes(self, client):
-        """Strict Rule: Student role must be rejected with 403 Forbidden by backend."""
-        # 1. Page route rejection
+    def test_all_roles_have_access_to_bulk_routes(self, client):
+        """User requirement: All roles (Student, Learner, Candidate, Recruiter, Placement Cell) now have full access."""
+        # 1. Page route access for Student
         res_page = client.get("/resume-analysis/bulk", headers={"X-User-Role": "Student"})
-        assert res_page.status_code == 403
-        data_page = res_page.get_json() or {}
-        assert "Access denied" in data_page.get("error", {}).get("message", "")
+        assert res_page.status_code == 200
+        assert "Bulk Resume Screening" in res_page.data.decode("utf-8")
 
-        # 2. Query param rejection
+        # 2. Query param access for Student
         res_query = client.get("/resume-analysis/bulk?role=Student")
-        assert res_query.status_code == 403
+        assert res_query.status_code == 200
 
-        # 3. Token-based rejection
+        # 3. Token-based access for Student
         res_token = client.get("/resume-analysis/bulk", headers={"Authorization": "Bearer token_usr_student"})
-        assert res_token.status_code == 403
+        assert res_token.status_code == 200
 
-        # 4. API endpoint rejection
+        # 4. API endpoint access for Student
         res_api = client.post("/api/bulk/analyze", json={
             "job_description": "Python, Machine Learning Engineer",
             "resumes": [{"name": "Test", "content": "Python skills"}]
         }, headers={"X-User-Role": "Student"})
-        assert res_api.status_code == 403
+        assert res_api.status_code in [200, 201]
         data_api = res_api.get_json()
-        assert data_api["success"] is False
-        assert "Access denied" in data_api["error"]["message"]
+        assert data_api["success"] is True
 
-        # 5. History and export rejection
+        # 5. History access for Student
         res_hist = client.get("/api/bulk/batches", headers={"X-User-Role": "Student"})
-        assert res_hist.status_code == 403
-
-        res_exp = client.get("/api/bulk/export/fake_batch_123", headers={"X-User-Role": "Student"})
-        assert res_exp.status_code == 403
+        assert res_hist.status_code == 200
 
     def test_recruiter_and_placement_cell_can_access_bulk_routes(self, client):
         """Recruiter and Placement Cell roles must have full access (200 OK)."""

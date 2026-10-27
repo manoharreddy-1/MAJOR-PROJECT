@@ -267,8 +267,8 @@ async function triggerResumeOptimization(confirmedSkills = []) {
   if (!container || !loading || !results) return;
 
   const analysis = Store.get('analysis_data') || {};
-  const resume = Store.get('resume_data') || analysis.resume || {};
-  const job = Store.get('job_data') || analysis.job || {};
+  const resume = Store.get('resume_data') || analysis.resume_data || analysis.resume || {};
+  const job = Store.get('job_data') || analysis.job_data || analysis.job || {};
   const skills = analysis.skill_analysis || {};
 
   const missingSkills = (skills.missing || []).map(s => typeof s === 'string' ? s : s.skill).filter(Boolean);
@@ -287,8 +287,9 @@ async function triggerResumeOptimization(confirmedSkills = []) {
   container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   const payload = {
-    resume_id: analysis.resume_id || resume.resume_id,
-    job_id: analysis.job_description_id || job.job_id,
+    analysis_id: Store.get('analysis_id') || analysis.analysis_id,
+    resume_id: Store.get('resume_id') || analysis.resume_id || resume.resume_id,
+    job_id: Store.get('job_id') || analysis.job_description_id || job.job_id,
     resume_data: resume,
     job_data: job,
     missing_skills: missingSkills,

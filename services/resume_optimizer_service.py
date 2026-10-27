@@ -226,13 +226,6 @@ class ResumeOptimizerService:
                 res = self.llm.generate_json(prompt)
                 if isinstance(res, dict) and not res.get("fallback") and "error" not in res and self._validate_response_schema(res):
                     return res
-                # Retry once only if we got a real response without hard network errors or fallback
-                if isinstance(res, dict) and not res.get("fallback") and "error" not in res:
-                    logger.warning("LLM response failed schema validation. Retrying once with strict instructions...")
-                    retry_prompt = prompt + "\n\nCRITICAL: Return ONLY valid JSON with keys: optimized_resume, added_skills, needs_user_confirmation, changes_summary."
-                    res = self.llm.generate_json(retry_prompt)
-                    if isinstance(res, dict) and not res.get("fallback") and "error" not in res and self._validate_response_schema(res):
-                        return res
             except Exception as exc:
                 logger.warning("LLM optimization failed: %s; using deterministic grounded generator.", exc)
 

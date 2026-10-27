@@ -70,9 +70,9 @@
       </a>
 
       <!-- 2. Bulk Resumes Card -->
-      <div id="bulkCard" class="mode-card" onclick="handleBulkCardClick(event)">
+      <a href="/resume-analysis/bulk" id="bulkCard" class="mode-card" onclick="selectMode('bulk')">
         <div class="mode-badge-wrap">
-          <span id="bulkRoleBadge" class="mode-role-badge">Recruiter / Placement</span>
+          <span id="bulkRoleBadge" class="mode-role-badge">All Roles &amp; Recruiters</span>
           <span id="bulkLastUsed" class="mode-last-used-badge" style="display: none;">★ Last Used</span>
         </div>
 
@@ -95,17 +95,12 @@
           </ul>
         </div>
 
-        <!-- Role Tooltip / Status Notice -->
-        <div id="bulkRestrictedNotice" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius); padding: 0.65rem 0.85rem; font-size: 0.8125rem; color: #b45309; margin-top: 1rem;" title="Available for Placement Cell / Recruiters only.">
-          🔒 <strong>Access Note:</strong> Available for Placement Cell / Recruiters only.
-        </div>
-
         <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid #f1f5f9;">
-          <a href="/resume-analysis/bulk" id="bulkBtn" class="btn btn-primary" style="width: 100%; justify-content: center;">
+          <button class="btn btn-primary" style="width: 100%; justify-content: center;">
             Launch Bulk Screening &rarr;
-          </a>
+          </button>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 
@@ -120,55 +115,16 @@
       }
     }
 
-    function isAuthorizedForBulk(user) {
-      if (!user) return false;
-      const role = (user.role || '').trim().toLowerCase();
-      const allowed = ['recruiter', 'placement cell', 'placement', 'admin', 'recruiter/placement cell'];
-      return allowed.includes(role);
-    }
-
     function selectMode(mode) {
       localStorage.setItem('resume_analysis_mode', mode);
-    }
-
-    function handleBulkCardClick(event) {
-      const user = getStoredUser();
-      if (!isAuthorizedForBulk(user)) {
-        event.preventDefault();
-        alert('Bulk Resume Screening is available for Placement Cell / Recruiters only.');
-        return false;
-      }
-      selectMode('bulk');
-      window.location.href = '/resume-analysis/bulk';
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       const user = getStoredUser();
       const roleIndicator = document.getElementById('userRoleIndicator');
-      const bulkCard = document.getElementById('bulkCard');
-      const bulkBtn = document.getElementById('bulkBtn');
-      const bulkNotice = document.getElementById('bulkRestrictedNotice');
 
       if (user) {
-        roleIndicator.innerHTML = `Current account: <strong>${user.full_name || user.username}</strong> (<span style="color: var(--accent-dark); font-weight: 600;">${user.role || 'Student'}</span>)`;
-      }
-
-      // Check Role-awareness
-      const canBulk = isAuthorizedForBulk(user);
-      if (!canBulk) {
-        // Student user: show Bulk card as disabled with tooltip
-        bulkCard.classList.add('disabled');
-        bulkCard.setAttribute('title', 'Available for Placement Cell / Recruiters only.');
-        bulkNotice.style.display = 'block';
-        if (bulkBtn) {
-          bulkBtn.classList.add('disabled');
-          bulkBtn.style.pointerEvents = 'none';
-          bulkBtn.innerText = 'Restricted (Recruiters Only)';
-          bulkBtn.style.background = '#94a3b8';
-          bulkBtn.style.borderColor = '#94a3b8';
-        }
-      } else {
-        bulkCard.style.cursor = 'pointer';
+        roleIndicator.innerHTML = `Current account: <strong>${user.full_name || user.username}</strong> (<span style="color: var(--accent-dark); font-weight: 600;">${user.role || 'User'}</span>)`;
       }
 
       // Highlight Last-Used Mode
@@ -178,7 +134,8 @@
         const badge = document.getElementById('singleLastUsed');
         if (singleCard) singleCard.classList.add('last-used');
         if (badge) badge.style.display = 'inline-block';
-      } else if (lastMode === 'bulk' && canBulk) {
+      } else if (lastMode === 'bulk') {
+        const bulkCard = document.getElementById('bulkCard');
         const badge = document.getElementById('bulkLastUsed');
         if (bulkCard) bulkCard.classList.add('last-used');
         if (badge) badge.style.display = 'inline-block';

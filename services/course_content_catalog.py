@@ -1,4 +1,5 @@
 """Comprehensive syllabus, concept breakdowns, code examples, coding questions, test cases, and quizzes for popular topics."""
+import re
 from typing import Dict, Any, List
 
 SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
@@ -949,8 +950,10 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
 }
 
 
-def get_curated_course(topic: str) -> Dict[str, Any]:
+def get_curated_course(topic: Any) -> Dict[str, Any]:
     """Retrieve pre-curated full-fidelity course if matching topic, else generate structured curriculum."""
+    if isinstance(topic, dict):
+        topic = topic.get("topic") or topic.get("name") or topic.get("title") or ""
     topic_lower = (topic or "").lower().strip()
     # Remove leading punctuation
     topic_lower = re.sub(r"^[&\s+\-•*,]+", "", topic_lower).strip()

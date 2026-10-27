@@ -15,14 +15,6 @@ screening_service = BulkScreeningService()
 @bulk_bp.route("/analyze", methods=["POST"])
 def analyze_bulk_resumes():
     """Analyze a batch of resumes against job requirements and academic cutoffs."""
-    # Strict role verification: Student cannot access bulk routes
-    if not is_bulk_authorized(request):
-        return error_response(
-            "FORBIDDEN",
-            "Access denied. Bulk analysis is available for Placement Cell and Recruiters only.",
-            403
-        )
-
     user = get_request_user(request)
     user_id = user.get("user_id") if user else None
 
@@ -101,13 +93,6 @@ def analyze_bulk_resumes():
 @bulk_bp.route("/batches", methods=["GET"])
 def list_batches():
     """List historical screening batches."""
-    if not is_bulk_authorized(request):
-        return error_response(
-            "FORBIDDEN",
-            "Access denied. Bulk analysis is available for Placement Cell and Recruiters only.",
-            403
-        )
-
     user = get_request_user(request)
     user_id = user.get("user_id") if user else None
     batches = screening_service.list_batches(user_id=user_id)
@@ -117,13 +102,6 @@ def list_batches():
 @bulk_bp.route("/batch/<batch_id>", methods=["GET"])
 def get_batch_details(batch_id: str):
     """Get single batch with all ranked candidates."""
-    if not is_bulk_authorized(request):
-        return error_response(
-            "FORBIDDEN",
-            "Access denied. Bulk analysis is available for Placement Cell and Recruiters only.",
-            403
-        )
-
     batch = screening_service.get_batch(batch_id)
     if not batch:
         return error_response("NOT_FOUND", "Batch not found.", 404)
@@ -133,13 +111,6 @@ def get_batch_details(batch_id: str):
 @bulk_bp.route("/export/<batch_id>", methods=["GET"])
 def export_batch_csv(batch_id: str):
     """Download ranked candidates as CSV."""
-    if not is_bulk_authorized(request):
-        return error_response(
-            "FORBIDDEN",
-            "Access denied. Bulk analysis is available for Placement Cell and Recruiters only.",
-            403
-        )
-
     batch = screening_service.get_batch(batch_id)
     if not batch:
         return error_response("NOT_FOUND", "Batch not found.", 404)

@@ -56,7 +56,7 @@ class LLMModel:
                     api_url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=6
+                    timeout=2.5
                 )
 
                 if response.status_code == 429:
@@ -79,6 +79,12 @@ class LLMModel:
                             return text
 
                 logger.warning("Gemini key %s response missing generated text. Trying alternative key...", i + 1)
+            except requests.exceptions.ConnectionError as exc:
+                logger.warning("Gemini connection error: %s. Network unavailable, breaking to fallback.", exc)
+                break
+            except requests.exceptions.Timeout as exc:
+                logger.warning("Gemini key %s timed out: %s.", i + 1, exc)
+                continue
             except requests.exceptions.RequestException as exc:
                 logger.warning("Gemini key %s request failed: %s. Trying alternative key...", i + 1, exc)
                 continue

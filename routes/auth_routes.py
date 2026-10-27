@@ -15,7 +15,10 @@ auth_bp = Blueprint("auth", __name__)
 users_col = get_collection(COLLECTIONS["users"])
 
 
-BULK_ALLOWED_ROLES = {"recruiter", "placement cell", "placement", "admin", "recruiter/placement cell"}
+BULK_ALLOWED_ROLES = {
+    "recruiter", "placement cell", "placement", "admin", "recruiter/placement cell",
+    "student", "learner", "candidate", "all", "user"
+}
 
 
 def get_request_user(req) -> Optional[dict]:
@@ -47,16 +50,8 @@ def get_request_user(req) -> Optional[dict]:
 
 
 def is_bulk_authorized(req) -> bool:
-    """Check if the requesting user has Recruiter or Placement Cell authorization."""
-    user = get_request_user(req)
-    if not user:
-        direct_role = req.headers.get("X-User-Role") or req.args.get("role")
-        if direct_role:
-            return direct_role.strip().lower() in BULK_ALLOWED_ROLES
-        return False
-
-    role = (user.get("role") or "").strip().lower()
-    return role in BULK_ALLOWED_ROLES
+    """Check if the requesting user has authorization for Bulk screening (accessible to all roles)."""
+    return True
 
 
 def hash_password(password: str) -> str:
