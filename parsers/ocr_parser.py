@@ -23,10 +23,14 @@ except ImportError:
     logger.info("opencv not available; OCR will be disabled.")
 
 try:
-    import fitz
+    import pymupdf as fitz
     _FITZ_AVAILABLE = True
 except ImportError:
-    _FITZ_AVAILABLE = False
+    try:
+        import fitz
+        _FITZ_AVAILABLE = True
+    except ImportError:
+        _FITZ_AVAILABLE = False
 
 
 def preprocess_image(image) -> "np.ndarray":

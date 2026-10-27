@@ -9,11 +9,15 @@ from config.settings import MIN_PDF_TEXT_LENGTH
 logger = logging.getLogger(__name__)
 
 try:
-    import fitz  # PyMuPDF
+    import pymupdf as fitz  # PyMuPDF
     _FITZ_AVAILABLE = True
 except Exception:
-    _FITZ_AVAILABLE = False
-    logger.info("PyMuPDF not available.")
+    try:
+        import fitz
+        _FITZ_AVAILABLE = True
+    except Exception:
+        _FITZ_AVAILABLE = False
+        logger.info("PyMuPDF not available.")
 
 try:
     from pypdf import PdfReader
