@@ -11,10 +11,25 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
-import pymupdf as fitz
-from docx import Document
-from docx.shared import Inches, Pt, RGBColor
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+try:
+    import pymupdf as fitz
+    _FITZ_AVAILABLE = True
+except Exception:
+    try:
+        import fitz
+        _FITZ_AVAILABLE = True
+    except Exception:
+        fitz = None
+        _FITZ_AVAILABLE = False
+
+try:
+    from docx import Document
+    from docx.shared import Inches, Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    _DOCX_AVAILABLE = True
+except Exception:
+    Document = None
+    _DOCX_AVAILABLE = False
 
 from ai.llm_model import LLMModel
 from services.ats_service import ATSService
@@ -703,8 +718,106 @@ def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
     return file_stream
 
 
+def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
+    """Pure-Python standard PDF generator when PyMuPDF is unavailable (e.g. serverless)."""
+    lines = []
+    name = (resume_data.get("name") or "Candidate Name").strip()
+    lines.append(name.upper())
+
+    contact = resume_data.get("contact") or {}
+    c_parts = [contact.get(k) for k in ("email", "phone", "location", "linkedin", "github") if contact.get(k)]
+    if c_parts:
+        lines.append(" | ".join(c_parts))
+    lines.append("-" * 55)
+
+    if resume_data.get("summary"):
+        lines.append("PROFESSIONAL SUMMARY")
+        lines.append(resume_data.get("summary"))
+        lines.append("")
+
+    skills = resume_data.get("skills")
+    if skills:
+        lines.append("TECHNICAL SKILLS")
+        if isinstance(skills, dict):
+            for cat, s_list in skills.items():
+                s_str = ", ".join(s_list) if isinstance(s_list, list) else str(s_list)
+                lines.append(f"{cat}: {s_str}")
+        elif isinstance(skills, list):
+            lines.append(", ".join(skills))
+        lines.append("")
+
+    experience = resume_data.get("experience")
+    if experience:
+        lines.append("WORK EXPERIENCE")
+        for exp in experience:
+            if isinstance(exp, dict):
+                dur = f" ({exp.get('duration')})" if exp.get("duration") else ""
+                lines.append(f"{exp.get('title', 'Engineer')} - {exp.get('company', '')}{dur}")
+                for b in exp.get("bullets", []):
+                    lines.append(f"  * {b}")
+        lines.append("")
+
+    projects = resume_data.get("projects")
+    if projects:
+        lines.append("TECHNICAL PROJECTS")
+        for pr in projects:
+            if isinstance(pr, dict):
+                lines.append(f"{pr.get('title', 'Project')}")
+                for b in pr.get("bullets", []):
+                    lines.append(f"  * {b}")
+        lines.append("")
+
+    education = resume_data.get("education")
+    if education:
+        lines.append("EDUCATION")
+        for edu in education:
+            if isinstance(edu, dict):
+                lines.append(f"{edu.get('degree', '')} - {edu.get('institution', '')} ({edu.get('year', '')})")
+
+    wrapped = []
+    for l in lines:
+        while len(l) > 85:
+            sp = l[:85].rfind(" ")
+            if sp == -1: sp = 85
+            wrapped.append(l[:sp])
+            l = l[sp:].lstrip()
+        wrapped.append(l)
+
+    pdf_text = "BT\n/F1 10 Tf\n50 780 Td\n14 TL\n"
+    for idx, wl in enumerate(wrapped[:50]):
+        clean_wl = wl.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        if idx == 0:
+            pdf_text += f"/F1 14 Tf ({clean_wl}) Tj /F1 10 Tf T*\n"
+        elif wl.isupper() and len(wl) > 3 and not wl.startswith("  *"):
+            pdf_text += f"/F1 11 Tf T* ({clean_wl}) Tj /F1 10 Tf T*\n"
+        else:
+            pdf_text += f"({clean_wl}) Tj T*\n"
+    pdf_text += "ET\n"
+
+    content_bytes = pdf_text.encode("latin-1", errors="replace")
+    c_len = len(content_bytes)
+    pdf = (
+        b"%PDF-1.4\n"
+        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
+        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n"
+        b"4 0 obj\n<< /Length " + str(c_len).encode("ascii") + b" >>\nstream\n" +
+        content_bytes +
+        b"\nendstream\nendobj\n"
+        b"5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
+        b"xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n"
+        b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n300\n%%EOF\n"
+    )
+    buf = io.BytesIO(pdf)
+    buf.seek(0)
+    return buf
+
+
 def export_resume_to_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
-    """Generate clean, single-column ATS PDF via PyMuPDF (fitz)."""
+    """Generate clean, single-column ATS PDF."""
+    if not _FITZ_AVAILABLE or fitz is None:
+        return _generate_pure_python_pdf(resume_data)
+
     doc = fitz.open()
     page = doc.new_page(width=595, height=842)  # Standard A4: 595 x 842 pt
 
