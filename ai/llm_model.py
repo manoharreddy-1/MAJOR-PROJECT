@@ -16,10 +16,10 @@ class LLMModel:
 
     def __init__(self, model_name: str = None, api_key: str = None):
         self.model_name = model_name or GEMINI_MODEL
-        self.api_keys = [
-            api_key or GEMINI_API_KEY,
-            GEMINI_API_KEY_ALT
-        ]
+        if api_key is not None:
+            self.api_keys = [api_key] if api_key.strip() else []
+        else:
+            self.api_keys = [GEMINI_API_KEY, GEMINI_API_KEY_ALT]
         # Clean API keys list of empty values
         self.api_keys = [key for key in self.api_keys if key and key.strip()]
 
@@ -56,7 +56,7 @@ class LLMModel:
                     api_url,
                     json=payload,
                     headers={"Content-Type": "application/json"},
-                    timeout=30
+                    timeout=6
                 )
 
                 if response.status_code == 429:

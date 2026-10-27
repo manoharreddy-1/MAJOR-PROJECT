@@ -162,4 +162,5 @@ $RECYCLE.BIN/
 
 # Local project scratch files
 scratch/
-test_*.py
+/test_*.py
+!tests/

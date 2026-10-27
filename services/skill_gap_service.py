@@ -11,6 +11,7 @@ from utils.skill_normalizer import (
     normalize_skill_name,
     SKILL_BLACKLIST,
 )
+from utils.clean_skill_extractor import clean_missing_skills
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +125,33 @@ class SkillGapService:
                 entry["learning_objective"] = self._learning_objective(skill)
                 missing.append(entry)
 
-        skill_score = self._calculate_skill_score(matched, partial, missing, len(valid_required))
+        # Apply clean skill extraction pipeline: split compounds, strip prefixes, deduplicate against matched
+        matched_names = [m["skill"] for m in matched] + [p["skill"] for p in partial]
+        raw_missing_names = [m["skill"] for m in missing]
+        cleaned_missing_names = clean_missing_skills(raw_missing_names, matched_skills=matched_names)
+
+        clean_missing_entries = []
+        for s in cleaned_missing_names:
+            importance = "High" if (s in required_skills or any(s.lower() in r.lower() for r in required_skills)) else "Medium"
+            clean_missing_entries.append({
+                "skill": s,
+                "importance": importance,
+                "similarity": 0.0,
+                "best_match": None,
+                "status": "MISSING",
+                "reason": self._missing_reason(s, importance),
+                "learning_objective": self._learning_objective(s),
+            })
+
+        total_skills_count = len(matched) + len(partial) + len(clean_missing_entries)
+        skill_score = self._calculate_skill_score(matched, partial, clean_missing_entries, total_skills_count)
 
         return {
             "matched": matched,
             "partial": partial,
-            "missing": missing,
+            "missing": clean_missing_entries,
             "skill_score": skill_score,
-            "total_required": len(valid_required),
+            "total_required": total_skills_count,
             "thresholds": {
                 "high": HIGH_SKILL_THRESHOLD,
                 "medium": MEDIUM_SKILL_THRESHOLD,

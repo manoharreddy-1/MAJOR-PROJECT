@@ -22,9 +22,9 @@ class MatchingService:
         """Calculate semantic similarity for each resume/job section pair."""
         resume_summary = resume.get("summary", "") or resume.get("raw_text", "")[:500]
         resume_skills = ", ".join(resume.get("skills", []))
-        resume_experience = " ".join(resume.get("experience", []))
-        resume_projects = " ".join(resume.get("projects", []))
-        resume_education = " ".join(resume.get("education", []))
+        resume_experience = " ".join([str(e) for e in resume.get("experience", [])])
+        resume_projects = " ".join([str(p) for p in resume.get("projects", [])])
+        resume_education = " ".join([str(e) for e in resume.get("education", [])])
 
         job_text = job.get("raw_text", "")
         job_skills = ", ".join(job.get("required_skills", []) + job.get("preferred_skills", []))
@@ -66,12 +66,13 @@ class MatchingService:
         relevant, partial, low = [], [], []
 
         for project in projects:
-            if not project.strip():
+            p_text = f"{project.get('title', '')}: {' '.join([str(b) for b in project.get('bullets', [])])}" if isinstance(project, dict) else str(project)
+            if not p_text.strip():
                 continue
-            sim = text_similarity(project, resp_text)
+            sim = text_similarity(p_text, resp_text)
             score = normalize_cosine_to_score(sim)
             entry = {
-                "project": project,
+                "project": p_text,
                 "similarity": round(sim, 3),
                 "score": round(score, 1),
             }

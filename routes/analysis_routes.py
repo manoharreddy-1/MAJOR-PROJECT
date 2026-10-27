@@ -2,7 +2,7 @@
 import logging
 
 from bson import ObjectId
-from flask import Blueprint, request
+from flask import Blueprint, request, send_file
 
 from routes.responses import error_response, success_response
 from database.models import serialize_doc, utc_now
@@ -13,6 +13,11 @@ from services.interview_service import InterviewService
 from services.job_service import JobService
 from services.resume_service import ResumeService
 from services.roadmap_service import RoadmapService
+from services.resume_optimizer_service import (
+    ResumeOptimizerService,
+    export_resume_to_docx,
+    export_resume_to_pdf,
+)
 
 logger = logging.getLogger(__name__)
 analysis_bp = Blueprint("analysis", __name__)
@@ -23,6 +28,7 @@ ats_service = ATSService()
 improvement_service = ImprovementService()
 interview_service = InterviewService()
 roadmap_service = RoadmapService()
+optimizer_service = ResumeOptimizerService()
 analyses_collection = get_collection(COLLECTIONS["analyses"])
 
 
@@ -268,3 +274,110 @@ def generate_roadmap():
     except Exception as exc:
         logger.exception("Roadmap generation failed")
         return error_response("GENERATION_FAILED", "Failed to generate roadmap.", 500)
+
+
+@analysis_bp.route("/optimize-resume", methods=["POST"])
+def optimize_resume():
+    """
+    AI-powered ATS Resume Optimizer.
+    Weaves cleaned missing skills into resume with evidence grounding,
+    and recalculates genuine ATS score.
+    """
+    data = request.get_json() or {}
+    resume_id = data.get("resume_id")
+    job_id = data.get("job_id") or data.get("job_description_id")
+
+    # 1. Resolve resume data
+    resume_data = data.get("resume_data")
+    if not resume_data and resume_id:
+        resume_doc = resume_service.get_resume(resume_id)
+        if resume_doc:
+            resume_data = resume_doc.get("extracted", resume_doc)
+
+    if not resume_data:
+        return error_response("INVALID_RESUME", "Resume data is required to optimize.", 400)
+
+    # Check for empty text and empty skills
+    if not (resume_data.get("raw_text") or "").strip() and not resume_data.get("skills"):
+        return error_response("EMPTY_RESUME", "Cannot optimize an empty resume. Please upload a valid resume first.", 400)
+
+    # 2. Resolve job data
+    job_data = data.get("job_data")
+    if not job_data and job_id:
+        job_doc = job_service.get_job(job_id)
+        if job_doc:
+            job_data = job_doc.get("requirements", job_doc)
+
+    if not job_data:
+        job_data = {
+            "job_title": data.get("target_role", "Software Engineer"),
+            "required_skills": data.get("missing_skills", []),
+            "preferred_skills": [],
+            "responsibilities": [],
+        }
+
+    missing_skills = data.get("missing_skills")
+    matched_skills = data.get("matched_skills") or []
+    current_score = data.get("current_score")
+    confirmed_skills = data.get("confirmed_skills") or []
+
+    try:
+        optimization_result = optimizer_service.optimize(
+            resume_data=resume_data,
+            job_data=job_data,
+            missing_skills=missing_skills,
+            matched_skills=matched_skills,
+            current_score=current_score,
+            confirmed_skills=confirmed_skills,
+        )
+        return success_response(optimization_result, "Resume optimized with AI successfully.")
+    except ValueError as ve:
+        return error_response("VALIDATION_ERROR", str(ve), 400)
+    except Exception as exc:
+        logger.exception("AI Resume Optimization failed")
+        return error_response("OPTIMIZATION_FAILED", f"Failed to optimize resume: {str(exc)}", 500)
+
+
+@analysis_bp.route("/optimize-resume/export/docx", methods=["POST"])
+def export_docx():
+    """Export optimized resume to ATS-friendly DOCX."""
+    data = request.get_json() or {}
+    structured_resume = data.get("structured_optimized") or data.get("optimized_resume") or data
+    if not structured_resume or not isinstance(structured_resume, dict):
+        return error_response("INVALID_DATA", "Structured resume data is required for DOCX export.", 400)
+
+    try:
+        file_stream = export_resume_to_docx(structured_resume)
+        filename = f"ATS_Optimized_Resume_{(structured_resume.get('name') or 'Candidate').replace(' ', '_')}.docx"
+        return send_file(
+            file_stream,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as exc:
+        logger.exception("DOCX export failed")
+        return error_response("EXPORT_FAILED", f"DOCX generation failed: {str(exc)}", 500)
+
+
+@analysis_bp.route("/optimize-resume/export/pdf", methods=["POST"])
+def export_pdf():
+    """Export optimized resume to ATS-friendly PDF."""
+    data = request.get_json() or {}
+    structured_resume = data.get("structured_optimized") or data.get("optimized_resume") or data
+    if not structured_resume or not isinstance(structured_resume, dict):
+        return error_response("INVALID_DATA", "Structured resume data is required for PDF export.", 400)
+
+    try:
+        file_stream = export_resume_to_pdf(structured_resume)
+        filename = f"ATS_Optimized_Resume_{(structured_resume.get('name') or 'Candidate').replace(' ', '_')}.pdf"
+        return send_file(
+            file_stream,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=filename,
+        )
+    except Exception as exc:
+        logger.exception("PDF export failed")
+        return error_response("EXPORT_FAILED", f"PDF generation failed: {str(exc)}", 500)
+

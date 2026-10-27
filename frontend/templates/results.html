@@ -114,6 +114,118 @@
           </div>
         </div>
 
+        <!-- AI Resume Optimization Feature -->
+        <div class="card mt-3" style="border: 2px solid var(--accent); background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
+          <div class="flex-between" style="flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="badge badge-success" style="font-weight: 800; font-size: 0.75rem; letter-spacing: 0.05em;">AI ASSISTANT</span>
+                <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--primary); margin: 0;">✨ Create Resume with AI</h2>
+              </div>
+              <p class="text-muted mt-1" style="font-size: 0.875rem; margin-bottom: 0;">
+                Automatically bridge missing skill gaps by ethically weaving required skills into standard ATS categories and project bullets without manual editing.
+              </p>
+            </div>
+            <div style="text-align: right;">
+              <button id="createResumeAiBtn" class="btn btn-primary btn-lg" onclick="triggerResumeOptimization()" style="font-weight: 800; padding: 0.75rem 1.5rem; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);">
+                <span>✨</span> Create Resume with AI
+              </button>
+              <div class="text-muted mt-1" style="font-size: 0.75rem; font-style: italic;">
+                ⚠️ AI only adds skills supported by your experience. Review before applying.
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Results Container -->
+          <div id="aiResumeContainer" style="display: none;">
+            <!-- Loading State -->
+            <div id="aiResumeLoading" style="display: none; text-align: center; padding: 3rem 1rem;">
+              <div class="loading-spinner" style="margin: 0 auto 1rem auto; width: 44px; height: 44px;"></div>
+              <h3 style="font-weight: 800; color: var(--primary); font-size: 1.2rem;">Optimizing your resume with AI…</h3>
+              <p class="text-muted" style="max-width: 500px; margin: 0.5rem auto 0 auto; font-size: 0.875rem;">
+                Analyzing verifiable context, structuring technical categories, weaving supporting evidence into bullets, and recalculating your genuine ATS match score...
+              </p>
+            </div>
+
+            <!-- Optimization Results Display -->
+            <div id="aiResumeResults" style="display: none;">
+              <!-- Score Delta Banner -->
+              <div class="card mb-3" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; border-radius: var(--radius-lg); padding: 1.5rem;">
+                <div class="flex-between" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
+                  <div>
+                    <span style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8125rem; font-weight: 800;">
+                      ✓ ATS SCORE RECALCULATED
+                    </span>
+                    <div style="display: flex; align-items: baseline; gap: 1rem; margin-top: 0.75rem;">
+                      <div style="font-size: 1.1rem; color: #94a3b8;">Original: <span id="optOldScore" style="font-weight: 800; color: white;">--%</span></div>
+                      <div style="font-size: 1.75rem; font-weight: 900; color: #38bdf8;">&rarr;</div>
+                      <div style="font-size: 1.5rem; font-weight: 900; color: #4ade80;">Optimized: <span id="optNewScore">--%</span></div>
+                      <span id="optScoreDeltaBadge" class="badge badge-success" style="font-size: 0.9375rem; padding: 0.35rem 0.75rem;">+--% ATS Boost</span>
+                    </div>
+                    <p id="optChangesSummary" style="color: #cbd5e1; font-size: 0.875rem; margin-top: 0.5rem; margin-bottom: 0; line-height: 1.4;"></p>
+                  </div>
+                  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="downloadOptimizedDocx()" style="background: #2563eb; border-color: #2563eb; font-weight: 700;">
+                      📥 Download DOCX
+                    </button>
+                    <button class="btn btn-primary" onclick="downloadOptimizedPdf()" style="background: #ef4444; border-color: #ef4444; font-weight: 700;">
+                      📥 Download PDF
+                    </button>
+                    <button class="btn btn-secondary" onclick="copyOptimizedText()" style="font-weight: 700;">
+                      📋 Copy Text
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Added Skills & Placement Tags -->
+              <div class="card mb-3">
+                <h4 style="font-size: 1rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--primary);">Skills Added & Placement</h4>
+                <div id="optAddedSkillsList" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+              </div>
+
+              <!-- Needs User Confirmation (if any) -->
+              <div id="optConfirmationBox" class="card mb-3" style="display: none; border-left: 4px solid var(--warning); background: #fffbeb;">
+                <h4 style="font-size: 1rem; font-weight: 800; color: #b45309; margin-bottom: 0.5rem;">
+                  ⚠️ Skills Requiring Your Confirmation
+                </h4>
+                <p class="text-muted" style="font-size: 0.8125rem; margin-bottom: 0.75rem;">
+                  To prevent false claims, these required skills were not added automatically because no supporting project context was found. Tick any skill you have hands-on experience with to incorporate it:
+                </p>
+                <div id="optConfirmationCheckboxes" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+                <button id="reoptimizeConfirmedBtn" class="btn btn-sm btn-primary mt-2" onclick="reoptimizeWithConfirmedSkills()" style="align-self: flex-start;">
+                  Add Selected Confirmed Skills &rarr;
+                </button>
+              </div>
+
+              <!-- Side-by-Side Resume Comparison (Original vs Optimized) -->
+              <div class="grid-2">
+                <div class="card">
+                  <div class="flex-between" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--primary); margin: 0;">Original Resume</h4>
+                    <span class="badge" style="background: #e2e8f0; color: #475569;">Read-only</span>
+                  </div>
+                  <div id="originalResumePreview" class="resume-preview-panel" style="font-family: inherit; font-size: 0.875rem; line-height: 1.6; max-height: 600px; overflow-y: auto; padding-right: 0.5rem;"></div>
+                </div>
+
+                <div class="card">
+                  <div class="flex-between" style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--accent); margin: 0;">AI-Optimized Resume (Editable)</h4>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                      <span class="badge badge-success">✨ Enhanced</span>
+                      <button class="btn btn-sm btn-secondary" onclick="resetOptimizedEdits()" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Reset</button>
+                    </div>
+                  </div>
+                  <div id="optimizedResumePreview" class="resume-preview-panel" contenteditable="true" style="font-family: inherit; font-size: 0.875rem; line-height: 1.6; max-height: 600px; overflow-y: auto; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: #ffffff;"></div>
+                  <p class="text-muted mt-2" style="font-size: 0.75rem;">
+                    ✎ You can click and edit any text in the right panel above before exporting. Newly added skills and sections are highlighted in green.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="grid-2 mt-3">
           <div class="card">
             <h3 class="card-title mb-2">Resume Strengths</h3>

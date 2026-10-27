@@ -10,6 +10,7 @@ from utils.skill_normalizer import (
     extract_skills_from_text,
     normalize_skill_name,
 )
+from utils.clean_skill_extractor import split_compound_phrase, clean_missing_skills
 
 logger = logging.getLogger(__name__)
 
@@ -72,14 +73,15 @@ class JobDescriptionParser:
         if section:
             raw_items = re.split(r"[,|•\n;\-\*]", section)
             for item in raw_items:
-                candidate = clean_skill_candidate(item)
-                if candidate:
-                    norm = normalize_skill_name(candidate)
-                    if norm:
-                        skills.append(norm)
+                for sub in split_compound_phrase(item):
+                    candidate = clean_skill_candidate(sub)
+                    if candidate:
+                        norm = normalize_skill_name(candidate)
+                        if norm:
+                            skills.append(norm)
 
         # Clean and deduplicate
-        deduped = deduplicate_skills(skills)
+        deduped = clean_missing_skills(skills)
         return deduped[:25]
 
     def _extract_preferred_skills(self, text: str) -> List[str]:
@@ -90,13 +92,14 @@ class JobDescriptionParser:
             skills.extend(extract_skills_from_text(section))
             raw_items = re.split(r"[,|•\n;\-\*]", section)
             for item in raw_items:
-                candidate = clean_skill_candidate(item)
-                if candidate:
-                    norm = normalize_skill_name(candidate)
-                    if norm:
-                        skills.append(norm)
+                for sub in split_compound_phrase(item):
+                    candidate = clean_skill_candidate(sub)
+                    if candidate:
+                        norm = normalize_skill_name(candidate)
+                        if norm:
+                            skills.append(norm)
 
-        return deduplicate_skills(skills)[:15]
+        return clean_missing_skills(skills)[:15]
 
     def _extract_education_requirements(self, text: str) -> List[str]:
         patterns = [

@@ -20,6 +20,33 @@ def hash_password(password: str) -> str:
     return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
 
+def ensure_default_users():
+    """Ensure standard demo/student users exist in the collection."""
+    try:
+        col = get_collection(COLLECTIONS["users"])
+        for uname, pwd, name, em, role in [
+            ("student", "student123", "Student Candidate", "student@example.edu", "Learner"),
+            ("demo", "demo123", "Demo User", "demo@example.edu", "Candidate"),
+        ]:
+            if not col.find_one({"username": uname}):
+                col.insert_one({
+                    "user_id": f"usr_{uname}",
+                    "username": uname,
+                    "password_hash": hash_password(pwd),
+                    "full_name": name,
+                    "email": em,
+                    "role": role,
+                    "avatar": f"https://api.dicebear.com/7.x/bottts/svg?seed={uname}",
+                    "created_at": utc_now(),
+                })
+    except Exception as exc:
+        logger.warning("Could not pre-seed default users: %s", exc)
+
+
+# Seed on module load
+ensure_default_users()
+
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     """Register a new user account."""
@@ -72,25 +99,16 @@ def login():
     if not username or not password:
         return error_response("VALIDATION_ERROR", "Username and password are required.")
 
+    if username in ("student", "demo"):
+        ensure_default_users()
+
     user = users_col.find_one({"username": username})
     if not user:
-        # Auto-create guest user for seamless student evaluation if doesn't exist
-        user_id = str(uuid.uuid4())[:12]
-        user = {
-            "user_id": user_id,
-            "username": username,
-            "password_hash": hash_password(password),
-            "full_name": username.title(),
-            "email": f"{username}@student.edu",
-            "role": "Candidate / Student",
-            "avatar": f"https://api.dicebear.com/7.x/bottts/svg?seed={username}",
-            "created_at": utc_now(),
-        }
-        users_col.insert_one(user)
-    else:
-        # Verify password
-        if user.get("password_hash") != hash_password(password):
-            return error_response("AUTH_FAILED", "Invalid username or password.", 401)
+        return error_response("AUTH_FAILED", "Invalid username or password. User is not registered.", 401)
+
+    # Verify password hash
+    if user.get("password_hash") != hash_password(password):
+        return error_response("AUTH_FAILED", "Invalid username or password.", 401)
 
     user_data = serialize_doc(user)
     user_data.pop("password_hash", None)
