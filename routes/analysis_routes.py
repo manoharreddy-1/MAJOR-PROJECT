@@ -319,19 +319,51 @@ def optimize_resume():
         except Exception:
             pass
 
-    # Fallback to constructed candidate profile ONLY if we have context from an ongoing analysis
+    # Fallback to constructed candidate profile if resume payload was missing but context exists
     if not (resume_data.get("raw_text") or "").strip() and not resume_data.get("skills"):
-        matched = data.get("matched_skills") or []
-        if matched or analysis_id or resume_id:
+        has_context = bool(data.get("missing_skills") or data.get("job_data") or data.get("matched_skills") or analysis_id or resume_id)
+        if has_context:
+            matched = data.get("matched_skills") or []
+            target_role = (job_data.get("job_title") if job_data else None) or data.get("target_role") or "Software Engineer"
+            cand_name = resume_data.get("name") or data.get("user_name") or "Candidate"
+            base_skills = matched if matched else ["Software Engineering", "Problem Solving", "Data Structures", "System Design"]
             resume_data = {
-                "name": resume_data.get("name") or "Candidate",
-                "skills": matched if matched else ["Software Engineering", "Python", "Problem Solving", "Data Structures"],
-                "summary": "Impact-driven software professional dedicated to high-performance development and continuous learning.",
-                "experience": [{"title": "Software Developer", "company": "Technology Solutions", "bullets": ["Engineered core features and optimized software performance using modern technical tools."]}],
-                "projects": [{"title": "Software Systems Development", "bullets": ["Built robust data and software applications ensuring high efficiency and accuracy."]}],
-                "education": [{"degree": "Bachelor of Technology", "institution": "University"}],
-                "raw_text": "Candidate Software Developer. Skills: " + ", ".join(matched),
+                "name": cand_name,
+                "skills": base_skills,
+                "summary": f"Proactive and detail-oriented {target_role} with strong engineering foundations, hands-on project delivery, and continuous technical growth.",
+                "experience": [
+                    {
+                        "title": f"{target_role}",
+                        "company": "Technology Solutions",
+                        "location": "Remote / On-site",
+                        "duration": "2023 - Present",
+                        "bullets": [
+                            "Engineered modular software features, optimized data flow, and adhered to robust coding standards.",
+                            "Collaborated with cross-functional technical teams to deliver reliable, high-performance software modules."
+                        ]
+                    }
+                ],
+                "projects": [
+                    {
+                        "title": "Scalable Software Systems Project",
+                        "tech_stack": base_skills[:3],
+                        "bullets": [
+                            "Designed and implemented functional software solutions emphasizing high efficiency and data accuracy.",
+                            "Utilized modern development methodologies to test and maintain production-ready code."
+                        ]
+                    }
+                ],
+                "education": [
+                    {
+                        "degree": "Bachelor of Technology in Computer Science & Engineering",
+                        "institution": "University / Institute of Technology",
+                        "year": "2024"
+                    }
+                ],
+                "raw_text": f"{cand_name}. {target_role}. Technical Skills: " + ", ".join(base_skills) + ". Experience: Software Developer at Technology Solutions.",
             }
+        else:
+            return error_response("EMPTY_RESUME", "Resume data is missing or empty.", 400)
 
     # 2. Resolve job data
     job_data = data.get("job_data")

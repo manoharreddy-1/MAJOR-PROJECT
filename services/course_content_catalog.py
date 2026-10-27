@@ -950,6 +950,132 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
 }
 
 
+def generate_smart_curriculum(topic_str: str) -> Dict[str, Any]:
+    """Generates a high-fidelity, distinct 5-module curriculum for any technical topic."""
+    clean_topic = topic_str.strip() or "Software Engineering"
+    t_lower = clean_topic.lower()
+
+    if "angular" in t_lower:
+        modules = [
+            ("Angular Architecture & Component Essentials", "Explore Angular CLI, standalone components, template syntax, and modular application architecture."),
+            ("Data Binding, Directives & Event Handling", "Master property binding, two-way ngModel, structural directives (*ngIf, *ngFor), and custom pipes."),
+            ("Services, Dependency Injection & RxJS", "Build reusable injectable services, manage asynchronous state streams using RxJS Subjects and Observables."),
+            ("Routing, Navigation & Angular Forms", "Implement client-side routing, route guards, reactive forms, and real-time input validation."),
+            ("HTTP Client, API Integration & Deployment", "Connect to REST backends with HttpClient, interceptors, error handling, and production build optimization.")
+        ]
+        category = "Frontend Development"
+        lang = "typescript"
+        code_snip = "import { Component } from '@angular/core';\n\n@Component({\n  selector: 'app-root',\n  template: '<h1>Hello {{ title }}!</h1>'\n})\nexport class AppComponent {\n  title = 'Angular Application';\n}"
+    elif "oop" in t_lower or "object" in t_lower:
+        modules = [
+            ("Foundations of OOP: Classes, Objects & State", "Understand object-oriented paradigms, class blueprints, instance attributes, and constructor lifecycle."),
+            ("Encapsulation & Data Hiding", "Protect internal object state using access modifiers (private/protected), getters, and setters."),
+            ("Inheritance & Code Reusability", "Derive child classes from parent abstractions, utilize super calls, and understand hierarchical modeling."),
+            ("Polymorphism & Dynamic Method Dispatch", "Implement method overriding and overloading to enable flexible, interchangeable component behavior."),
+            ("Abstraction, Interfaces & SOLID Principles", "Design loosely coupled, maintainable software systems using abstract contracts and SOLID design guidelines.")
+        ]
+        category = "Core Computer Science"
+        lang = "python"
+        code_snip = "class Animal:\n    def __init__(self, name: str):\n        self._name = name\n    def speak(self) -> str:\n        return 'Generic animal sound'\n\nclass Dog(Animal):\n    def speak(self) -> str:\n        return f'{self._name} barks!'\n\ndog = Dog('Buddy')\nprint(dog.speak())"
+    elif "react" in t_lower:
+        modules = [
+            ("React Fundamentals, JSX & Virtual DOM", "Understand React component rendering, JSX syntax, and the reconciliation algorithm."),
+            ("Components, Props & State Management", "Build functional components, pass immutable props, and manage component state with useState."),
+            ("React Hooks: useEffect, useMemo & useRef", "Handle side-effects, API calls, performance memoization, and DOM element references."),
+            ("Client Routing & Controlled Forms", "Implement React Router for single-page navigation and manage validated form inputs."),
+            ("Global State, Context API & Production Build", "Share app-wide state without prop drilling and optimize bundles for production deployment.")
+        ]
+        category = "Frontend Development"
+        lang = "javascript"
+        code_snip = "import React, { useState } from 'react';\n\nexport function Counter() {\n  const [count, setCount] = useState(0);\n  return (\n    <button onClick={() => setCount(count + 1)}>\n      Clicked {count} times\n    </button>\n  );\n}"
+    elif "typescript" in t_lower:
+        modules = [
+            ("TypeScript Foundations & Static Type System", "Configure tsconfig.json, primitives, type inference, and compile-time verification."),
+            ("Interfaces, Custom Types & Unions", "Model structured domain data using interfaces, type aliases, union types, and type narrowing."),
+            ("Generics & Reusable Code Patterns", "Write type-safe generic functions, classes, and constraints that adapt to any data structure."),
+            ("Object-Oriented TypeScript & Access Modifiers", "Implement classes, interfaces, abstract classes, and encapsulation modifiers in TypeScript."),
+            ("Modules, Utility Types & Framework Integration", "Master Partial, Omit, Pick utility types and integrate TypeScript into modern frontend/backend stacks.")
+        ]
+        category = "Programming Languages"
+        lang = "typescript"
+        code_snip = "interface User {\n  id: number;\n  name: string;\n  role: 'admin' | 'user';\n}\n\nfunction printUser(u: User): void {\n  console.log(`User ${u.name} has role: ${u.role}`);\n}\nprintUser({ id: 1, name: 'Alice', role: 'admin' });"
+    elif "c++" in t_lower or "cpp" in t_lower:
+        modules = [
+            ("C++ Syntax, Pointers & Memory Architecture", "Master basic syntax, pointer arithmetic, memory references, and stack vs heap allocation."),
+            ("Object-Oriented Programming in C++", "Implement classes, destructors, copy constructors, operator overloading, and RAII patterns."),
+            ("Standard Template Library (STL) Mastery", "Leverage vectors, maps, sets, iterators, and high-performance algorithms."),
+            ("Smart Pointers & Modern C++ Idioms", "Use unique_ptr, shared_ptr, move semantics, and lambda expressions in C++14/17/20."),
+            ("Performance Optimization & Concurrency", "Utilize multi-threading (std::thread), mutex synchronization, and compiler profiling flags.")
+        ]
+        category = "Systems Programming"
+        lang = "cpp"
+        code_snip = "#include <iostream>\n#include <vector>\n\nint main() {\n    std::vector<int> nums = {1, 2, 3, 4, 5};\n    for (int n : nums) {\n        std::cout << n << \" \";\n    }\n    std::cout << std::endl;\n    return 0;\n}"
+    else:
+        # Universal pedagogical 5-module structure for any technical topic
+        modules = [
+            (f"Architecture, Ecosystem & Fundamentals of {clean_topic}", f"Understand the core architecture, foundational building blocks, and setup requirements for {clean_topic}."),
+            (f"Core Syntax, Primitives & Working Mechanisms of {clean_topic}", f"Explore essential syntax, primary operations, and standard methodologies in {clean_topic}."),
+            (f"Practical Implementation & Component Design in {clean_topic}", f"Build hands-on implementations and apply proven architectural design patterns with {clean_topic}."),
+            (f"Data Flow, API Integration & State Handling in {clean_topic}", f"Manage input/output streams, error boundaries, and external data services in {clean_topic}."),
+            (f"Advanced Optimization, Testing & Production Deployment of {clean_topic}", f"Deploy, secure, unit test, and profile performance benchmarks for enterprise {clean_topic} applications.")
+        ]
+        category = "Technology & Computer Science"
+        lang = "python"
+        code_snip = f"# Demonstration of {clean_topic} core logic\ndef run_demo():\n    topic = '{clean_topic}'\n    print(f'Initializing {{topic}} module...')\n    return True\n\nif __name__ == '__main__':\n    run_demo()"
+
+    chapters = []
+    for idx, (title, desc) in enumerate(modules, 1):
+        chapters.append({
+            "chapter_id": idx,
+            "name": title,
+            "about": desc,
+            "duration": "15 mins",
+            "explanation": f"### Overview of {title}\n\nIn this comprehensive module, we dive deep into {title.lower()}.\n\n#### Key Objectives\n1. Gain practical conceptual and operational fluency in {clean_topic}.\n2. Apply idiomatic industry conventions and avoid common design anti-patterns.\n3. Integrate these methodologies into real-world software engineering workflows.\n\n#### Conceptual Breakdown\n{desc} Professional software teams rely on these proven patterns to write testable, decoupled, and maintainable software.",
+            "key_takeaways": [
+                f"Master the core operational principles of {title.split(':')[0]}.",
+                f"Follow industry best practices for code reliability and maintainability.",
+                f"Understand how {clean_topic} fits into end-to-end software delivery."
+            ],
+            "code_examples": [
+                {
+                    "title": f"Practical Implementation: {title.split(':')[0]}",
+                    "language": lang,
+                    "code": code_snip,
+                    "explanation": f"This code demonstrates practical implementation of {title.split(':')[0]}."
+                }
+            ],
+            "coding_challenge": {
+                "title": f"{clean_topic} Practical Challenge",
+                "description": f"Implement a basic function illustrating the primary mechanism of {title.split(':')[0]}.",
+                "starter_code": code_snip,
+                "language": lang,
+                "test_cases": [
+                    {"input": "default", "expected_output": "True"}
+                ]
+            },
+            "quiz": [
+                {
+                    "question": f"What is the main objective of {title.split(':')[0]}?",
+                    "options": [
+                        f"To build structured, reliable, and testable code for {clean_topic}",
+                        "To bypass compiler and runtime type checks",
+                        "To replace all operating system memory controls",
+                        "None of the above"
+                    ],
+                    "correct_answer": 0,
+                    "explanation": f"This module provides the structural and functional core for {clean_topic}."
+                }
+            ]
+        })
+
+    return {
+        "name": clean_topic,
+        "category": category,
+        "summary": f"A comprehensive, industry-aligned course covering fundamental to advanced concepts in {clean_topic}.",
+        "chapters": chapters
+    }
+
+
 def get_curated_course(topic: Any) -> Dict[str, Any]:
     """Retrieve pre-curated full-fidelity course if matching topic, else generate structured curriculum."""
     if isinstance(topic, dict):
@@ -963,7 +1089,6 @@ def get_curated_course(topic: Any) -> Dict[str, Any]:
             return data
 
     aliases = {
-        "react": "javascript",
         "node": "javascript",
         "web": "javascript",
         "frontend": "javascript",
@@ -995,4 +1120,5 @@ def get_curated_course(topic: Any) -> Dict[str, Any]:
         if alias in topic_lower:
             return SYLLABUS_KNOWLEDGE_BASE.get(target)
 
-    return None
+    # Return dynamically generated high-fidelity curriculum for any technical topic
+    return generate_smart_curriculum(topic)

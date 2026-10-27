@@ -634,38 +634,33 @@
       // Video Integration
       const videoSection = document.getElementById('videoSection');
       const videoWrapper = document.getElementById('videoFrameWrapper');
-      if (ch.video && ch.video.video_id) {
-        videoWrapper.innerHTML = `
+      const vidId = (ch.video && ch.video.video_id) ? ch.video.video_id : "bJzb-Ey42H0";
+      const vidTitle = (ch.video && ch.video.title) ? ch.video.title : `${currentCourse.name} - ${ch.name}`;
+      const vidChannel = (ch.video && ch.video.channel) ? ch.video.channel : 'YouTube Education';
+      const searchUrl = (ch.video && ch.video.youtube_search_url) 
+        ? ch.video.youtube_search_url 
+        : `https://www.youtube.com/results?search_query=${encodeURIComponent((currentCourse.name || '') + ' ' + (ch.name || '') + ' tutorial')}`;
+
+      videoWrapper.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; min-height: 380px; background: #0f172a; border-radius: var(--radius); overflow: hidden;">
           <iframe 
-            src="https://www.youtube.com/embed/${ch.video.video_id}" 
-            title="${ch.video.title || 'Tutorial Video'}" 
+            src="https://www.youtube.com/embed/${vidId}?rel=0&modestbranding=1" 
+            title="${escapeHtml(vidTitle)}" 
+            style="position: absolute; top:0; left:0; width:100%; height:100%; border:0;"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen>
           </iframe>
-        `;
-        videoSection.style.display = 'block';
-      } else {
-        const queryTopic = currentCourse.name + ' ' + (ch.name || '');
-        const fallbackVid = "eIrMbAQSU34";
-        const thumbUrl = (ch.video && ch.video.thumbnail) ? ch.video.thumbnail : `https://img.youtube.com/vi/${fallbackVid}/hqdefault.jpg`;
-        const searchUrl = (ch.video && ch.video.youtube_search_url) ? ch.video.youtube_search_url : `https://www.youtube.com/results?search_query=${encodeURIComponent(queryTopic + ' tutorial')}`;
-        
-        videoWrapper.innerHTML = `
-          <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: url('${thumbUrl}') center/cover no-repeat; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white;">
-            <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.75);"></div>
-            <div style="position: relative; z-index: 2; padding: 1.5rem; max-width: 600px;">
-              <div style="font-size: 2.5rem; margin-bottom: 0.5rem; color: #ef4444;">&#9654;&#65039;</div>
-              <h4 style="font-size: 1.125rem; font-weight: 700; margin-bottom: 0.25rem;">${ch.video && ch.video.title ? ch.video.title : (ch.name + ' - Video Lecture')}</h4>
-              <p style="color: #cbd5e1; font-size: 0.8125rem; margin-bottom: 1rem;">${ch.video && ch.video.channel ? ch.video.channel : 'YouTube Video Tutorial'}</p>
-              <div style="display: flex; gap: 0.75rem; justify-content: center;">
-                <button onclick="playEmbeddedVideo('${fallbackVid}')" class="btn btn-primary" style="font-size: 0.8125rem;">&#9658; Play Video Tutorial</button>
-                <a href="${searchUrl}" target="_blank" class="btn btn-outline" style="color: white; border-color: white; font-size: 0.8125rem;">Open in YouTube &rarr;</a>
-              </div>
-            </div>
+        </div>
+        <div class="flex-between mt-2" style="font-size: 0.8125rem; color: #94a3b8; flex-wrap: wrap; gap: 0.5rem; padding: 0.25rem 0.5rem;">
+          <div>
+            <strong style="color: var(--text);">${escapeHtml(vidTitle)}</strong> &bull; <span class="text-muted">${escapeHtml(vidChannel)}</span>
           </div>
-        `;
-        videoSection.style.display = 'block';
-      }
+          <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+            <span>&#128250; Open on YouTube &#8599;</span>
+          </a>
+        </div>
+      `;
+      videoSection.style.display = 'block';
 
       // Key Takeaways
       const takeawaysSection = document.getElementById('takeawaysSection');

@@ -319,7 +319,18 @@ async function triggerResumeOptimization(confirmedSkills = []) {
       btn.disabled = false;
       btn.innerHTML = '<span>✨</span> Create Resume with AI';
     }
-    alert('AI Optimization Error: ' + (err.message || 'Failed to optimize resume.'));
+    const errContainer = document.getElementById('aiResumeContainer');
+    if (errContainer) {
+      errContainer.style.display = 'block';
+      errContainer.innerHTML = `
+        <div class="card mb-3" style="border: 1px solid #f87171; background: #fef2f2; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
+          <h4 style="color: #991b1b; font-weight: 700; margin-bottom: 0.5rem;">Could Not Optimize Resume</h4>
+          <p style="color: #b91c1c; font-size: 0.875rem; margin-bottom: 1rem;">${err.message || 'Unable to optimize resume. Please check your network or try again.'}</p>
+          <button class="btn btn-primary" onclick="triggerResumeOptimization()">Try Again</button>
+        </div>
+      `;
+    }
   }
 }
 
