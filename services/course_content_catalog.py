@@ -577,6 +577,135 @@ print(reverse_string('developer'))""",
                     }
                 ]
             }
+,
+            {
+                "chapter_id": 4,
+                "name": "File Handling, Context Managers & Exception Management",
+                "about": "Master reading and writing files safely with 'with' statements, creating custom context managers, and handling exceptions.",
+                "duration": "20 mins",
+                "explanation": "Resource management in Python is cleanly handled using context managers (the 'with' keyword). This ensures file descriptors, network sockets, and database connections are deterministically closed even if an unhandled exception occurs.",
+                "key_takeaways": [
+                    "Use 'with open(...) as f' to guarantee automatic file closing.",
+                    "Handle specific exceptions first using try/except/else/finally blocks.",
+                    "Implement __enter__ and __exit__ to define custom context managers."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Safe File I/O and Custom Context Manager",
+                        "language": "python",
+                        "code": """class ManagedFile:
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __enter__(self):
+        self.file = open(self.filename, 'w')
+        return self.file
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.file:
+            self.file.close()
+
+with ManagedFile('output.txt') as f:
+    f.write('Python context managers guarantee deterministic cleanup.')
+print('File written and closed safely.')""",
+                        "explanation": "Illustrates custom context manager protocols and resource safety."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Safe Integer Conversion",
+                    "description": "Write a function that safely converts a string to an integer, returning None if ValueError is raised.",
+                    "starter_code": """def safe_int(value: str):
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+print(safe_int('123'))
+print(safe_int('invalid'))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "value='42'", "expected_output": "42"},
+                        {"input": "value='abc'", "expected_output": "None"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Which special methods must a class implement to support the 'with' statement?",
+                        "options": ["__start__ and __stop__", "__enter__ and __exit__", "__open__ and __close__", "__init__ and __del__"],
+                        "correct_answer": 1,
+                        "explanation": "The context management protocol requires defining __enter__ and __exit__ methods."
+                    },
+                    {
+                        "question": "When does the 'else' block of a try-except structure execute?",
+                        "options": ["Always", "Only if an exception is caught", "Only if no exception was raised in the try block", "Never"],
+                        "correct_answer": 2,
+                        "explanation": "The 'else' block executes only if the 'try' block completes successfully without raising any exceptions."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "Advanced Python: Iterators, Generators & Functional Tools",
+                "about": "Explore iterator protocols, infinite stream generators, functools (lru_cache, partial), and high-performance list comprehension.",
+                "duration": "25 mins",
+                "explanation": "Advanced Python leverages lazy evaluation through generators, memoization with @functools.lru_cache, and first-class functions. Writing performant Python requires minimizing unnecessary memory allocations and taking advantage of built-in C-optimized iteration protocols.",
+                "key_takeaways": [
+                    "Generators yield one item at a time, keeping memory footprint constant regardless of dataset size.",
+                    "@functools.lru_cache transparently caches expensive function results for fast repeated lookups.",
+                    "Itertools provides composable combinatoric and streaming iteration utilities."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Infinite Fibonacci Generator and LRU Cache",
+                        "language": "python",
+                        "code": """import functools
+
+@functools.lru_cache(maxsize=128)
+def fibonacci(n: int) -> int:
+    if n < 2:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+def fib_stream(limit: int):
+    a, b = 0, 1
+    for _ in range(limit):
+        yield a
+        a, b = b, a + b
+
+print('First 6 Fibonacci numbers:', list(fib_stream(6)))
+print('Fibonacci(30):', fibonacci(30))""",
+                        "explanation": "Combines a lazy generator function with memoized recursion via @lru_cache."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Prime Number Generator",
+                    "description": "Write a generator function that yields prime numbers up to n.",
+                    "starter_code": """def generate_primes(n: int):
+    for num in range(2, n + 1):
+        if all(num % i != 0 for i in range(2, int(num**0.5) + 1)):
+            yield num
+
+print(list(generate_primes(20)))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "n=10", "expected_output": "[2, 3, 5, 7]"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary benefit of @functools.lru_cache?",
+                        "options": ["Compresses string inputs", "Saves and reuses previous function return values to eliminate redundant computation", "Forces multiprocessing", "Encrypts return values"],
+                        "correct_answer": 1,
+                        "explanation": "LRU (Least Recently Used) cache stores the results of function calls keyed by arguments, preventing duplicate work."
+                    },
+                    {
+                        "question": "Which built-in function advances an iterator to retrieve its next value?",
+                        "options": ["advance()", "step()", "next()", "yield()"],
+                        "correct_answer": 2,
+                        "explanation": "Calling next(iterator) invokes the iterator's __next__() method to yield the next available item."
+                    }
+                ]
+            }
         ]
     },
     "javascript": {
@@ -701,6 +830,192 @@ console.log(countVowels('JavaScript'));""",
                     }
                 ]
             }
+,
+            {
+                "chapter_id": 3,
+                "name": "DOM Manipulation, Event Bubbling & Browser APIs",
+                "about": "Learn document query selection, event listeners, bubbling vs capturing, and local storage state persistence.",
+                "duration": "20 mins",
+                "explanation": "The Document Object Model (DOM) represents the page hierarchy as a tree of nodes. Efficient web applications minimize direct layout thrashing, leverage event delegation on parent containers, and store lightweight client state using localStorage and sessionStorage.",
+                "key_takeaways": [
+                    "Event bubbling propagates events upwards from target element to root document.",
+                    "Use event delegation on parent elements to handle dynamic child elements efficiently.",
+                    "localStorage persists across sessions; sessionStorage clears when tab closes."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Event Delegation Pattern",
+                        "language": "javascript",
+                        "code": """// Event delegation on a list container
+const listContainer = document.querySelector('#todoList');
+if (listContainer) {
+    listContainer.addEventListener('click', (event) => {
+        if (event.target && event.target.matches('button.delete-btn')) {
+            const itemId = event.target.dataset.id;
+            console.log(`Deleting item ${itemId}`);
+        }
+    });
+}""",
+                        "explanation": "Single event listener handles clicks for all current and future child buttons."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Parse Query String",
+                    "description": "Write a JavaScript function that parses a query string into a key-value object.",
+                    "starter_code": """function parseQuery(queryString) {
+    const params = new URLSearchParams(queryString);
+    return Object.fromEntries(params.entries());
+}
+
+console.log(parseQuery('?name=Alex&role=Engineer'));""",
+                    "language": "javascript",
+                    "test_cases": [
+                        {"input": "'?topic=react&level=pro'", "expected_output": "{'topic':'react','level':'pro'}"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "In the standard DOM event flow, which phase executes first?",
+                        "options": ["Bubbling phase", "Capturing phase", "Target phase", "Dispatch phase"],
+                        "correct_answer": 1,
+                        "explanation": "Events first travel down from the window to the target in the Capturing phase, then reach the target, and finally bubble upwards."
+                    },
+                    {
+                        "question": "What is the primary architectural benefit of event delegation?",
+                        "options": ["Reduces memory overhead by avoiding attaching listeners to every individual element", "Enables multithreading in V8", "Disables browser caching", "Encrypts DOM nodes"],
+                        "correct_answer": 0,
+                        "explanation": "Attaching one listener to a parent avoids hundreds of individual listeners on dynamic children."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 4,
+                "name": "Node.js Runtime Architecture, Modules & Express APIs",
+                "about": "Master the Node.js V8 engine, CommonJS vs ES Modules, file system (fs) streams, and building REST APIs with Express.",
+                "duration": "25 mins",
+                "explanation": "Node.js provides an asynchronous, event-driven JavaScript runtime outside the browser. With non-blocking libuv I/O and the Express.js framework, developers build high-throughput microservices and RESTful APIs.",
+                "key_takeaways": [
+                    "Node.js uses the libuv thread pool for asynchronous background I/O.",
+                    "Express middleware functions process requests sequentially via the next() function.",
+                    "Always sanitize and validate incoming request payloads before business logic execution."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Express.js RESTful Router with Middleware",
+                        "language": "javascript",
+                        "code": """const express = require('express');
+const app = express();
+app.use(express.json());
+
+app.get('/api/users/:id', (req, res) => {
+    const userId = req.params.id;
+    res.json({ id: userId, username: 'dev_user', status: 'Active' });
+});
+
+app.post('/api/users', (req, res) => {
+    const { name, email } = req.body;
+    if (!name || !email) {
+        return res.status(400).json({ error: 'Name and email are required' });
+    }
+    res.status(201).json({ id: 101, name, email });
+});""",
+                        "explanation": "Defines parameterized GET and validated POST endpoints in Express."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Validate Email Format",
+                    "description": "Write a function that returns true if a given email has valid format, false otherwise.",
+                    "starter_code": """function isValidEmail(email) {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+}
+
+console.log(isValidEmail('test@example.com'));""",
+                    "language": "javascript",
+                    "test_cases": [
+                        {"input": "'alex@gmail.com'", "expected_output": "true"},
+                        {"input": "'invalid-email'", "expected_output": "false"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Which C++ library provides the event loop and asynchronous thread pool in Node.js?",
+                        "options": ["Boost", "libuv", "glibc", "V8 Engine"],
+                        "correct_answer": 1,
+                        "explanation": "libuv is the multi-platform support library focusing on asynchronous I/O and the thread pool in Node.js."
+                    },
+                    {
+                        "question": "What is the purpose of the 'next()' function in Express middleware?",
+                        "options": ["Terminates the HTTP connection", "Passes control to the next middleware function in the stack", "Restarts the server", "Flushes the Redis cache"],
+                        "correct_answer": 1,
+                        "explanation": "Calling next() tells Express to execute the subsequent middleware in the pipeline."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "Modern Frontend Framework Architecture & State Flow",
+                "about": "Understand Virtual DOM diffing, component lifecycle, unidirectional data flow, and state stores.",
+                "duration": "25 mins",
+                "explanation": "Modern frontend architectures (React, Vue, Angular) decompose complex user interfaces into isolated, composable components. Unidirectional data flow ensures predictable updates, while Virtual DOM reconciliation calculates minimal browser DOM patches.",
+                "key_takeaways": [
+                    "Props flow downwards; events and callbacks bubble state updates upwards.",
+                    "Virtual DOM reconciliation computes optimal DOM diffs, avoiding expensive reflows.",
+                    "Immutable state updates prevent unintended side effects and stale renders."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Custom Reactive State Store (Observer Pattern)",
+                        "language": "javascript",
+                        "code": """class Store {
+    constructor(initialState) {
+        this.state = initialState;
+        this.listeners = [];
+    }
+    getState() { return this.state; }
+    subscribe(listener) { this.listeners.push(listener); }
+    setState(newState) {
+        this.state = { ...this.state, ...newState };
+        this.listeners.forEach(cb => cb(this.state));
+    }
+}
+
+const userStore = new Store({ name: 'Alex', loggedIn: true });
+userStore.subscribe(state => console.log('State updated:', state));
+userStore.setState({ role: 'Lead Architect' });""",
+                        "explanation": "Implements an immutable state store using the classic observer pattern."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Deep Clone Object",
+                    "description": "Write a function that creates a deep clone of a plain object.",
+                    "starter_code": """function deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+}
+
+const original = { a: 1, b: { c: 2 } };
+const copy = deepClone(original);
+console.log(copy.b.c === 2);""",
+                    "language": "javascript",
+                    "test_cases": [
+                        {"input": "{'x': 10, 'y': {'z': 20}}", "expected_output": "{'x':10,'y':{'z':20}}"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary purpose of the Virtual DOM in modern UI frameworks?",
+                        "options": ["To eliminate the need for CSS", "To batch DOM updates and minimize expensive browser repaints/reflows", "To compile JavaScript to native C code", "To enforce strict typing"],
+                        "correct_answer": 1,
+                        "explanation": "The Virtual DOM calculates minimal diffs in memory, applying only necessary mutations to the real browser DOM."
+                    },
+                    {
+                        "question": "In unidirectional data flow, how do parent and child components communicate?",
+                        "options": ["Parent passes props down; child triggers callbacks up", "Child modifies parent memory directly", "Components share global unrestricted pointers", "Via HTTP WebSockets only"],
+                        "correct_answer": 0,
+                        "explanation": "Unidirectional data flow mandates data passes down via props and state mutations notify upwards via callbacks."
+                    }
+                ]
+            }
         ]
     },
     "machine learning": {
@@ -818,6 +1133,188 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
                     }
                 ]
             }
+,
+            {
+                "chapter_id": 3,
+                "name": "Unsupervised Learning: Clustering (K-Means) & PCA",
+                "about": "Discover hidden structures in unlabeled data using K-Means clustering, hierarchical clustering, and Principal Component Analysis.",
+                "duration": "25 mins",
+                "explanation": "Unsupervised learning extracts latent patterns, groupings, and low-dimensional representations without labeled ground truth. K-Means partitions feature spaces into Voronoi cells around cluster centroids, while PCA rotates axes to maximize variance and compress high-dimensional feature vectors.",
+                "key_takeaways": [
+                    "K-Means minimizes within-cluster sum of squares (inertia).",
+                    "The Elbow method and Silhouette score guide the optimal number of clusters (k).",
+                    "PCA projects data onto orthogonal principal components to reduce dimensionality without heavy information loss."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Euclidean Distance and Centroid Assignment",
+                        "language": "python",
+                        "code": """import math
+
+def euclidean_distance(p1, p2):
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(p1, p2)))
+
+centroids = [[1.0, 1.0], [5.0, 5.0]]
+sample = [2.0, 1.5]
+
+distances = [euclidean_distance(sample, c) for c in centroids]
+assigned_cluster = distances.index(min(distances))
+print(f'Sample {sample} assigned to Centroid {assigned_cluster}')""",
+                        "explanation": "Calculates distance to centroids to determine cluster assignment."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Find Nearest Neighbor",
+                    "description": "Given a query point and a list of points, return the point with the smallest Euclidean distance.",
+                    "starter_code": """def nearest_point(query, points):
+    def dist(p):
+        return sum((a - b) ** 2 for a, b in zip(query, p))
+    return min(points, key=dist)
+
+print(nearest_point([0, 0], [[5, 5], [1, 1], [3, 2]]))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "query=[0, 0], points=[[5, 5], [1, 1], [3, 2]]", "expected_output": "[1, 1]"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary mathematical objective of Principal Component Analysis (PCA)?",
+                        "options": ["To maximize target classification accuracy", "To find orthogonal directions of maximum variance in the feature space", "To remove outliers from datasets", "To generate synthetic training data"],
+                        "correct_answer": 1,
+                        "explanation": "PCA identifies principal axes along which variance is maximized, minimizing projection reconstruction error."
+                    },
+                    {
+                        "question": "Which heuristic is commonly used to pick the number of clusters (k) in K-Means?",
+                        "options": ["The Gini Impurity index", "The Elbow Method on within-cluster sum of squares", "The Softmax distribution", "The ROC curve"],
+                        "correct_answer": 1,
+                        "explanation": "The Elbow Method plots inertia against k to detect the point of diminishing returns."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 4,
+                "name": "Deep Learning Foundations: Neural Networks & PyTorch",
+                "about": "Understand artificial neurons, activation functions (ReLU, Sigmoid), backpropagation, gradient descent, and training loops.",
+                "duration": "30 mins",
+                "explanation": "Deep learning architectures chain non-linear affine transformations across multiple layers. The backpropagation algorithm computes analytical gradients of the loss function via the calculus chain rule, enabling stochastic gradient descent (SGD/Adam) to update millions of parameters.",
+                "key_takeaways": [
+                    "Activation functions introduce non-linearity, allowing networks to approximate arbitrary functions.",
+                    "Backpropagation applies the chain rule to compute loss gradients with respect to every weight.",
+                    "Optimizers like Adam combine momentum and adaptive learning rates for fast, stable convergence."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Single Neuron Forward Pass with ReLU",
+                        "language": "python",
+                        "code": """def relu(x):
+    return max(0.0, x)
+
+def forward_neuron(inputs, weights, bias):
+    total = sum(i * w for i, w in zip(inputs, weights)) + bias
+    return relu(total)
+
+x = [0.5, 0.8, -0.2]
+w = [0.4, -0.6, 1.2]
+b = 0.1
+print('Neuron Output:', forward_neuron(x, w, b))""",
+                        "explanation": "Computes affine sum plus bias through non-linear ReLU activation."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Compute Cross-Entropy Loss",
+                    "description": "Calculate binary cross-entropy loss given ground truth y (0 or 1) and predicted probability p.",
+                    "starter_code": """import math
+
+def binary_cross_entropy(y_true, y_pred):
+    eps = 1e-15
+    p = max(eps, min(1.0 - eps, y_pred))
+    return - (y_true * math.log(p) + (1.0 - y_true) * math.log(1.0 - p))
+
+print(f'{binary_cross_entropy(1, 0.9):.4f}')""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "y_true=1, y_pred=1.0", "expected_output": "0.0000"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Why are non-linear activation functions essential in deep neural networks?",
+                        "options": ["They speed up data serialization", "Without non-linearity, stacking multiple layers collapses mathematically into a single linear transformation", "They eliminate floating point errors", "They prevent learning rate decay"],
+                        "correct_answer": 1,
+                        "explanation": "A composition of linear functions is just another linear function; non-linearities allow networks to learn complex curves and boundaries."
+                    },
+                    {
+                        "question": "Which algorithm computes gradients of the loss function with respect to weights using the chain rule?",
+                        "options": ["Dijkstra's algorithm", "Backpropagation", "K-Means", "A* search"],
+                        "correct_answer": 1,
+                        "explanation": "Backpropagation recursively propagates errors from the output layer backwards through hidden layers."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "MLOps, Model Serialization & Production Inference APIs",
+                "about": "Package trained models with ONNX, containerize inference with FastAPI, and monitor data drift in production.",
+                "duration": "25 mins",
+                "explanation": "Productionizing machine learning requires reliable serving pipelines. MLOps bridges data science and software engineering by standardizing model versioning (MLflow), efficient serialization (ONNX/TorchScript), low-latency inference APIs (FastAPI), and continuous telemetry for concept drift.",
+                "key_takeaways": [
+                    "Export models to standardized formats (ONNX) for cross-platform hardware acceleration.",
+                    "Expose predictions through lightweight REST APIs with request validation (Pydantic).",
+                    "Monitor input distributions over time to catch covariate shift and model performance degradation."
+                ],
+                "code_examples": [
+                    {
+                        "title": "FastAPI Model Inference Endpoint",
+                        "language": "python",
+                        "code": """from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class PredictionRequest(BaseModel):
+    features: list[float]
+
+@app.post('/predict')
+def predict(req: PredictionRequest):
+    # Simulated model inference
+    score = sum(req.features) / len(req.features) if req.features else 0.0
+    return {'prediction': 1 if score > 0.5 else 0, 'confidence': round(score, 4)}""",
+                        "explanation": "Lightweight, production-ready inference API with typed request validation."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Normalize Feature Vector",
+                    "description": "Write a function that normalizes a feature vector so its sum of squares equals 1.0 (L2 norm).",
+                    "starter_code": """import math
+
+def l2_normalize(vector):
+    norm = math.sqrt(sum(x**2 for x in vector))
+    if norm == 0:
+        return vector
+    return [round(x / norm, 4) for x in vector]
+
+print(l2_normalize([3.0, 4.0]))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "[3.0, 4.0]", "expected_output": "[0.6, 0.8]"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary danger when production input data distribution changes from training data?",
+                        "options": ["Syntax errors", "Concept drift / Data drift causing model degradation", "CPU overheating", "Corrupted git commits"],
+                        "correct_answer": 1,
+                        "explanation": "Data drift occurs when real-world distributions shift, invalidating the statistical patterns the model learned."
+                    },
+                    {
+                        "question": "What is the main benefit of ONNX (Open Neural Network Exchange)?",
+                        "options": ["An open format that allows models trained in any framework to run on diverse hardware runtimes", "A new relational database", "A replacement for HTTP", "An encryption algorithm"],
+                        "correct_answer": 0,
+                        "explanation": "ONNX provides an open standard for machine learning interoperability between training frameworks and inference engines."
+                    }
+                ]
+            }
         ]
     },
     "sql": {
@@ -857,6 +1354,218 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
                         "options": ["WHERE", "HAVING", "LIMIT", "ORDER BY"],
                         "correct_answer": 1,
                         "explanation": "HAVING filters aggregate groups, whereas WHERE filters individual rows before grouping."
+                    }
+                ]
+            }
+,
+            {
+                "chapter_id": 2,
+                "name": "Advanced Joins, Multi-Table Relations & Subqueries",
+                "about": "Master INNER, LEFT, RIGHT, FULL OUTER joins, self-joins, correlated subqueries, and EXISTS operators.",
+                "duration": "20 mins",
+                "explanation": "Relational databases derive their power from joining normalized tables. INNER joins return matching records; OUTER joins preserve unmatched rows from one or both tables. Correlated subqueries evaluate row-by-row against outer queries for advanced filtering.",
+                "key_takeaways": [
+                    "INNER JOIN returns intersection; LEFT JOIN retains all records from the left table.",
+                    "Self-joins link a table to itself to model hierarchical structures like employee-manager relations.",
+                    "EXISTS is often more efficient than IN when evaluating subqueries with large result sets."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Multi-Table Join with Aggregation",
+                        "language": "sql",
+                        "code": """SELECT 
+    d.department_name,
+    COUNT(e.employee_id) AS total_staff,
+    COALESCE(AVG(e.salary), 0) AS average_salary
+FROM departments d
+LEFT JOIN employees e ON d.department_id = e.department_id
+WHERE d.is_active = TRUE
+GROUP BY d.department_id, d.department_name
+ORDER BY average_salary DESC;""",
+                        "explanation": "Joins departments with employees, including departments with zero staff."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Left Join Customers and Orders",
+                    "description": "Write a query to retrieve customer names and order IDs, including customers with no orders.",
+                    "starter_code": """SELECT c.name, o.order_id 
+FROM customers c 
+LEFT JOIN orders o ON c.id = o.customer_id;""",
+                    "language": "sql",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Which join type returns all rows from the left table and matching rows from the right table?",
+                        "options": ["INNER JOIN", "LEFT OUTER JOIN", "CROSS JOIN", "RIGHT OUTER JOIN"],
+                        "correct_answer": 1,
+                        "explanation": "LEFT JOIN returns all records from the left table and matching rows from the right, filling non-matching right columns with NULL."
+                    },
+                    {
+                        "question": "What is the result of a CROSS JOIN between a table with 5 rows and a table with 10 rows?",
+                        "options": ["15 rows", "5 rows", "50 rows", "0 rows"],
+                        "correct_answer": 2,
+                        "explanation": "A CROSS JOIN produces the Cartesian product: 5 * 10 = 50 rows."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 3,
+                "name": "Aggregations, Grouping Sets & Window Functions",
+                "about": "Master ROW_NUMBER(), RANK(), DENSE_RANK(), PARTITION BY, running totals, and sliding window frames.",
+                "duration": "25 mins",
+                "explanation": "Window functions perform calculations across a set of table rows related to the current row without collapsing rows like GROUP BY does. This makes them indispensable for calculating running totals, moving averages, and top-N rankings.",
+                "key_takeaways": [
+                    "Window functions use the OVER (PARTITION BY ... ORDER BY ...) clause.",
+                    "DENSE_RANK() does not skip rank numbers after ties; RANK() does.",
+                    "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW computes cumulative running totals."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Top Earners per Department using DENSE_RANK()",
+                        "language": "sql",
+                        "code": """WITH RankedSalaries AS (
+    SELECT 
+        employee_id,
+        first_name,
+        department_id,
+        salary,
+        DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) as rank_in_dept
+    FROM employees
+)
+SELECT department_id, first_name, salary, rank_in_dept
+FROM RankedSalaries
+WHERE rank_in_dept <= 3;""",
+                        "explanation": "Calculates top 3 earners within every department using window functions and CTEs."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Running Total Query",
+                    "description": "Write a query that computes a running sum of order amounts ordered by order_date.",
+                    "starter_code": """SELECT order_id, order_date, amount,
+       SUM(amount) OVER (ORDER BY order_date) as running_total
+FROM orders;""",
+                    "language": "sql",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary difference between GROUP BY and Window Functions?",
+                        "options": ["GROUP BY collapses rows into single summaries, while window functions retain individual row identities", "Window functions cannot calculate sums", "GROUP BY only works on strings", "Window functions run before WHERE filtering"],
+                        "correct_answer": 0,
+                        "explanation": "GROUP BY aggregates multiple rows into one; window functions compute calculations over a window frame while retaining all individual rows."
+                    },
+                    {
+                        "question": "If two rows tie for 1st place, what will DENSE_RANK() assign to the next row?",
+                        "options": ["1", "2", "3", "0"],
+                        "correct_answer": 1,
+                        "explanation": "DENSE_RANK() assigns consecutive integers without gaps, so the next row receives rank 2."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 4,
+                "name": "B-Tree Indexing, Query Optimization & Execution Plans",
+                "about": "Understand B-Tree indexes, composite indexes, analyzing EXPLAIN ANALYZE output, and eliminating table scans.",
+                "duration": "25 mins",
+                "explanation": "Database queries slow down when engines perform sequential full-table scans. B-Tree indexes provide O(log N) lookup speeds. Understanding query execution plans (EXPLAIN) allows engineers to create composite indexes matching query WHERE and ORDER BY clauses.",
+                "key_takeaways": [
+                    "B-Tree indexes speed up equality and range searches significantly.",
+                    "Index column order matters: leftmost prefix rule dictates how composite indexes are utilized.",
+                    "Over-indexing hurts INSERT/UPDATE throughput because every write must update index trees."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Creating Composite Index and Query Inspection",
+                        "language": "sql",
+                        "code": """-- Create composite index covering filter and sort
+CREATE INDEX idx_orders_customer_date ON orders(customer_id, order_date DESC);
+
+-- Analyze execution plan to ensure index scan is utilized
+EXPLAIN ANALYZE
+SELECT order_id, amount
+FROM orders
+WHERE customer_id = 42
+ORDER BY order_date DESC
+LIMIT 10;""",
+                        "explanation": "Creates a covering composite index and verifies index scan via EXPLAIN ANALYZE."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Create Index Statement",
+                    "description": "Write a DDL statement to create an index named idx_user_email on the email column of users table.",
+                    "starter_code": """CREATE INDEX idx_user_email ON users(email);""",
+                    "language": "sql",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Which data structure is most commonly used for standard relational database indexes?",
+                        "options": ["Linked List", "B-Tree / B+ Tree", "Stack", "Binary Heap"],
+                        "correct_answer": 1,
+                        "explanation": "B-Trees keep data sorted and allow search, sequential access, insertions, and deletions in logarithmic time."
+                    },
+                    {
+                        "question": "What is a major trade-off of adding too many indexes to a database table?",
+                        "options": ["SELECT queries become slower", "Write operations (INSERT, UPDATE, DELETE) become slower and consume more disk space", "Network bandwidth is blocked", "ACID transactions are disabled"],
+                        "correct_answer": 1,
+                        "explanation": "Every write operation must modify both the table and all associated index trees."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "Transactions, ACID Guarantees, Isolation Levels & Triggers",
+                "about": "Master BEGIN/COMMIT/ROLLBACK, Read Committed, Repeatable Read, Serializable, and avoiding deadlocks.",
+                "duration": "25 mins",
+                "explanation": "Transactions guarantee database consistency across multi-step operations. ACID ensures atomic execution, valid invariants, isolated concurrent reads/writes, and durable persistence. Configuring transaction isolation levels balances data integrity against concurrent throughput.",
+                "key_takeaways": [
+                    "Atomicity guarantees all steps succeed or all are rolled back.",
+                    "Isolation levels prevent concurrency phenomena like Dirty Reads and Phantom Reads.",
+                    "Always acquire resources in a consistent global order to prevent deadlocks."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Safe Atomic Fund Transfer Transaction",
+                        "language": "sql",
+                        "code": """BEGIN TRANSACTION;
+
+UPDATE accounts 
+SET balance = balance - 500.00 
+WHERE account_id = 101 AND balance >= 500.00;
+
+UPDATE accounts 
+SET balance = balance + 500.00 
+WHERE account_id = 202;
+
+INSERT INTO audit_log(action, from_acc, to_acc, amount, created_at)
+VALUES ('TRANSFER', 101, 202, 500.00, CURRENT_TIMESTAMP);
+
+COMMIT;""",
+                        "explanation": "Enforces atomicity and balance safety across bank accounts."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Begin Transaction Block",
+                    "description": "Write a SQL block that begins a transaction, deletes inactive users, and commits.",
+                    "starter_code": """BEGIN;
+DELETE FROM users WHERE is_active = FALSE;
+COMMIT;""",
+                    "language": "sql",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "In ACID, what does the 'I' (Isolation) property guarantee?",
+                        "options": ["Immediate disk synchronization", "Concurrent transactions execute without interfering with one another's intermediate states", "Identical data types across tables", "In-memory caching"],
+                        "correct_answer": 1,
+                        "explanation": "Isolation prevents concurrent transactions from seeing uncommitted or conflicting intermediate modifications."
+                    },
+                    {
+                        "question": "Which phenomenon occurs when a transaction reads uncommitted changes from another concurrent transaction?",
+                        "options": ["Dirty Read", "Phantom Read", "Non-Repeatable Read", "Deadlock"],
+                        "correct_answer": 0,
+                        "explanation": "A Dirty Read happens when a transaction reads data that another transaction has modified but not yet committed."
                     }
                 ]
             }
@@ -902,6 +1611,233 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
                     }
                 ]
             }
+,
+            {
+                "chapter_id": 2,
+                "name": "Building Optimized Images with Multi-Stage Dockerfiles",
+                "about": "Learn layer caching, .dockerignore best practices, reducing image size, and non-root security.",
+                "duration": "20 mins",
+                "explanation": "Production Docker images must be lean, secure, and fast to pull. Multi-stage builds separate compilation environments from lightweight production runtimes, discarding compilers, SDKs, and source files from the final container artifact.",
+                "key_takeaways": [
+                    "Order Dockerfile instructions from least-frequently changed to most-frequently changed to maximize build cache hits.",
+                    "Use multi-stage builds (FROM ... AS builder) to keep final production images tiny.",
+                    "Always run containers as a non-root user (USER node / USER 1001) for security hardening."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Production Node.js Multi-Stage Dockerfile",
+                        "language": "bash",
+                        "code": """# Multi-stage production build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/dist ./dist
+USER node
+EXPOSE 3000
+CMD ["node", "dist/index.js"]""",
+                        "explanation": "Builds assets in stage 1 and executes as non-root user in lightweight stage 2."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Expose Container Port",
+                    "description": "Write a Dockerfile instruction that documents that the container listens on port 8080.",
+                    "starter_code": """EXPOSE 8080""",
+                    "language": "bash",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the primary role of a .dockerignore file?",
+                        "options": ["Prevents containers from communicating on the network", "Prevents unnecessary local files (node_modules, .git) from being sent to the Docker build context", "Ignores compiler warnings", "Deletes old images automatically"],
+                        "correct_answer": 1,
+                        "explanation": ".dockerignore excludes patterns from the build context, speeding up image creation and avoiding leaking sensitive files."
+                    },
+                    {
+                        "question": "Why should Dockerfiles copy package.json and install dependencies before copying the rest of source code?",
+                        "options": ["It is a mandatory syntax requirement", "To leverage Docker layer caching so npm install runs only when dependencies change", "To ensure packages are encrypted", "To automatically format code"],
+                        "correct_answer": 1,
+                        "explanation": "Docker caches image layers; copying dependencies first prevents re-running slow package downloads on every code edit."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 3,
+                "name": "Container Networking, Port Mapping & Storage Volumes",
+                "about": "Master bridge networks, container DNS discovery, named volumes, and host bind mounts.",
+                "duration": "25 mins",
+                "explanation": "Containers are ephemeral by default. Docker volumes provide persistent storage decoupled from container lifecycles. User-defined bridge networks provide internal DNS resolution so containers can address one another by service name without hardcoded IPs.",
+                "key_takeaways": [
+                    "Named volumes persist data even after containers are stopped or removed.",
+                    "Bind mounts map a specific host directory directly into a container (ideal for local dev).",
+                    "Containers on the same user-defined bridge network resolve each other by container name."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Creating Network and Volume CLI Commands",
+                        "language": "bash",
+                        "code": """# Create custom bridge network
+docker network create backend-net
+
+# Create persistent data volume
+docker volume create pgdata
+
+# Run PostgreSQL container connected to network with volume
+docker run -d --name db --network backend-net -v pgdata:/var/lib/postgresql/data -e POSTGRES_PASSWORD=secret postgres:16-alpine
+
+# Run web app on same network communicating via 'db' hostname
+docker run -d --name web --network backend-net -p 8080:8080 my-web-app:latest""",
+                        "explanation": "Illustrates inter-container DNS discovery and decoupled persistent volume storage."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Run Container with Port Mapping",
+                    "description": "Write a docker run command that forwards host port 80 to container port 80 in detached mode using nginx image.",
+                    "starter_code": """docker run -d -p 80:80 nginx""",
+                    "language": "bash",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "What happens to data stored in a Docker named volume when the associated container is deleted?",
+                        "options": ["The volume and all its data are deleted immediately", "The volume and its data persist intact on the host", "The data is converted to a zip file", "The host machine reboots"],
+                        "correct_answer": 1,
+                        "explanation": "Named volumes exist independently of container lifecycles; deleting a container does not delete its volumes."
+                    },
+                    {
+                        "question": "How do containers communicate with each other on a user-defined bridge network?",
+                        "options": ["Through automatic DNS resolution using container/service names", "Only through the public internet", "Via Bluetooth", "Only via hardcoded MAC addresses"],
+                        "correct_answer": 0,
+                        "explanation": "Docker includes an embedded DNS server that resolves container names to IP addresses on user-defined networks."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 4,
+                "name": "Multi-Container Orchestration with Docker Compose",
+                "about": "Define multi-tier stacks (frontend, backend, database, cache) declaratively using docker-compose.yml.",
+                "duration": "25 mins",
+                "explanation": "Modern software applications involve multiple cooperating services. Docker Compose allows teams to define, configure, and boot an entire multi-container architecture with a single declarative YAML file and the 'docker compose up' command.",
+                "key_takeaways": [
+                    "docker-compose.yml defines services, networks, volumes, and environment variables.",
+                    "depends_on specifies startup ordering between interdependent services.",
+                    "docker compose up -d launches the entire multi-tier stack in background detached mode."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Full-Stack docker-compose.yml Specification",
+                        "language": "yaml",
+                        "code": """version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/appdb
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  cache:
+    image: redis:7-alpine
+
+volumes:
+  db-data:""",
+                        "explanation": "Orchestrates web app, PostgreSQL database, and Redis cache on an auto-created network."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Start Compose Stack",
+                    "description": "Write the CLI command to start all services in docker-compose.yml in detached mode.",
+                    "starter_code": """docker compose up -d""",
+                    "language": "bash",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Which CLI command stops all running containers defined in a Compose file and removes their networks?",
+                        "options": ["docker compose stop", "docker compose down", "docker compose rm", "docker compose kill"],
+                        "correct_answer": 1,
+                        "explanation": "'docker compose down' stops containers, removes internal networks, and frees assigned ports."
+                    },
+                    {
+                        "question": "What is the function of the 'depends_on' key in Docker Compose?",
+                        "options": ["Expresses dependency and dictates startup sequence between services", "Installs host operating system updates", "Compiles source code", "Generates API keys"],
+                        "correct_answer": 0,
+                        "explanation": "depends_on tells Docker Compose to start dependent containers (like databases) before starting the consuming application."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "Container Security, Registries & Production CI/CD",
+                "about": "Master vulnerability scanning (Trivy), pushing to Docker Hub/ECR, secrets management, and health checks.",
+                "duration": "25 mins",
+                "explanation": "Deploying containers to production requires strict security boundaries. This includes automated vulnerability scanning of base images, preventing container root privileges, managing credentials through environment secrets rather than hardcoded image layers, and implementing container HEALTHCHECK probes.",
+                "key_takeaways": [
+                    "Never bake credentials, tokens, or private keys into Docker images.",
+                    "Use HEALTHCHECK directives so orchestrators detect hung or unresponsive processes.",
+                    "Tag images with semantic versions or git commit hashes rather than relying on mutable 'latest' tags."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Container Healthcheck and Security Hardening",
+                        "language": "bash",
+                        "code": """# Add health check to ensure API endpoint is responding
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Security scan using Trivy CLI before deployment
+# trivy image --severity HIGH,CRITICAL my-app:v1.2.0
+
+# Push versioned image to registry
+# docker tag my-app:latest myregistry.io/org/my-app:1.2.0
+# docker push myregistry.io/org/my-app:1.2.0""",
+                        "explanation": "Shows container health probes and automated image security verification."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Tag Docker Image",
+                    "description": "Write a command to tag local image 'web:latest' as 'registry.com/web:v1'.",
+                    "starter_code": """docker tag web:latest registry.com/web:v1""",
+                    "language": "bash",
+                    "test_cases": [{"input": "default", "expected_output": "Success"}]
+                },
+                "quiz": [
+                    {
+                        "question": "Why is relying on the 'latest' image tag in production deployments considered an anti-pattern?",
+                        "options": ["The tag is immutable and cannot be updated", "The tag is mutable, making deployments non-deterministic and rollback difficult", "It disables SSL/TLS", "It causes high memory consumption"],
+                        "correct_answer": 1,
+                        "explanation": "The 'latest' tag changes whenever a new image is pushed, preventing reproducible deployments and reliable rollbacks."
+                    },
+                    {
+                        "question": "What is the purpose of the HEALTHCHECK instruction in a Dockerfile?",
+                        "options": ["Profiles CPU temperature", "Periodically tests whether the application running inside the container is operational", "Scans code for syntax bugs", "Checks internet speed"],
+                        "correct_answer": 1,
+                        "explanation": "HEALTHCHECK tells Docker how to test a container to check that it is still working properly."
+                    }
+                ]
+            }
         ]
     },
     "soft skills": {
@@ -942,6 +1878,240 @@ print(calculate_accuracy([1, 0, 1, 1], [1, 0, 0, 1]))""",
                         "options": ["Situation", "Task", "Action", "Result"],
                         "correct_answer": 3,
                         "explanation": "The Result phase concludes the answer with concrete metrics and achievements."
+                    }
+                ]
+            }
+,
+            {
+                "chapter_id": 2,
+                "name": "Active Listening, Cross-Functional Teamwork & Empathy",
+                "about": "Master active listening techniques, empathizing with product managers and designers, and bridging technical and business vocabularies.",
+                "duration": "20 mins",
+                "explanation": "High-performing engineers excel not just at coding, but at understanding the core motivations of cross-functional partners. Active listening involves validating understanding before offering solutions, asking probing clarifying questions, and explaining technical constraints in terms of business impact.",
+                "key_takeaways": [
+                    "Summarize and repeat what you heard before proposing technical architectures.",
+                    "Frame technical debt and refactoring in terms of business velocity, risk, and cost.",
+                    "Empathy prevents adversarial relationships between engineering, product, and design."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Cross-Functional Requirement Alignment Template",
+                        "language": "python",
+                        "code": """# Structured cross-functional check-in
+def align_requirements(feature_name, user_pain_point, technical_tradeoff):
+    return {
+        'feature': feature_name,
+        'user_value': user_pain_point,
+        'engineering_approach': technical_tradeoff,
+        'shared_kpi': 'Reduce checkout drop-off by 15%'
+    }
+
+print(align_requirements('1-Click Checkout', 'Too many checkout steps', 'Cache user address safely'))""",
+                        "explanation": "Demonstrates translating engineering decisions into user and business value."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Format Meeting Action Items",
+                    "description": "Write a function that accepts a list of action items and owners and formats them as a clean summary string.",
+                    "starter_code": """def format_actions(items):
+    return '\n'.join(f'- [{owner}]: {task}' for task, owner in items)
+
+print(format_actions([('API spec', 'Alex'), ('DB migration', 'Sam')]))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "[('Design review', 'Taylor')]", "expected_output": "- [Taylor]: Design review"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "Which active listening practice most effectively prevents misunderstandings during technical planning?",
+                        "options": ["Interrupting immediately with your design", "Paraphrasing the speaker's main points to confirm alignment before proposing solutions", "Staying completely silent", "Taking notes without asking any questions"],
+                        "correct_answer": 1,
+                        "explanation": "Paraphrasing confirms mutual understanding and catches subtle misalignments early."
+                    },
+                    {
+                        "question": "How should an engineer communicate technical debt to a product manager?",
+                        "options": ["Complain about old code", "Explain how technical debt impacts feature delivery speed, system stability, and customer experience", "Refuse to build new features", "Ignore technical debt completely"],
+                        "correct_answer": 1,
+                        "explanation": "Framing technical debt in business terms (feature velocity, uptime, bug reduction) aligns priorities with product goals."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 3,
+                "name": "Constructive Code Reviews, Feedback Culture & Conflict Management",
+                "about": "Learn how to write blameless code review comments, manage design disagreements, and foster psychological safety.",
+                "duration": "25 mins",
+                "explanation": "Code reviews are primarily educational and quality-assurance conversations. Constructive reviewers separate the author from the code, praise thoughtful solutions, label non-blocking suggestions (nitpicks), and transition heated asynchronous debates into quick synchronous discussions.",
+                "key_takeaways": [
+                    "Ask curious questions ('What do you think about using X here?') rather than making rigid demands.",
+                    "Differentiate between blocking security/correctness bugs and non-blocking stylistic preferences (nit:).",
+                    "Fostering psychological safety empowers junior and senior engineers to collaborate openly."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Blameless Code Review Comment Checklist",
+                        "language": "python",
+                        "code": """# Constructive review prefix conventions
+REVIEW_PREFIXES = {
+    'BLOCKER': 'Critical bug, memory leak, or security vulnerability that must be addressed.',
+    'QUESTION': 'Clarifying question to understand the design rationale.',
+    'SUGGESTION': 'Alternative approach that might improve readability or performance.',
+    'NIT': 'Minor style or naming preference; completely optional for merge.',
+    'PRAISE': 'Highlighting clean, elegant, or well-tested code.'
+}
+
+for prefix, desc in REVIEW_PREFIXES.items():
+    print(f'[{prefix}]: {desc}')""",
+                        "explanation": "Standardized review prefixes reduce friction and clarify intent."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Classify Review Comment",
+                    "description": "Write a function that tags a comment as 'Blocking' if it contains 'security' or 'bug', otherwise 'Non-blocking'.",
+                    "starter_code": """def classify_comment(comment):
+    c = comment.lower()
+    if 'security' in c or 'bug' in c:
+        return 'Blocking'
+    return 'Non-blocking'
+
+print(classify_comment('Potential memory leak bug in loop'))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "'Critical security issue'", "expected_output": "Blocking"},
+                        {"input": "'nit: rename variable'", "expected_output": "Non-blocking"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What is the recommended approach when a pull request discussion exceeds 5-6 back-and-forth comments without consensus?",
+                        "options": ["Reject the pull request immediately", "Switch from text comments to a quick 5-10 minute 1-on-1 voice/video call or huddle", "Tag the CEO", "Merge the code without testing"],
+                        "correct_answer": 1,
+                        "explanation": "Direct voice or video syncs resolve nuances in minutes that could take days of text debates."
+                    },
+                    {
+                        "question": "What distinguishes blameless feedback from critical feedback?",
+                        "options": ["Blameless feedback focuses on the system, code, and outcome rather than personal ability", "Blameless feedback avoids pointing out errors", "Blameless feedback is only written by managers", "There is no difference"],
+                        "correct_answer": 0,
+                        "explanation": "Focusing on the code and system mechanisms fosters learning and psychological safety without defensiveness."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 4,
+                "name": "Technical Storytelling & High-Impact Architecture Presentations",
+                "about": "Present complex engineering trade-offs, lead architecture review boards (RFCs), and communicate with executives.",
+                "duration": "25 mins",
+                "explanation": "Great engineers must be able to persuade others. Technical storytelling structures complex decisions around context, challenges, evaluated options, and measurable recommendations. Writing Requests for Comments (RFCs) builds organizational consensus before large-scale implementation.",
+                "key_takeaways": [
+                    "Bottom-line upfront (BLUF): State the recommendation and key impact in the first 60 seconds.",
+                    "Present evaluated alternatives alongside their pros, cons, and operational trade-offs.",
+                    "Use clear visual diagrams (architecture flowcharts) rather than dense walls of text."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Architecture RFC Structure Template",
+                        "language": "python",
+                        "code": """# RFC (Request For Comments) Outline
+RFC_DOCUMENT = '''
+# RFC 104: Migration to Event-Driven Order Processing
+
+## 1. Executive Summary
+Decouple payment and fulfillment services using Kafka to support 5x Black Friday traffic.
+
+## 2. Problem Statement & Metrics
+Current synchronous REST calls result in 3% timeouts under peak load.
+
+## 3. Evaluated Options
+- Option A: Horizontal pod scaling (High infrastructure cost, DB bottlenecks remain).
+- Option B: Kafka message broker (Optimal: asynchronous decoupling, replayable events).
+
+## 4. Rollout & Rollback Strategy
+Canary deployment with 5% traffic split; automated rollback on error rate > 0.1%.
+'''
+print(RFC_DOCUMENT.strip())""",
+                        "explanation": "Industry-standard architectural proposal framework."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Format Executive Summary",
+                    "description": "Write a function that returns an executive summary formatted with 'Goal:' and 'Impact:'.",
+                    "starter_code": """def make_summary(goal, impact):
+    return f'Goal: {goal} | Impact: {impact}'
+
+print(make_summary('Migrate DB', 'Reduce latency by 40%'))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "goal='Add cache', impact='2x throughput'", "expected_output": "Goal: Add cache | Impact: 2x throughput"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "What does the BLUF (Bottom Line Up Front) presentation principle advise?",
+                        "options": ["Place technical background at the very end of slides", "State the core conclusion, recommendation, and impact immediately at the beginning", "Never present numbers", "Speak as quietly as possible"],
+                        "correct_answer": 1,
+                        "explanation": "Executives and busy stakeholders value knowing the core takeaway and ask upfront before diving into details."
+                    },
+                    {
+                        "question": "What is the primary function of an engineering RFC (Request for Comments)?",
+                        "options": ["A legally binding contract", "A written proposal to gather feedback and achieve consensus before building significant technical changes", "A bug report", "A job application"],
+                        "correct_answer": 1,
+                        "explanation": "RFCs solicit peer review, surface unforeseen edge cases, and align teams on technical decisions."
+                    }
+                ]
+            },
+            {
+                "chapter_id": 5,
+                "name": "Adaptability, Negotiation & Continuous Professional Growth",
+                "about": "Navigate ambiguous priorities, negotiate engineering timelines with stakeholders, and build continuous learning habits.",
+                "duration": "25 mins",
+                "explanation": "Software engineering evolves rapidly. Thriving engineers embrace ambiguity, prioritize high-leverage outcomes, manage scope creep through trade-off negotiation (time vs scope vs quality), and dedicate regular time to mastering emerging tools and patterns.",
+                "key_takeaways": [
+                    "Negotiate with the iron triangle: if timeline is fixed, scope or resources must adjust.",
+                    "Embrace ambiguity by running small proof-of-concept spikes before committing.",
+                    "Cultivate T-shaped skills: broad familiarity across the stack with deep mastery in primary domains."
+                ],
+                "code_examples": [
+                    {
+                        "title": "Scope vs Timeline Trade-off Negotiation Helper",
+                        "language": "python",
+                        "code": """def scope_negotiation(requested_features, deadline_weeks):
+    core_features = requested_features[:2]
+    nice_to_haves = requested_features[2:]
+    return {
+        'phase_1_mvp': core_features,
+        'phase_2_future': nice_to_haves,
+        'recommendation': f'Deliver MVP within {deadline_weeks} weeks with zero quality compromise.'
+    }
+
+print(scope_negotiation(['User Auth', 'Checkout', 'Loyalty Points', 'Dark Mode'], 4))""",
+                        "explanation": "Structures realistic release milestones without compromising software quality."
+                    }
+                ],
+                "coding_challenge": {
+                    "title": "Split MVP Features",
+                    "description": "Write a function that takes a list of features and returns the first n features as MVP.",
+                    "starter_code": """def get_mvp(features, n):
+    return features[:n]
+
+print(get_mvp(['Auth', 'Billing', 'Analytics'], 2))""",
+                    "language": "python",
+                    "test_cases": [
+                        {"input": "features=['A', 'B', 'C'], n=1", "expected_output": "['A']"}
+                    ]
+                },
+                "quiz": [
+                    {
+                        "question": "According to the Project Management Iron Triangle, if deadline and quality are fixed, what variable must be flexible?",
+                        "options": ["Scope", "Physics", "Git commit history", "Database normalization"],
+                        "correct_answer": 0,
+                        "explanation": "When timeline and budget/quality are constrained, scope is the primary lever to adjust to deliver on time."
+                    },
+                    {
+                        "question": "What is a 'T-shaped' engineering skill profile?",
+                        "options": ["Deep specialization in one domain with broad working knowledge across related fields", "Only knowing frontend frameworks", "Writing code in capital letters", "Testing only on Thursdays"],
+                        "correct_answer": 0,
+                        "explanation": "The vertical bar represents deep expertise in a specialty, while the horizontal bar represents broad foundational literacy."
                     }
                 ]
             }
@@ -1060,6 +2230,340 @@ public class SeleniumDemo {
         }
     }
 }"""
+    elif any(k in t_lower for k in ["aws", "cloud", "azure", "gcp"]):
+        modules = [
+            ("Cloud Architecture & AWS Core Infrastructure", "Understand cloud deployment models, shared responsibility, regions, and availability zones."),
+            ("Compute Services: EC2, Containers & Serverless Lambda", "Provision virtual compute instances, configure security groups, and deploy event-driven serverless functions."),
+            ("Storage & Database Solutions: S3, RDS & DynamoDB", "Manage scalable object storage buckets, provision relational SQL instances, and configure NoSQL tables."),
+            ("Cloud Networking & Security: VPC, IAM & Policies", "Architect isolated Virtual Private Clouds, configure subnets, route tables, and enforce least-privilege IAM policies."),
+            ("High Availability, Auto Scaling & CloudWatch Observability", "Configure Auto Scaling Groups, Elastic Load Balancers, and monitor performance metrics with CloudWatch alarms.")
+        ]
+        category = "Cloud Computing & Architecture"
+        lang = "bash"
+        code_snip = """# AWS CLI: Provision an S3 Bucket and EC2 instance
+aws s3 mb s3://my-enterprise-data-bucket-prod --region us-east-1
+aws ec2 run-instances --image-id ami-0c55b159cbfafe1f0 --instance-type t2.micro --key-name MyKeyPair
+echo "Cloud resources initialized successfully." """
+    elif any(k in t_lower for k in ["kubernetes", "k8s"]):
+        modules = [
+            ("Kubernetes Architecture, Control Plane & Worker Nodes", "Master kube-apiserver, etcd, kube-scheduler, kubelet, and container runtime architecture."),
+            ("Pods, ReplicaSets & Declarative Deployments", "Define declarative YAML specs, manage application replicas, and execute zero-downtime rolling updates."),
+            ("Networking, Services (ClusterIP, NodePort) & Ingress", "Expose microservices internally and externally with Ingress controllers and DNS service discovery."),
+            ("Configuration & State: ConfigMaps, Secrets & Volumes", "Decouple environment configs, manage sensitive credentials securely, and mount persistent volume claims."),
+            ("Horizontal Pod Autoscaling (HPA) & Helm Package Management", "Scale workloads dynamically under CPU/memory load and package deployments with reusable Helm charts.")
+        ]
+        category = "Cloud Native & Container Orchestration"
+        lang = "yaml"
+        code_snip = """apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+      - name: web
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80"""
+    elif any(k in t_lower for k in ["docker", "container"]):
+        modules = [
+            ("Container Virtualization & Docker Engine Fundamentals", "Understand Linux cgroups and namespaces, compare virtual machines with lightweight containers."),
+            ("Building Custom Images with Optimized Dockerfiles", "Write multi-stage Dockerfiles, minimize image layers, and implement security best practices."),
+            ("Container Networking & Persistent Storage Volumes", "Manage bridge networks, port mappings, named volumes, and host bind mounts."),
+            ("Multi-Container Applications with Docker Compose", "Orchestrate dependent services (API, database, Redis cache) using declarative docker-compose.yml."),
+            ("Image Registries, Vulnerability Scanning & Production Run", "Push images to Docker Hub/ECR, run security vulnerability scans, and manage container lifecycles.")
+        ]
+        category = "DevOps & Containerization"
+        lang = "bash"
+        code_snip = """# Multi-stage Dockerfile example
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]"""
+    elif any(k in t_lower for k in ["git", "github", "version control"]):
+        modules = [
+            ("Git Internal Architecture, Working Tree & Staging", "Understand Git blobs, trees, commits, HEAD pointer, and atomic commit workflows."),
+            ("Branching Strategies, Isolation & Feature Delivery", "Implement Trunk-Based Development vs GitFlow, manage local and remote feature branches."),
+            ("Merging, Rebasing & Resolving Merge Conflicts", "Compare fast-forward merges, three-way merges, interactive rebase, and conflict resolution."),
+            ("Remote Collaboration: Pull Requests & Protected Branches", "Configure GitHub protected branch rules, code review conventions, and automated status checks."),
+            ("Advanced Git Mastery: Cherry-Pick, Reflog & Bisect", "Recover lost commits with git reflog, selectively backport commits with cherry-pick, and debug bugs with git bisect.")
+        ]
+        category = "Developer Workflows & Tooling"
+        lang = "bash"
+        code_snip = """# Essential Git Workflow Commands
+git checkout -b feature/auth-service
+git add src/auth/
+git commit -m "feat(auth): implement JWT token verification middleware"
+git push -u origin feature/auth-service
+git rebase main"""
+    elif any(k in t_lower for k in ["linux", "bash", "shell"]):
+        modules = [
+            ("Linux Filesystem Hierarchy & Terminal Navigation", "Understand FHS (/etc, /var, /usr), absolute vs relative paths, and essential file manipulation."),
+            ("Permissions, Ownership & Security Controls", "Master octal and symbolic permissions (chmod, chown), umask, and sudo privilege escalation."),
+            ("Process Management, Daemons & System Diagnostics", "Monitor system load (top, htop), manage background jobs (ps, kill), and control systemd services."),
+            ("Shell Scripting: Variables, Loops, Conditionals & Functions", "Write robust Bash automation scripts with error trapping (set -euo pipefail) and argument parsing."),
+            ("Networking, SSH, Package Management & Cron Automation", "Diagnose network connections (netstat, curl, iptables), configure SSH keys, and schedule automated cron tasks.")
+        ]
+        category = "Operating Systems & Administration"
+        lang = "bash"
+        code_snip = """#!/usr/bin/env bash
+set -euo pipefail
+
+echo "=== System Health Check ==="
+UPTIME=$(uptime -p)
+MEMORY=$(free -m | awk '/Mem:/ { printf("%.1f%%", $3/$2 * 100) }')
+echo "Uptime: ${UPTIME}"
+echo "Memory Utilization: ${MEMORY}"
+echo "Status: Optimal" """
+    elif any(k in t_lower for k in ["system design", "microservices"]):
+        modules = [
+            ("System Architecture: Monoliths vs Distributed Microservices", "Evaluate architectural trade-offs, vertical vs horizontal scaling, and domain-driven service decomposition."),
+            ("Load Balancing, Reverse Proxies (Nginx) & API Gateways", "Distribute traffic with round-robin and least-connection algorithms, manage rate limiting and SSL termination."),
+            ("Caching Strategies (Redis/Memcached) & Invalidation", "Implement Cache-Aside, Write-Through patterns, manage cache thundering herd, and set intelligent TTL eviction."),
+            ("Database Scaling: Replication, Sharding & CAP Theorem", "Design master-replica topologies, partition keys, manage eventual consistency vs strict consistency."),
+            ("Asynchronous Event-Driven Architecture & Fault Tolerance", "Decouple systems using message brokers (Kafka/RabbitMQ), implement Circuit Breaker (Resilience4j) and Saga patterns.")
+        ]
+        category = "Software Architecture & Scalability"
+        lang = "python"
+        code_snip = """# Cache-Aside Strategy Implementation in Python
+import redis, json
+
+r = redis.Redis(host='localhost', port=6379, db=0)
+
+def get_user_profile(user_id: str) -> dict:
+    cache_key = f"user:{user_id}"
+    cached = r.get(cache_key)
+    if cached:
+        return json.loads(cached)
+    
+    # Cache miss: fetch from primary DB
+    user_data = {"id": user_id, "name": "Alex Taylor", "role": "Engineer"}
+    r.setex(cache_key, 3600, json.dumps(user_data))
+    return user_data"""
+    elif any(k in t_lower for k in ["data structures", "dsa", "algorithms"]):
+        modules = [
+            ("Algorithmic Complexity (Big-O) & Linear Data Structures", "Analyze time/space complexity, implement dynamic arrays, doubly linked lists, and circular buffers."),
+            ("Stacks, Queues, Hash Tables & Collision Resolution", "Implement LIFO/FIFO mechanics, hash functions, separate chaining, and open addressing."),
+            ("Binary Trees, Binary Search Trees & Balanced Trees", "Execute tree traversals (Inorder, Preorder, Postorder, Level-order) and balance BSTs (AVL/Red-Black)."),
+            ("Graph Representations, Traversals & Shortest Paths", "Model adjacency matrices/lists, execute Breadth-First Search (BFS), Depth-First Search (DFS), and Dijkstra's algorithm."),
+            ("Dynamic Programming, Memoization & Greedy Paradigms", "Solve optimal substructure problems, compare top-down memoization with bottom-up tabulation.")
+        ]
+        category = "Algorithms & Computer Science"
+        lang = "python"
+        code_snip = """# Binary Search Algorithm - O(log N) Time Complexity
+def binary_search(arr: list, target: int) -> int:
+    left, right = 0, len(arr) - 1
+    while left <= right:
+        mid = (left + right) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+    return -1
+
+nums = [1, 3, 5, 7, 9, 11, 13, 15]
+print("Found target index:", binary_search(nums, 7))"""
+    elif any(k in t_lower for k in ["sql", "mysql", "postgresql", "database"]):
+        modules = [
+            ("Relational Modeling, Normalization (1NF-3NF) & Schema Design", "Design normalized schemas, define foreign key constraints, cascade rules, and entity-relationship models."),
+            ("Advanced SQL Queries, Multi-Table Joins & Subqueries", "Master INNER, LEFT, FULL OUTER joins, subqueries, and set operations (UNION, INTERSECT)."),
+            ("Window Functions, Aggregations & Grouping Sets", "Calculate running totals and rankings using ROW_NUMBER(), RANK(), DENSE_RANK(), and PARTITION BY."),
+            ("B-Tree Indexing, Execution Plans (EXPLAIN) & Optimization", "Analyze query plans, eliminate costly full-table scans, and create composite and covering indexes."),
+            ("Transactions, ACID Guarantees, Isolation Levels & Locking", "Enforce atomic transactions, understand Dirty Reads, Phantom Reads, and optimistic vs pessimistic concurrency.")
+        ]
+        category = "Relational Databases & SQL"
+        lang = "sql"
+        code_snip = """-- Complex Analysis with Window Functions and CTE
+WITH EmployeeRankings AS (
+    SELECT 
+        department_id,
+        first_name,
+        salary,
+        DENSE_RANK() OVER (PARTITION BY department_id ORDER BY salary DESC) as rank_in_dept
+    FROM employees
+)
+SELECT department_id, first_name, salary
+FROM EmployeeRankings
+WHERE rank_in_dept <= 3;"""
+    elif any(k in t_lower for k in ["mongodb", "nosql"]):
+        modules = [
+            ("NoSQL Document Architecture & BSON Data Types", "Understand non-relational document models, embedding vs referencing, and schema flexibility."),
+            ("CRUD Operations, Complex Filtering & Projections", "Execute find, insert, updateMany, deleteOne with atomic field modifiers ($set, $inc, $push)."),
+            ("The Aggregation Pipeline: Multi-Stage Transformations", "Chain stages ($match, $group, $lookup, $unwind, $sort, $project) for high-performance data pipelines."),
+            ("Indexing Strategies, Compound Keys & Performance Profiling", "Create single-field, compound, TTL, and text indexes; analyze queries using explain('executionStats')."),
+            ("Replica Sets, High Availability & Horizontal Sharding", "Configure primary-secondary election topologies, read preferences, write concerns, and shard keys.")
+        ]
+        category = "NoSQL Databases"
+        lang = "javascript"
+        code_snip = """// MongoDB Aggregation Pipeline
+db.orders.aggregate([
+  { $match: { status: "completed" } },
+  { $group: {
+      _id: "$customerId",
+      totalSpent: { $sum: "$totalAmount" },
+      orderCount: { $sum: 1 }
+  }},
+  { $sort: { totalSpent: -1 } },
+  { $limit: 10 }
+]);"""
+    elif any(k in t_lower for k in ["redis", "caching"]):
+        modules = [
+            ("In-Memory Computing & Redis Internal Architecture", "Understand single-threaded event loop architecture, RAM storage, and microsecond latency operations."),
+            ("Core Data Structures: Strings, Hashes, Lists, Sets & Sorted Sets", "Manipulate key-value pairs, hash objects, queues (LPUSH/RPOP), and leaderboards with ZSETs."),
+            ("Caching Patterns: Cache-Aside, Write-Through & TTL Policies", "Implement resilient application caching, configure TTL expiration, and select eviction policies (LRU/LFU)."),
+            ("Pub/Sub Messaging, Redis Streams & Distributed Locks", "Publish events to channels, process continuous message streams, and acquire atomic distributed locks with Redlock."),
+            ("Persistence (RDB/AOF), Clustering & High Availability", "Configure background snapshots (RDB), Append-Only Files (AOF), Sentinel monitoring, and Redis Cluster sharding.")
+        ]
+        category = "In-Memory Systems & Caching"
+        lang = "python"
+        code_snip = """# Redis Leaderboard Implementation with Sorted Sets
+import redis
+
+client = redis.Redis(host='localhost', port=6379, decode_responses=True)
+
+# Update player scores
+client.zadd('leaderboard:gaming', {'Alice': 1500, 'Bob': 2300, 'Charlie': 1850})
+
+# Get top 3 players
+top_players = client.zrevrange('leaderboard:gaming', 0, 2, withscores=True)
+for rank, (player, score) in enumerate(top_players, 1):
+    print(f"#{rank} {player}: {score} pts")"""
+    elif any(k in t_lower for k in ["kafka", "event"]):
+        modules = [
+            ("Event-Driven Architecture & Apache Kafka Core Architecture", "Understand distributed commit logs, brokers, ZooKeeper/KRaft consensus, and pub/sub decoupling."),
+            ("Topics, Partitions, Message Ordering & Retention", "Design partition keys, guarantee per-partition message ordering, and configure log compaction and retention."),
+            ("Kafka Producers: Serialization, Batching & Delivery Semantics", "Configure producer idempotence, batch sizing (linger.ms), compression (snappy/gzip), and ACKs (all)."),
+            ("Kafka Consumers: Consumer Groups, Offsets & Rebalancing", "Scale horizontal consumption with consumer groups, manage manual commit offsets, and handle consumer rebalance."),
+            ("Kafka Streams, Kafka Connect & Enterprise Production Deployment", "Build real-time stream processing topologies, stream-table duality (KTable), and mirror clusters across clouds.")
+        ]
+        category = "Distributed Streaming & Messaging"
+        lang = "java"
+        code_snip = """// Kafka Producer Configuration in Java
+Properties props = new Properties();
+props.put("bootstrap.servers", "localhost:9092");
+props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+props.put("acks", "all");
+props.put("enable.idempotence", "true");
+
+Producer<String, String> producer = new KafkaProducer<>(props);
+producer.send(new ProducerRecord<>("orders-topic", "order-101", "{\"amount\": 99.99}"));
+producer.close();"""
+    elif any(k in t_lower for k in ["c#", ".net"]):
+        modules = [
+            ("C# Language Fundamentals, Type System & CLR Runtime", "Master modern C# syntax, value vs reference types, nullable types, and garbage collection in the CLR."),
+            ("Object-Oriented Design, Interfaces & Generics", "Implement clean OOP hierarchies, generic collections, interface contracts, and dependency injection."),
+            ("LINQ (Language Integrated Query) & Functional Transformations", "Write expressive data queries with LINQ syntax, projection, filtering, grouping, and lazy evaluation."),
+            ("Asynchronous Programming with async/await & TPL", "Manage non-blocking asynchronous operations, prevent UI freezing, and handle cancellation tokens."),
+            ("Building Web APIs with ASP.NET Core & Entity Framework", "Architect RESTful services, configure middleware pipelines, and manage database migrations with EF Core.")
+        ]
+        category = "Enterprise Software Development"
+        lang = "csharp"
+        code_snip = """// ASP.NET Core Web API Controller
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase {
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUserById(int id) {
+        var user = new { Id = id, Name = "Alex Taylor", Status = "Active" };
+        return Ok(user);
+    }
+}"""
+    elif any(k in t_lower for k in ["golang", "go"]):
+        modules = [
+            ("Go Syntax, Types, Structs & Pointers", "Explore clean Go syntax, zero values, explicit error handling, and pointer memory semantics."),
+            ("Concurrency in Go: Goroutines & Channels", "Launch lightweight goroutines, communicate via unbuffered/buffered channels, and select statement coordination."),
+            ("Interfaces, Composition & Object Design Without Classes", "Implement implicit interfaces, struct embedding, and idiomatic Go architectural composition."),
+            ("Building Production REST Microservices with Go", "Utilize the standard library net/http, structured logging, middleware wrapping, and JSON serialization."),
+            ("Go Modules, Unit Testing, Benchmarking & Tooling", "Write table-driven tests (testing.T), benchmark execution speed (testing.B), and manage dependencies with go.mod.")
+        ]
+        category = "Systems Programming & Backend"
+        lang = "go"
+        code_snip = """package main
+import (
+    "fmt"
+    "time"
+)
+
+func worker(id int, ch chan string) {
+    time.Sleep(100 * time.Millisecond)
+    ch <- fmt.Sprintf("Worker %d completed task", id)
+}
+
+func main() {
+    ch := make(chan string, 2)
+    go worker(1, ch)
+    go worker(2, ch)
+    fmt.Println(<-ch)
+    fmt.Println(<-ch)
+}"""
+    elif any(k in t_lower for k in ["rust"]):
+        modules = [
+            ("Rust Syntax, Primitive Types & Memory Safety Paradigm", "Understand strong static typing, immutable variables by default, and compiling with cargo."),
+            ("Ownership, Borrowing Rules & Lifetime Mechanics", "Master Rust's flagship ownership rules: single owner, mutable vs immutable references, and lifetimes."),
+            ("Structs, Enums, Pattern Matching & Error Handling", "Model domain data with custom structs and enums; handle errors gracefully using Result<T, E> and Option<T>."),
+            ("Traits, Generics & Functional Programming with Iterators", "Define reusable shared behavior with traits, implement generic constraints, and use zero-cost iterators."),
+            ("Fearless Concurrency, Multithreading & Safe Data Sharing", "Spawn OS threads safely, transfer ownership across threads, and share mutable state using Arc<Mutex<T>>.")
+        ]
+        category = "Systems Programming"
+        lang = "rust"
+        code_snip = """// Rust Ownership and Pattern Matching Example
+fn find_even(num: i32) -> Result<String, String> {
+    if num % 2 == 0 {
+        Ok(format!("{} is an even number", num))
+    } else {
+        Err(format!("{} is an odd number", num))
+    }
+}
+
+fn main() {
+    match find_even(42) {
+        Ok(msg) => println!("Success: {}", msg),
+        Err(err) => println!("Error: {}", err),
+    }
+}"""
+    elif any(k in t_lower for k in ["postman", "api testing", "rest api"]):
+        modules = [
+            ("REST Architecture, HTTP Methods & Status Code Best Practices", "Master GET, POST, PUT, PATCH, DELETE operations, request headers, query parameters, and JSON payloads."),
+            ("Postman Collections, Environments & Variable Scopes", "Organize requests into logical collections, manage environment, collection, and global variables dynamically."),
+            ("Automated Test Scripting & Schema Validation with Chai.js", "Write assertions using pm.test and pm.expect, validate response status, latency, and JSON schema compliance."),
+            ("Data-Driven Testing with CSV/JSON & Newman CLI Integration", "Execute collection runs with external dataset iterations and integrate Newman into CI/CD pipelines."),
+            ("Mock Servers, Team Workspaces & Interactive API Documentation", "Create mock endpoints for frontend parallel development and generate public/private API documentation.")
+        ]
+        category = "API Engineering & Quality Assurance"
+        lang = "javascript"
+        code_snip = """// Postman Chai.js Test Script
+pm.test("Status code is 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response time is under 300ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(300);
+});
+
+pm.test("Payload contains required user ID", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.id).to.be.a('number');
+});"""
     elif "c++" in t_lower or "cpp" in t_lower:
         modules = [
             ("C++ Syntax, Pointers & Memory Architecture", "Master basic syntax, pointer arithmetic, memory references, and stack vs heap allocation."),
@@ -1163,14 +2667,12 @@ def get_curated_course(topic: Any) -> Dict[str, Any]:
         "data science": "machine learning",
         "spring": "java",
         "spring boot": "java",
-        "microservices": "java",
         "sql": "sql",
         "mysql": "sql",
         "postgres": "sql",
         "postgresql": "sql",
         "database": "sql",
         "docker": "docker",
-        "kubernetes": "docker",
         "container": "docker",
         "soft skills": "soft skills",
         "soft skill": "soft skills",

@@ -35,24 +35,17 @@ class CourseService:
 
         # Comprehensive topic-to-video mapping for verified, embeddable tutorials
         topic_video_map = {
-            # Angular (directly solving user's screenshot)
+            # Angular
             "angular": {"id": "k5E2AVpwsko", "title": "Angular Full Course - Beginner to Pro", "channel": "freeCodeCamp.org"},
             "angular basics": {"id": "k5E2AVpwsko", "title": "Angular Tutorial for Beginners", "channel": "freeCodeCamp.org"},
             "angularjs": {"id": "k5E2AVpwsko", "title": "Angular Full Tutorial", "channel": "freeCodeCamp.org"},
 
-            # Object-Oriented Programming (solving user's screenshot)
-            "object-oriented programming": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Principles Explained", "channel": "freeCodeCamp.org"},
-            "object-oriented": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Full Course", "channel": "freeCodeCamp.org"},
-            "object oriented": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Concepts", "channel": "freeCodeCamp.org"},
-            "oop": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Tutorial", "channel": "freeCodeCamp.org"},
-            "encapsulation": {"id": "pTB0EiLXUC8", "title": "OOP Encapsulation, Inheritance & Polymorphism", "channel": "freeCodeCamp.org"},
-            "polymorphism": {"id": "pTB0EiLXUC8", "title": "OOP Polymorphism & Abstraction", "channel": "freeCodeCamp.org"},
-            "solid": {"id": "pTB0EiLXUC8", "title": "SOLID Design Principles in Software Engineering", "channel": "freeCodeCamp.org"},
-
-            # React & Vue
+            # React, Next.js & Vue
             "react": {"id": "bMknfKXIFA8", "title": "React Course - Beginner's Tutorial for React", "channel": "freeCodeCamp.org"},
             "react.js": {"id": "bMknfKXIFA8", "title": "React JS Full Course for Beginners", "channel": "freeCodeCamp.org"},
             "reactjs": {"id": "bMknfKXIFA8", "title": "React Course for Beginners", "channel": "freeCodeCamp.org"},
+            "next.js": {"id": "wm5gMKuwSYk", "title": "Next.js 14 Full Course 2024", "channel": "freeCodeCamp.org"},
+            "nextjs": {"id": "wm5gMKuwSYk", "title": "Next.js 14 Full Course 2024", "channel": "freeCodeCamp.org"},
             "vue": {"id": "bzlFkeZ9uh8", "title": "Vue.js Full Course for Beginners", "channel": "freeCodeCamp.org"},
             "vue.js": {"id": "bzlFkeZ9uh8", "title": "Vue.js Full Course", "channel": "freeCodeCamp.org"},
 
@@ -61,11 +54,14 @@ class CourseService:
             "javascript": {"id": "W6NZfCO5SIk", "title": "JavaScript Tutorial for Beginners: Crash Course", "channel": "Programming with Mosh"},
             "js": {"id": "W6NZfCO5SIk", "title": "JavaScript Tutorial for Beginners", "channel": "Programming with Mosh"},
             "node": {"id": "Oe421EPjeBE", "title": "Node.js and Express.js Full Course", "channel": "freeCodeCamp.org"},
+            "nodejs": {"id": "Oe421EPjeBE", "title": "Node.js Full Course", "channel": "freeCodeCamp.org"},
             "express": {"id": "Oe421EPjeBE", "title": "Express.js Backend Framework Tutorial", "channel": "freeCodeCamp.org"},
 
-            # Web Basics
+            # Web Basics & CSS Frameworks
             "html": {"id": "mU6anWqZJcc", "title": "HTML and CSS Full Course - Beginner to Pro", "channel": "freeCodeCamp.org"},
             "css": {"id": "mU6anWqZJcc", "title": "CSS Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "tailwind": {"id": "ft30zcMlFao", "title": "Tailwind CSS Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "bootstrap": {"id": "-qfEOE4vtxE", "title": "Bootstrap 5 Full Course", "channel": "freeCodeCamp.org"},
             "web development": {"id": "mU6anWqZJcc", "title": "Web Development Full Course", "channel": "freeCodeCamp.org"},
             "frontend": {"id": "mU6anWqZJcc", "title": "Front-End Web Development Bootcamp", "channel": "freeCodeCamp.org"},
 
@@ -73,67 +69,31 @@ class CourseService:
             "python": {"id": "_uQrJ0TkZlc", "title": "Python Tutorial for Beginners - Full Course", "channel": "Programming with Mosh"},
             "django": {"id": "F5mRW0jo-U4", "title": "Python Django Full Course", "channel": "freeCodeCamp.org"},
             "fastapi": {"id": "tLKKmouU58o", "title": "FastAPI Course for Beginners", "channel": "freeCodeCamp.org"},
-            "flask": {"id": "Z1RJmh_Owhis", "title": "Python Flask Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "flask": {"id": "dam0GPOAvVI", "title": "Python Flask Tutorial for Beginners", "channel": "freeCodeCamp.org"},
             "numpy": {"id": "QUT1VHiLmmI", "title": "NumPy Full Course - Python Data Science", "channel": "freeCodeCamp.org"},
             "pandas": {"id": "vmEHCJofslg", "title": "Pandas Full Tutorial for Data Analysis", "channel": "freeCodeCamp.org"},
             "scikit": {"id": "0B5eIE_1vpU", "title": "Scikit-Learn Machine Learning in Python", "channel": "freeCodeCamp.org"},
 
-            # Java & Spring
+            # Java, Spring & Backend Architecture
             "java basics": {"id": "eIrMbAQSU34", "title": "Java Tutorial for Beginners - Programming with Mosh", "channel": "Programming with Mosh"},
             "java": {"id": "eIrMbAQSU34", "title": "Java Tutorial for Beginners", "channel": "Programming with Mosh"},
             "spring boot": {"id": "9SGDpanrc8U", "title": "Spring Boot Tutorial for Beginners", "channel": "Amigoscode"},
             "spring": {"id": "9SGDpanrc8U", "title": "Spring Framework Tutorial", "channel": "Amigoscode"},
             "hibernate": {"id": "Yv2xctJxE-w", "title": "Hibernate and JPA Tutorial", "channel": "Telusko"},
+            "microservices": {"id": "CdBtQk1x90M", "title": "Microservices Architecture and Design Patterns", "channel": "freeCodeCamp.org"},
+            "rest api": {"id": "qbLc5a9jdX4", "title": "REST APIs and Web Services Crash Course", "channel": "freeCodeCamp.org"},
+            "api": {"id": "qbLc5a9jdX4", "title": "API Design and Architecture", "channel": "freeCodeCamp.org"},
 
-            # C / C++ / C#
-            "c++": {"id": "vLnPwxZdW4Y", "title": "C++ Tutorial for Beginners - Full Course", "channel": "freeCodeCamp.org"},
-            "cpp": {"id": "vLnPwxZdW4Y", "title": "C++ Full Course", "channel": "freeCodeCamp.org"},
-            "c#": {"id": "GhQdlIFylQ8", "title": "C# Tutorial - Full Course for Beginners", "channel": "freeCodeCamp.org"},
-            "c programming": {"id": "KJgsSFOSQv0", "title": "C Programming Tutorial for Beginners", "channel": "freeCodeCamp.org"},
-            ".net": {"id": "GhQdlIFylQ8", "title": ".NET and C# Development Tutorial", "channel": "freeCodeCamp.org"},
+            # Object-Oriented Programming (OOP)
+            "object-oriented programming": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Principles Explained", "channel": "freeCodeCamp.org"},
+            "object-oriented": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Full Course", "channel": "freeCodeCamp.org"},
+            "object oriented": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Concepts", "channel": "freeCodeCamp.org"},
+            "oop": {"id": "pTB0EiLXUC8", "title": "Object Oriented Programming (OOP) Tutorial", "channel": "freeCodeCamp.org"},
+            "encapsulation": {"id": "pTB0EiLXUC8", "title": "OOP Encapsulation, Inheritance & Polymorphism", "channel": "freeCodeCamp.org"},
+            "polymorphism": {"id": "pTB0EiLXUC8", "title": "OOP Polymorphism & Abstraction", "channel": "freeCodeCamp.org"},
+            "solid": {"id": "pTB0EiLXUC8", "title": "SOLID Design Principles in Software Engineering", "channel": "freeCodeCamp.org"},
 
-            # Mobile
-            "flutter": {"id": "VPvVD8t02U8", "title": "Flutter Course for Beginners", "channel": "freeCodeCamp.org"},
-            "dart": {"id": "VPvVD8t02U8", "title": "Dart & Flutter Full Course", "channel": "freeCodeCamp.org"},
-            "android": {"id": "F9UC9DY-vIU", "title": "Android Development Course with Kotlin", "channel": "freeCodeCamp.org"},
-            "kotlin": {"id": "F9UC9DY-vIU", "title": "Kotlin for Android Development", "channel": "freeCodeCamp.org"},
-            "swift": {"id": "comQ1-x2a1Q", "title": "Swift Programming Tutorial - Full Course", "channel": "freeCodeCamp.org"},
-            "ios": {"id": "comQ1-x2a1Q", "title": "iOS App Development Tutorial", "channel": "freeCodeCamp.org"},
-
-            # Systems & CS Core
-            "data structures": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms", "channel": "freeCodeCamp.org"},
-            "dsa": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms", "channel": "freeCodeCamp.org"},
-            "algorithms": {"id": "RBSGKlAvoiM", "title": "Algorithms and Data Structures", "channel": "freeCodeCamp.org"},
-            "system design": {"id": "m8Icp_Cid5o", "title": "System Design Course for Beginners", "channel": "freeCodeCamp.org"},
-            "operating systems": {"id": "sWbUDq4S6Y8", "title": "Operating Systems & Linux for Beginners", "channel": "freeCodeCamp.org"},
-            "linux": {"id": "sWbUDq4S6Y8", "title": "Linux for Beginners - Full Course", "channel": "freeCodeCamp.org"},
-            "computer networks": {"id": "IPvYxKW3WTD", "title": "Computer Networking Course - Network Fundamentals", "channel": "freeCodeCamp.org"},
-            "cyber security": {"id": "3Kq1MIfTWCE", "title": "Cyber Security Full Course for Beginners", "channel": "freeCodeCamp.org"},
-
-            # Cloud & DevOps
-            "docker": {"id": "fqMOX6JJhGo", "title": "Docker Tutorial for Beginners", "channel": "Programming with Mosh"},
-            "kubernetes": {"id": "X48VuDVv0do", "title": "Kubernetes Tutorial for Beginners", "channel": "TechWorld with Nana"},
-            "aws": {"id": "k1RI5locZE4", "title": "AWS Certified Cloud Practitioner Training", "channel": "freeCodeCamp.org"},
-            "cloud": {"id": "k1RI5locZE4", "title": "Cloud Computing Fundamentals", "channel": "freeCodeCamp.org"},
-            "git": {"id": "RGOj5yH7evk", "title": "Git and GitHub for Beginners - Crash Course", "channel": "freeCodeCamp.org"},
-            "github": {"id": "RGOj5yH7evk", "title": "Git and GitHub Tutorial", "channel": "freeCodeCamp.org"},
-            "devops": {"id": "j5Zsa_eOXeY", "title": "DevOps Engineering Course for Beginners", "channel": "freeCodeCamp.org"},
-            "ci/cd": {"id": "R8_veQiYt30", "title": "CI/CD Pipeline with GitHub Actions", "channel": "freeCodeCamp.org"},
-
-            # Data & AI
-            "machine learning": {"id": "i_LwzRVP7bg", "title": "Machine Learning for Everybody - Full Course", "channel": "freeCodeCamp.org"},
-            "deep learning": {"id": "aircAruvnKk", "title": "Deep Learning Crash Course for Beginners", "channel": "3Blue1Brown"},
-            "data science": {"id": "LHBE6Q9XlzI", "title": "Data Science Full Course 2024", "channel": "freeCodeCamp.org"},
-            "nlp": {"id": "CMrHM8a33nw", "title": "Natural Language Processing (NLP) Tutorial", "channel": "freeCodeCamp.org"},
-            "llm": {"id": "9vM4p9NN0Ts", "title": "Large Language Models & Generative AI", "channel": "freeCodeCamp.org"},
-
-            # Databases
-            "sql": {"id": "HXV3zeRR3h4", "title": "SQL Tutorial - Full Database Course for Beginners", "channel": "freeCodeCamp.org"},
-            "database": {"id": "HXV3zeRR3h4", "title": "Relational Database Design and SQL", "channel": "freeCodeCamp.org"},
-            "mongodb": {"id": "ofme2o29ngU", "title": "MongoDB Full Course for Beginners", "channel": "freeCodeCamp.org"},
-            "postgresql": {"id": "qw--VOKK2j0", "title": "PostgreSQL Tutorial for Beginners", "channel": "freeCodeCamp.org"},
-
-            # Software Testing, QA & Automation (directly solving user's cucumber & testing requests)
+            # Software Testing, QA & Automation
             "cucumber": {"id": "4e9vhX7ZuCw", "title": "Selenium Cucumber Java BDD Framework Tutorial", "channel": "Raghav Pal"},
             "bdd": {"id": "4e9vhX7ZuCw", "title": "BDD Framework with Cucumber Tutorial", "channel": "Raghav Pal"},
             "gherkin": {"id": "4e9vhX7ZuCw", "title": "Cucumber Gherkin Syntax and Scenarios", "channel": "Raghav Pal"},
@@ -143,18 +103,96 @@ class CourseService:
             "testing": {"id": "HmQv8Z4om4I", "title": "Software Testing & QA Full Course", "channel": "edureka!"},
             "qa": {"id": "HmQv8Z4om4I", "title": "QA & Software Testing Full Course", "channel": "edureka!"},
             "sdet": {"id": "HmQv8Z4om4I", "title": "SDET Test Automation Engineering Full Course", "channel": "edureka!"},
+            "cypress": {"id": "5XQOK0v_YRE", "title": "Cypress End-to-End Testing Tutorial", "channel": "freeCodeCamp.org"},
+            "playwright": {"id": "x_4p1y_SbgE", "title": "Playwright Automation Testing Tutorial", "channel": "freeCodeCamp.org"},
             "postman": {"id": "VywxIQvBmOY", "title": "Postman API Testing Tutorial", "channel": "freeCodeCamp.org"},
             "api testing": {"id": "VywxIQvBmOY", "title": "API Testing Tutorial for Beginners", "channel": "freeCodeCamp.org"},
             "junit": {"id": "1mHjmn3spq8", "title": "JUnit 5 Testing Tutorial for Beginners", "channel": "freeCodeCamp.org"},
             "pytest": {"id": "byaxg00GwbU", "title": "PyTest Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "manual testing": {"id": "0YvA9Pj_dG8", "title": "Manual Testing Full Course for Beginners", "channel": "edureka!"},
+            "jira": {"id": "xU3sC0a99wQ", "title": "Jira & Agile Scrum Full Tutorial for Beginners", "channel": "freeCodeCamp.org"},
 
-            # Messaging & Caching
-            "kafka": {"id": "R873BlNVUB4", "title": "Apache Kafka Full Course", "channel": "freeCodeCamp.org"},
+            # Cloud, Containers & DevOps
+            "docker": {"id": "fqMOX6JJhGo", "title": "Docker Tutorial for Beginners", "channel": "Programming with Mosh"},
+            "kubernetes": {"id": "X48VuDVv0do", "title": "Kubernetes Tutorial for Beginners", "channel": "TechWorld with Nana"},
+            "k8s": {"id": "X48VuDVv0do", "title": "Kubernetes Tutorial for Beginners", "channel": "TechWorld with Nana"},
+            "aws": {"id": "k1RI5locZE4", "title": "AWS Certified Cloud Practitioner Training", "channel": "freeCodeCamp.org"},
+            "cloud": {"id": "k1RI5locZE4", "title": "Cloud Computing Fundamentals", "channel": "freeCodeCamp.org"},
+            "azure": {"id": "NKEFW2W3Gek", "title": "Microsoft Azure Fundamentals Certification Course (AZ-900)", "channel": "freeCodeCamp.org"},
+            "gcp": {"id": "jpno8FSqU84", "title": "Google Cloud Platform Full Course", "channel": "freeCodeCamp.org"},
+            "google cloud": {"id": "jpno8FSqU84", "title": "Google Cloud Platform Full Course", "channel": "freeCodeCamp.org"},
+            "terraform": {"id": "7xngnjfIlK4", "title": "Terraform Course - Automate your AWS Cloud Infrastructure", "channel": "freeCodeCamp.org"},
+            "jenkins": {"id": "6YZvp2GwT0A", "title": "Jenkins Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "ansible": {"id": "5hycyr-8EKs", "title": "Ansible Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "git": {"id": "RGOj5yH7evk", "title": "Git and GitHub for Beginners - Crash Course", "channel": "freeCodeCamp.org"},
+            "github": {"id": "RGOj5yH7evk", "title": "Git and GitHub Tutorial", "channel": "freeCodeCamp.org"},
+            "devops": {"id": "j5Zsa_eOXeY", "title": "DevOps Engineering Course for Beginners", "channel": "freeCodeCamp.org"},
+            "ci/cd": {"id": "R8_veQiYt30", "title": "CI/CD Pipeline with GitHub Actions", "channel": "freeCodeCamp.org"},
+            "linux": {"id": "sWbUDq4S6Y8", "title": "Linux for Beginners - Full Course", "channel": "freeCodeCamp.org"},
+            "bash": {"id": "sWbUDq4S6Y8", "title": "Bash & Shell Scripting Full Course", "channel": "freeCodeCamp.org"},
+
+            # Data Science, AI & Machine Learning
+            "machine learning": {"id": "i_LwzRVP7bg", "title": "Machine Learning for Everybody - Full Course", "channel": "freeCodeCamp.org"},
+            "deep learning": {"id": "aircAruvnKk", "title": "Deep Learning Crash Course for Beginners", "channel": "3Blue1Brown"},
+            "data science": {"id": "LHBE6Q9XlzI", "title": "Data Science Full Course 2024", "channel": "freeCodeCamp.org"},
+            "nlp": {"id": "CMrHM8a33nw", "title": "Natural Language Processing (NLP) Tutorial", "channel": "freeCodeCamp.org"},
+            "pytorch": {"id": "V_xro1bcAuA", "title": "PyTorch for Deep Learning & Machine Learning - Full Course", "channel": "freeCodeCamp.org"},
+            "tensorflow": {"id": "tPYj3fFQUjk", "title": "TensorFlow 2.0 Complete Course", "channel": "freeCodeCamp.org"},
+            "generative ai": {"id": "mEsleV16qdo", "title": "Generative AI Full Course - Gemini, LLMs & LangChain", "channel": "freeCodeCamp.org"},
+            "genai": {"id": "mEsleV16qdo", "title": "Generative AI Full Course", "channel": "freeCodeCamp.org"},
+            "llm": {"id": "mEsleV16qdo", "title": "Large Language Models & Generative AI", "channel": "freeCodeCamp.org"},
+            "llms": {"id": "mEsleV16qdo", "title": "Large Language Models & Generative AI", "channel": "freeCodeCamp.org"},
+            "langchain": {"id": "aywZrzNaKjs", "title": "LangChain Full Course - Generative AI Applications", "channel": "freeCodeCamp.org"},
+            "computer vision": {"id": "oXlwWbU8l2o", "title": "OpenCV Course - Full Tutorial with Python", "channel": "freeCodeCamp.org"},
+            "opencv": {"id": "oXlwWbU8l2o", "title": "OpenCV Computer Vision Tutorial", "channel": "freeCodeCamp.org"},
+            "power bi": {"id": "3u7ORePvmec", "title": "Power BI Full Course 2024 - Beginner to Pro", "channel": "freeCodeCamp.org"},
+            "tableau": {"id": "aHaOIvR00So", "title": "Tableau Full Course - Learn Tableau in 6 Hours", "channel": "edureka!"},
+            "excel": {"id": "Vl0H-qTclOg", "title": "Excel Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+
+            # Databases, Messaging & In-Memory Stores
+            "sql": {"id": "HXV3zeRR3h4", "title": "SQL Tutorial - Full Database Course for Beginners", "channel": "freeCodeCamp.org"},
+            "mysql": {"id": "7S_tz1z_5bA", "title": "MySQL Tutorial for Beginners - Full Course", "channel": "Programming with Mosh"},
+            "postgresql": {"id": "qw--VOKK2j0", "title": "PostgreSQL Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "postgres": {"id": "qw--VOKK2j0", "title": "PostgreSQL Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "mongodb": {"id": "ofme2o29ngU", "title": "MongoDB Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "database": {"id": "HXV3zeRR3h4", "title": "Relational Database Design and SQL", "channel": "freeCodeCamp.org"},
             "redis": {"id": "XCsS_NVA374", "title": "Redis Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "kafka": {"id": "R873BlNVUB4", "title": "Apache Kafka Full Course", "channel": "freeCodeCamp.org"},
             "graphql": {"id": "ed8SzALpx1Q", "title": "GraphQL Full Course", "channel": "freeCodeCamp.org"},
+            "sqlite": {"id": "byHcYRpMgI4", "title": "SQLite Databases Full Tutorial", "channel": "freeCodeCamp.org"},
+
+            # Computer Science Core & Systems
+            "data structures": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms", "channel": "freeCodeCamp.org"},
+            "dsa": {"id": "RBSGKlAvoiM", "title": "Data Structures and Algorithms", "channel": "freeCodeCamp.org"},
+            "algorithms": {"id": "RBSGKlAvoiM", "title": "Algorithms and Data Structures", "channel": "freeCodeCamp.org"},
+            "system design": {"id": "m8Icp_Cid5o", "title": "System Design Course for Beginners", "channel": "freeCodeCamp.org"},
+            "operating systems": {"id": "sWbUDq4S6Y8", "title": "Operating Systems & Linux for Beginners", "channel": "freeCodeCamp.org"},
+            "os": {"id": "sWbUDq4S6Y8", "title": "Operating Systems & Linux for Beginners", "channel": "freeCodeCamp.org"},
+            "computer networks": {"id": "IPvYxKW3WTD", "title": "Computer Networking Course - Network Fundamentals", "channel": "freeCodeCamp.org"},
+            "networking": {"id": "IPvYxKW3WTD", "title": "Computer Networking Course - Network Fundamentals", "channel": "freeCodeCamp.org"},
+            "cyber security": {"id": "3Kq1MIfTWCE", "title": "Cyber Security Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "security": {"id": "3Kq1MIfTWCE", "title": "Cyber Security Full Course for Beginners", "channel": "freeCodeCamp.org"},
+
+            # Languages & Mobile
+            "c++": {"id": "vLnPwxZdW4Y", "title": "C++ Tutorial for Beginners - Full Course", "channel": "freeCodeCamp.org"},
+            "cpp": {"id": "vLnPwxZdW4Y", "title": "C++ Full Course", "channel": "freeCodeCamp.org"},
+            "c#": {"id": "GhQdlIFylQ8", "title": "C# Tutorial - Full Course for Beginners", "channel": "freeCodeCamp.org"},
+            "c programming": {"id": "KJgsSFOSQv0", "title": "C Programming Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            ".net": {"id": "GhQdlIFylQ8", "title": ".NET and C# Development Tutorial", "channel": "freeCodeCamp.org"},
+            "golang": {"id": "YS4e4q9oBaU", "title": "Go Programming - Golang Course with Bonus Projects", "channel": "freeCodeCamp.org"},
+            "go": {"id": "YS4e4q9oBaU", "title": "Go Programming - Golang Course", "channel": "freeCodeCamp.org"},
+            "rust": {"id": "MsocOYgBm80", "title": "Rust Programming Course for Beginners", "channel": "freeCodeCamp.org"},
+            "php": {"id": "OK_JCtrrv-c", "title": "PHP For Beginners - Full Course", "channel": "freeCodeCamp.org"},
+            "flutter": {"id": "VPvVD8t02U8", "title": "Flutter Course for Beginners", "channel": "freeCodeCamp.org"},
+            "dart": {"id": "VPvVD8t02U8", "title": "Dart & Flutter Full Course", "channel": "freeCodeCamp.org"},
+            "android": {"id": "F9UC9DY-vIU", "title": "Android Development Course with Kotlin", "channel": "freeCodeCamp.org"},
+            "kotlin": {"id": "F9UC9DY-vIU", "title": "Kotlin for Android Development", "channel": "freeCodeCamp.org"},
+            "swift": {"id": "comQ1-x2a1Q", "title": "Swift Programming Tutorial - Full Course", "channel": "freeCodeCamp.org"},
+            "ios": {"id": "comQ1-x2a1Q", "title": "iOS App Development Tutorial", "channel": "freeCodeCamp.org"},
 
             # Soft Skills & Engineering
             "soft skill": {"id": "7sxpKhIbr0E", "title": "Soft Skills for Software Developers", "channel": "freeCodeCamp.org"},
+            "soft skills": {"id": "7sxpKhIbr0E", "title": "Soft Skills for Software Developers", "channel": "freeCodeCamp.org"},
             "communication": {"id": "7sxpKhIbr0E", "title": "Effective Workplace Communication & Interview Skills", "channel": "freeCodeCamp.org"},
             "interview": {"id": "7sxpKhIbr0E", "title": "Technical Interview Preparation and Behavioral Skills", "channel": "freeCodeCamp.org"},
             "engineering": {"id": "8mAITcNt710", "title": "Computer Science & Software Engineering Fundamentals", "channel": "Harvard CS50"},
@@ -175,12 +213,12 @@ class CourseService:
                     "youtube_search_url": f"https://www.youtube.com/results?search_query={requests.utils.quote(query + ' tutorial')}"
                 }
 
-        # Fallback by domain keywords if not directly matched
+        # Comprehensive domain-level fallback resolution
         if any(w in query_lower for w in ["cucumber", "bdd", "gherkin"]):
             default_id = "4e9vhX7ZuCw"
             default_title = "Selenium Cucumber Java BDD Tutorial"
             default_channel = "Raghav Pal"
-        elif any(w in query_lower for w in ["testing", "selenium", "qa", "test", "sdet"]):
+        elif any(w in query_lower for w in ["testing", "selenium", "qa", "test", "sdet", "cypress", "playwright", "junit", "pytest"]):
             default_id = "HmQv8Z4om4I"
             default_title = "Software Testing & Automation Tutorial"
             default_channel = "edureka!"
@@ -188,21 +226,101 @@ class CourseService:
             default_id = "k5E2AVpwsko"
             default_title = "Angular Tutorial for Beginners"
             default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["react", "next", "vue"]):
+            default_id = "bMknfKXIFA8"
+            default_title = "React & Modern Web Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["typescript"]):
+            default_id = "BwuLxPH8IDs"
+            default_title = "TypeScript Tutorial for Beginners"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["frontend", "html", "css", "javascript", "node", "web", "tailwind"]):
+            default_id = "W6NZfCO5SIk"
+            default_title = "Frontend & Web Development Tutorial"
+            default_channel = "Programming with Mosh"
         elif any(w in query_lower for w in ["oop", "object"]):
             default_id = "pTB0EiLXUC8"
             default_title = "Object-Oriented Programming (OOP) Principles"
             default_channel = "freeCodeCamp.org"
-        elif any(w in query_lower for w in ["react", "frontend", "html", "css", "javascript", "node"]):
-            default_id = "W6NZfCO5SIk"
-            default_title = "Frontend & JavaScript Tutorial"
+        elif any(w in query_lower for w in ["docker", "container"]):
+            default_id = "fqMOX6JJhGo"
+            default_title = "Docker & Containers Tutorial"
             default_channel = "Programming with Mosh"
-        elif any(w in query_lower for w in ["python", "data", "ml", "ai"]):
-            default_id = "_uQrJ0TkZlc"
-            default_title = "Python Tutorial for Beginners"
-            default_channel = "Programming with Mosh"
+        elif any(w in query_lower for w in ["kubernetes", "k8s"]):
+            default_id = "X48VuDVv0do"
+            default_title = "Kubernetes Orchestration Tutorial"
+            default_channel = "TechWorld with Nana"
+        elif any(w in query_lower for w in ["aws", "cloud", "azure", "gcp"]):
+            default_id = "k1RI5locZE4"
+            default_title = "Cloud Computing & AWS Architecture"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["devops", "ci/cd", "terraform", "jenkins", "ansible"]):
+            default_id = "j5Zsa_eOXeY"
+            default_title = "DevOps Engineering Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["git", "github"]):
+            default_id = "RGOj5yH7evk"
+            default_title = "Git & Version Control Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["linux", "bash", "shell"]):
+            default_id = "sWbUDq4S6Y8"
+            default_title = "Linux & Shell Scripting Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["sql", "mysql", "postgres", "database"]):
+            default_id = "HXV3zeRR3h4"
+            default_title = "Relational Database & SQL Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["mongodb", "nosql"]):
+            default_id = "ofme2o29ngU"
+            default_title = "MongoDB & NoSQL Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["redis", "caching"]):
+            default_id = "XCsS_NVA374"
+            default_title = "Redis & In-Memory Caching Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["kafka"]):
+            default_id = "R873BlNVUB4"
+            default_title = "Apache Kafka & Event Streaming Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["system design", "microservices"]):
+            default_id = "m8Icp_Cid5o"
+            default_title = "System Design & Distributed Systems Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["data structures", "dsa", "algorithms"]):
+            default_id = "RBSGKlAvoiM"
+            default_title = "Data Structures & Algorithms Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["c++", "cpp"]):
+            default_id = "vLnPwxZdW4Y"
+            default_title = "C++ Programming Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["c#", ".net"]):
+            default_id = "GhQdlIFylQ8"
+            default_title = "C# & .NET Development Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["golang", "go"]):
+            default_id = "YS4e4q9oBaU"
+            default_title = "Go Programming Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["rust"]):
+            default_id = "MsocOYgBm80"
+            default_title = "Rust Programming Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["postman", "api"]):
+            default_id = "VywxIQvBmOY"
+            default_title = "Postman & REST API Tutorial"
+            default_channel = "freeCodeCamp.org"
+        elif any(w in query_lower for w in ["ai", "machine learning", "deep learning", "data", "nlp", "pytorch", "tensorflow"]):
+            default_id = "i_LwzRVP7bg"
+            default_title = "Machine Learning & AI Tutorial"
+            default_channel = "freeCodeCamp.org"
         elif any(w in query_lower for w in ["java", "spring", "jvm"]):
             default_id = "eIrMbAQSU34"
             default_title = "Java Tutorial for Beginners"
+            default_channel = "Programming with Mosh"
+        elif any(w in query_lower for w in ["python", "django", "flask", "fastapi"]):
+            default_id = "_uQrJ0TkZlc"
+            default_title = "Python Tutorial for Beginners"
             default_channel = "Programming with Mosh"
         else:
             default_id = "8mAITcNt710"  # Universal CS Fundamentals (Harvard CS50, 100% active)
@@ -271,7 +389,26 @@ Return ONLY valid JSON in the exact following schema:
 }}
 """
         curated = get_curated_course(topic)
-        if curated:
+        if curated and len(curated.get("chapters", [])) > 0:
+            chapters = [
+                {
+                    "chapter_id": ch["chapter_id"],
+                    "name": ch["name"],
+                    "about": ch["about"],
+                    "duration": ch.get("duration", "15 mins"),
+                    "coding_challenge": ch.get("coding_challenge")
+                }
+                for ch in curated["chapters"][:num_chapters]
+            ]
+            # Ensure at least num_chapters exist
+            while len(chapters) < num_chapters:
+                next_id = len(chapters) + 1
+                chapters.append({
+                    "chapter_id": next_id,
+                    "name": f"Advanced Practices & Integration in {topic}",
+                    "about": f"Practical patterns, performance tuning, and enterprise applications of {topic}.",
+                    "duration": "15 mins",
+                })
             response = {
                 "name": curated.get("name", topic),
                 "category": curated.get("category", category),
@@ -279,16 +416,7 @@ Return ONLY valid JSON in the exact following schema:
                 "duration": duration,
                 "summary": curated.get("summary", ""),
                 "courseBanner": "/placeholder.svg",
-                "chapters": [
-                    {
-                        "chapter_id": ch["chapter_id"],
-                        "name": ch["name"],
-                        "about": ch["about"],
-                        "duration": ch.get("duration", "15 mins"),
-                        "coding_challenge": ch.get("coding_challenge")
-                    }
-                    for ch in curated["chapters"][:num_chapters]
-                ]
+                "chapters": chapters
             }
         else:
             response = self.llm.generate_json(prompt)
@@ -609,6 +737,41 @@ Return ONLY valid JSON matching this structure:
                 "language": "javascript",
                 "code": f"// Component implementation for {chapter_name}\nfunction executeTask() {{\n    console.log('Running: {chapter_name}');\n    return {{ status: 'success', timestamp: Date.now() }};\n}}\nexecuteTask();",
                 "explanation": f"Demonstrates modular JavaScript implementation for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["cucumber", "bdd", "gherkin"]):
+            return {
+                "title": f"Cucumber BDD Step Definition: {chapter_name}",
+                "language": "java",
+                "code": f"import io.cucumber.java.en.*;\n\npublic class StepDefs {{\n    @Given(\"system initialized for {chapter_name}\")\n    public void setup() {{\n        System.out.println(\"Configuring {chapter_name}\");\n    }}\n    @When(\"user executes test scenario\")\n    public void execute() {{\n        System.out.println(\"Running scenario for {chapter_name}\");\n    }}\n    @Then(\"verify expected result is achieved\")\n    public void verify() {{\n        assert true;\n    }}\n}}",
+                "explanation": f"Demonstrates Cucumber BDD annotations and step definition glue code for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["c++", "cpp"]):
+            return {
+                "title": f"C++ Implementation: {chapter_name}",
+                "language": "cpp",
+                "code": f"#include <iostream>\n\nint main() {{\n    std::cout << \"Executing C++ module: {chapter_name}\" << std::endl;\n    return 0;\n}}",
+                "explanation": f"Demonstrates modern C++ syntax and execution structure for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["golang", "go"]):
+            return {
+                "title": f"Go Implementation: {chapter_name}",
+                "language": "go",
+                "code": f"package main\nimport \"fmt\"\n\nfunc main() {{\n    fmt.Println(\"Executing Go module: {chapter_name}\")\n}}",
+                "explanation": f"Demonstrates idiomatic Go implementation for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["rust"]):
+            return {
+                "title": f"Rust Implementation: {chapter_name}",
+                "language": "rust",
+                "code": f"fn main() {{\n    println!(\"Executing Rust module: {chapter_name}\");\n}}",
+                "explanation": f"Demonstrates memory-safe Rust execution for {chapter_name}."
+            }
+        elif any(w in c_lower for w in ["typescript", "angular"]):
+            return {
+                "title": f"TypeScript Implementation: {chapter_name}",
+                "language": "typescript",
+                "code": f"interface ModuleConfig {{\n    name: string;\n    active: boolean;\n}}\nconst cfg: ModuleConfig = {{ name: '{chapter_name}', active: true }};\nconsole.log(`Running module: ${{cfg.name}}`);",
+                "explanation": f"Demonstrates strongly-typed TypeScript implementation for {chapter_name}."
             }
         elif any(w in c_lower for w in ["soft skill", "communication", "interview", "behavioral"]):
             return {

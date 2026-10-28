@@ -635,23 +635,63 @@
       const videoSection = document.getElementById('videoSection');
       const videoWrapper = document.getElementById('videoFrameWrapper');
       let vidId = (ch.video && ch.video.video_id) ? ch.video.video_id : "";
-      const cLower = (currentCourse.name || "").toLowerCase();
-      // Auto-heal dead placeholder or missing video IDs
-      if (!vidId || vidId === "bJzb-Ey42H0") {
+      const cLower = ((currentCourse.name || "") + " " + (ch.name || "")).toLowerCase();
+      // Comprehensive auto-heal for all courses and technical domains
+      if (!vidId || vidId.length !== 11 || vidId === "bJzb-Ey42H0") {
         if (/cucumber|bdd|gherkin/.test(cLower)) {
           vidId = "4e9vhX7ZuCw";
-        } else if (/selenium|testing|qa|sdet/.test(cLower)) {
+        } else if (/selenium|testing|qa|sdet|cypress|playwright|junit|pytest/.test(cLower)) {
           vidId = "HmQv8Z4om4I";
         } else if (/angular|ng-/.test(cLower)) {
           vidId = "k5E2AVpwsko";
+        } else if (/react|next|vue/.test(cLower)) {
+          vidId = "bMknfKXIFA8";
+        } else if (/typescript/.test(cLower)) {
+          vidId = "BwuLxPH8IDs";
+        } else if (/javascript|node|express|frontend|html|css|tailwind|bootstrap/.test(cLower)) {
+          vidId = "W6NZfCO5SIk";
         } else if (/oop|object/.test(cLower)) {
           vidId = "pTB0EiLXUC8";
-        } else if (/react|frontend|javascript|node/.test(cLower)) {
-          vidId = "W6NZfCO5SIk";
-        } else if (/python|data|ml|ai/.test(cLower)) {
-          vidId = "_uQrJ0TkZlc";
+        } else if (/docker/.test(cLower)) {
+          vidId = "fqMOX6JJhGo";
+        } else if (/kubernetes|k8s/.test(cLower)) {
+          vidId = "X48VuDVv0do";
+        } else if (/aws|cloud|azure|gcp/.test(cLower)) {
+          vidId = "k1RI5locZE4";
+        } else if (/git|github/.test(cLower)) {
+          vidId = "RGOj5yH7evk";
+        } else if (/linux|bash|shell/.test(cLower)) {
+          vidId = "sWbUDq4S6Y8";
+        } else if (/devops|ci\/cd|terraform|jenkins/.test(cLower)) {
+          vidId = "j5Zsa_eOXeY";
+        } else if (/sql|mysql|postgres|database/.test(cLower)) {
+          vidId = "HXV3zeRR3h4";
+        } else if (/mongodb|nosql/.test(cLower)) {
+          vidId = "ofme2o29ngU";
+        } else if (/redis/.test(cLower)) {
+          vidId = "XCsS_NVA374";
+        } else if (/kafka/.test(cLower)) {
+          vidId = "R873BlNVUB4";
+        } else if (/dsa|data structure|algorithm/.test(cLower)) {
+          vidId = "RBSGKlAvoiM";
+        } else if (/system design/.test(cLower)) {
+          vidId = "m8Icp_Cid5o";
+        } else if (/c\+\+|cpp/.test(cLower)) {
+          vidId = "vLnPwxZdW4Y";
+        } else if (/c#|\.net/.test(cLower)) {
+          vidId = "GhQdlIFylQ8";
+        } else if (/golang|go/.test(cLower)) {
+          vidId = "YS4e4q9oBaU";
+        } else if (/rust/.test(cLower)) {
+          vidId = "MsocOYgBm80";
+        } else if (/postman|api/.test(cLower)) {
+          vidId = "VywxIQvBmOY";
+        } else if (/ai|machine learning|deep learning|data|nlp|pytorch|tensorflow/.test(cLower)) {
+          vidId = "i_LwzRVP7bg";
         } else if (/java|spring|jvm/.test(cLower)) {
           vidId = "eIrMbAQSU34";
+        } else if (/python|django|flask|fastapi/.test(cLower)) {
+          vidId = "_uQrJ0TkZlc";
         } else {
           vidId = "8mAITcNt710";
         }
@@ -676,9 +716,14 @@
           <div>
             <strong style="color: var(--text);">${escapeHtml(vidTitle)}</strong> &bull; <span class="text-muted">${escapeHtml(vidChannel)}</span>
           </div>
-          <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-            <span>&#128250; Open on YouTube &#8599;</span>
-          </a>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <a href="https://www.youtube.com/watch?v=${vidId}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <span>&#9654; Watch on YouTube &#8599;</span>
+            </a>
+            <a href="${searchUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <span>&#128269; Search More Videos</span>
+            </a>
+          </div>
         </div>
       `;
       videoSection.style.display = 'block';
