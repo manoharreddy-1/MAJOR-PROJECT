@@ -149,6 +149,21 @@
     function renderRequirements(req) {
       if (!req) return;
       jobRequirements.innerHTML = `
+        ${(req.role_alignment && req.role_alignment.is_mismatch) ? `
+          <div class="mismatch-banner" id="mismatchBanner" style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:8px; padding:12px 14px; margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+              <div>
+                <div style="font-weight:700; color:#b45309; font-size:0.9rem;">⚠️ Target Role Mismatch Detected</div>
+                <div style="font-size:0.825rem; color:#78350f; margin-top:3px;">
+                  You entered <strong>"${req.role_alignment.entered_role}"</strong>, but this job description is for <strong>"${req.role_alignment.detected_role}"</strong>.
+                  Proceeding without sync will generate misaligned questions and lower your ATS score.
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-warning" id="syncRoleBtn" style="white-space:nowrap; padding:4px 10px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+                Sync to "${req.role_alignment.detected_role}"
+              </button>
+            </div>
+          </div>` : ''}
         <div class="form-group"><label class="form-label">Job Title</label>
           <input class="form-input" id="reqTitle" value="${req.job_title || ''}"></div>
         <div class="form-group"><label class="form-label">Required Skills</label>
@@ -160,6 +175,26 @@
         <div class="form-group"><label class="form-label">Education Requirements</label>
           <input class="form-input" id="reqEdu" value="${(req.education || []).join(', ')}"></div>
         <p class="text-muted" style="font-size: 0.8125rem;">Edit requirements before running analysis for better accuracy.</p>`;
+      const syncBtn = document.getElementById('syncRoleBtn');
+      if (syncBtn && req.role_alignment) {
+        syncBtn.addEventListener('click', () => {
+          const det = req.role_alignment.detected_role;
+          const jtInput = document.getElementById('jobTitle');
+          if (jtInput) jtInput.value = det;
+          const rtInput = document.getElementById('reqTitle');
+          if (rtInput) rtInput.value = det;
+          const jd = Store.get('job_data') || {};
+          jd.job_title = det;
+          Store.set('job_data', jd);
+          const banner = document.getElementById('mismatchBanner');
+          if (banner) {
+            banner.style.background = '#ecfdf5';
+            banner.style.borderColor = '#a7f3d0';
+            banner.style.borderLeftColor = '#10b981';
+            banner.innerHTML = `<div style="color:#065f46; font-size:0.85rem; font-weight:600;">✅ Target Role synchronized to "${det}".</div>`;
+          }
+        });
+      }
     }
 
     async function runAnalysis() {

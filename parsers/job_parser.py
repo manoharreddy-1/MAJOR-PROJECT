@@ -1,7 +1,7 @@
 """Job description parsing and requirement extraction."""
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from utils.text_cleaner import clean_text, extract_section
 from utils.skill_normalizer import (
@@ -32,11 +32,15 @@ class JobDescriptionParser:
         if not multiline_text:
             raise ValueError("Job description is empty.")
 
-        job_title = title or self._extract_title(multiline_text)
+        detected_title = self._extract_title(multiline_text)
+        alignment = self.check_role_alignment(title, detected_title, multiline_text)
+        job_title = title.strip() if (title and title.strip()) else detected_title
 
         return {
             "raw_text": multiline_text,
             "job_title": job_title,
+            "detected_title": detected_title,
+            "role_alignment": alignment,
             "required_skills": self._extract_required_skills(multiline_text),
             "preferred_skills": self._extract_preferred_skills(multiline_text),
             "education": self._extract_education_requirements(multiline_text),
@@ -45,6 +49,66 @@ class JobDescriptionParser:
             "tools": self._extract_tools(multiline_text),
             "technologies": extract_skills_from_text(multiline_text),
             "certifications": self._extract_certifications(multiline_text),
+        }
+
+    def check_role_alignment(self, entered_title: Optional[str], detected_title: str, text: str) -> Dict[str, Any]:
+        """Verify whether entered target role matches the job description content."""
+        if not entered_title or not entered_title.strip():
+            return {
+                "is_mismatch": False,
+                "entered_role": detected_title,
+                "detected_role": detected_title,
+                "message": ""
+            }
+
+        entered = entered_title.strip()
+        e_lower = entered.lower()
+        d_lower = (detected_title or "").lower()
+        t_lower = (text or "").lower()
+
+        # Domain keywords mapping
+        domain_keywords = {
+            "data_ai": ["machine learning", "deep learning", "nlp", "computer vision", "data scientist", "data science", "data analyst", "data engineer", "ai engineer", "ai/ml", "artificial intelligence", "ml engineer"],
+            "java": ["java", "spring boot", "spring", "hibernate", "jvm", "j2ee"],
+            "qa_testing": ["qa", "testing", "test", "quality assurance", "sdet", "cucumber", "selenium", "automation engineer", "automation testing"],
+            "frontend": ["frontend", "front-end", "react", "angular", "vue", "javascript", "typescript", "ui/ux", "web developer", "html", "css"],
+            "devops": ["devops", "cloud", "aws", "docker", "kubernetes", "sre", "infrastructure", "terraform", "azure", "gcp"],
+            "python": ["python", "django", "fastapi", "flask"],
+            "mobile": ["android", "ios", "flutter", "swift", "kotlin", "react native"],
+            "cybersecurity": ["security", "cyber", "infosec", "penetration", "soc analyst"]
+        }
+
+        def get_domain(s: str) -> Optional[str]:
+            for dom, kws in domain_keywords.items():
+                if any(kw in s for kw in kws):
+                    return dom
+            return None
+
+        entered_domain = get_domain(e_lower)
+        detected_domain = get_domain(d_lower) or get_domain(t_lower[:1500])
+
+        is_mismatch = False
+        if entered_domain and detected_domain and entered_domain != detected_domain:
+            is_mismatch = True
+        elif entered_domain and not detected_domain:
+            # Check if entered domain keywords are completely absent from JD text
+            kws = domain_keywords[entered_domain]
+            if not any(k in t_lower for k in kws):
+                is_mismatch = True
+
+        msg = ""
+        if is_mismatch:
+            msg = (
+                f"Target Role Mismatch: You entered '{entered}', but this job description appears to be for "
+                f"'{detected_title}'. Proceeding with this mismatch will severely lower your ATS match score "
+                f"and generate interview questions for the wrong field."
+            )
+
+        return {
+            "is_mismatch": is_mismatch,
+            "entered_role": entered,
+            "detected_role": detected_title,
+            "message": msg
         }
 
     def _extract_title(self, text: str) -> str:

@@ -999,6 +999,67 @@ def generate_smart_curriculum(topic_str: str) -> Dict[str, Any]:
         category = "Programming Languages"
         lang = "typescript"
         code_snip = "interface User {\n  id: number;\n  name: string;\n  role: 'admin' | 'user';\n}\n\nfunction printUser(u: User): void {\n  console.log(`User ${u.name} has role: ${u.role}`);\n}\nprintUser({ id: 1, name: 'Alice', role: 'admin' });"
+    elif any(k in t_lower for k in ["cucumber", "bdd", "gherkin"]):
+        modules = [
+            ("Introduction to BDD & Cucumber Architecture", "Understand Behavior-Driven Development principles, business-readable specifications, and Cucumber framework components."),
+            ("Gherkin Syntax & Feature Files", "Master Feature, Scenario, Given-When-Then-And-But steps, Backgrounds, and Scenario Outlines with Examples tables."),
+            ("Step Definitions & Regex Glue Code", "Implement step definition methods in Java matching Gherkin patterns, step arguments, and data table conversions."),
+            ("Test Runner, Hooks (@Before/@After) & Tagging", "Configure JUnit TestRunner, cucumberOptions, scenario execution hooks, and smoke/regression tags."),
+            ("Framework Integration: Selenium & Page Object Model", "Integrate Cucumber with Selenium WebDriver, Page Object Model design pattern, and generate HTML reports.")
+        ]
+        category = "Software Testing & QA"
+        lang = "java"
+        code_snip = """// Gherkin Feature & Java Step Definition
+// Feature: User Login
+// Scenario: Successful login with valid credentials
+//   Given user navigates to login page
+//   When user enters username and password
+//   Then user is redirected to dashboard
+
+import io.cucumber.java.en.*;
+
+public class LoginStepDefinitions {
+    @Given("user navigates to login page")
+    public void navigateToLogin() {
+        System.out.println("Navigating to login page...");
+    }
+
+    @When("user enters username and password")
+    public void enterCredentials() {
+        System.out.println("Entering user credentials...");
+    }
+
+    @Then("user is redirected to dashboard")
+    public void verifyDashboard() {
+        System.out.println("Verifying dashboard redirection...");
+    }
+}"""
+    elif any(k in t_lower for k in ["selenium", "automation testing", "software testing", "qa", "sdet"]):
+        modules = [
+            ("Software Testing Principles & Test Automation Foundations", "Understand QA lifecycle (STLC), verification vs validation, and the test automation pyramid."),
+            ("Selenium WebDriver Architecture & Element Locators", "Configure WebDriver instances, browser options, and locate elements via ID, CSS selectors, and XPath."),
+            ("Synchronization, Dynamic Waits & Event Handling", "Handle race conditions using WebDriverWait, ExpectedConditions, and avoid fragile thread sleeps."),
+            ("Page Object Model (POM) Design Pattern", "Design robust, maintainable test frameworks separating page web elements from test assertion logic."),
+            ("Cross-Browser Testing, TestNG & CI/CD Integration", "Run automated test suites across Chrome/Firefox, execute data-driven tests, and integrate with CI/CD.")
+        ]
+        category = "Software Testing & QA"
+        lang = "java"
+        code_snip = """import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.By;
+
+public class SeleniumDemo {
+    public static void main(String[] args) {
+        WebDriver driver = new ChromeDriver();
+        try {
+            driver.get("https://example.com");
+            System.out.println("Page Title: " + driver.getTitle());
+            driver.findElement(By.tagName("h1"));
+        } finally {
+            driver.quit();
+        }
+    }
+}"""
     elif "c++" in t_lower or "cpp" in t_lower:
         modules = [
             ("C++ Syntax, Pointers & Memory Architecture", "Master basic syntax, pointer arithmetic, memory references, and stack vs heap allocation."),

@@ -133,11 +133,31 @@ class CourseService:
             "mongodb": {"id": "ofme2o29ngU", "title": "MongoDB Full Course for Beginners", "channel": "freeCodeCamp.org"},
             "postgresql": {"id": "qw--VOKK2j0", "title": "PostgreSQL Tutorial for Beginners", "channel": "freeCodeCamp.org"},
 
+            # Software Testing, QA & Automation (directly solving user's cucumber & testing requests)
+            "cucumber": {"id": "4e9vhX7ZuCw", "title": "Selenium Cucumber Java BDD Framework Tutorial", "channel": "Raghav Pal"},
+            "bdd": {"id": "4e9vhX7ZuCw", "title": "BDD Framework with Cucumber Tutorial", "channel": "Raghav Pal"},
+            "gherkin": {"id": "4e9vhX7ZuCw", "title": "Cucumber Gherkin Syntax and Scenarios", "channel": "Raghav Pal"},
+            "selenium": {"id": "HmQv8Z4om4I", "title": "Selenium Automation Testing Full Course", "channel": "edureka!"},
+            "automation testing": {"id": "HmQv8Z4om4I", "title": "Automation Testing Full Course", "channel": "edureka!"},
+            "software testing": {"id": "HmQv8Z4om4I", "title": "Software Testing Tutorial for Beginners", "channel": "edureka!"},
+            "testing": {"id": "HmQv8Z4om4I", "title": "Software Testing & QA Full Course", "channel": "edureka!"},
+            "qa": {"id": "HmQv8Z4om4I", "title": "QA & Software Testing Full Course", "channel": "edureka!"},
+            "sdet": {"id": "HmQv8Z4om4I", "title": "SDET Test Automation Engineering Full Course", "channel": "edureka!"},
+            "postman": {"id": "VywxIQvBmOY", "title": "Postman API Testing Tutorial", "channel": "freeCodeCamp.org"},
+            "api testing": {"id": "VywxIQvBmOY", "title": "API Testing Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "junit": {"id": "1mHjmn3spq8", "title": "JUnit 5 Testing Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "pytest": {"id": "byaxg00GwbU", "title": "PyTest Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+
+            # Messaging & Caching
+            "kafka": {"id": "R873BlNVUB4", "title": "Apache Kafka Full Course", "channel": "freeCodeCamp.org"},
+            "redis": {"id": "XCsS_NVA374", "title": "Redis Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+            "graphql": {"id": "ed8SzALpx1Q", "title": "GraphQL Full Course", "channel": "freeCodeCamp.org"},
+
             # Soft Skills & Engineering
             "soft skill": {"id": "7sxpKhIbr0E", "title": "Soft Skills for Software Developers", "channel": "freeCodeCamp.org"},
             "communication": {"id": "7sxpKhIbr0E", "title": "Effective Workplace Communication & Interview Skills", "channel": "freeCodeCamp.org"},
             "interview": {"id": "7sxpKhIbr0E", "title": "Technical Interview Preparation and Behavioral Skills", "channel": "freeCodeCamp.org"},
-            "engineering": {"id": "bJzb-Ey42H0", "title": "Software Engineering Fundamentals & Best Practices", "channel": "Crash Course"},
+            "engineering": {"id": "8mAITcNt710", "title": "Computer Science & Software Engineering Fundamentals", "channel": "Harvard CS50"},
         }
 
         # Check most specific keys first (longest length first)
@@ -156,7 +176,15 @@ class CourseService:
                 }
 
         # Fallback by domain keywords if not directly matched
-        if any(w in query_lower for w in ["angular", "ng-"]):
+        if any(w in query_lower for w in ["cucumber", "bdd", "gherkin"]):
+            default_id = "4e9vhX7ZuCw"
+            default_title = "Selenium Cucumber Java BDD Tutorial"
+            default_channel = "Raghav Pal"
+        elif any(w in query_lower for w in ["testing", "selenium", "qa", "test", "sdet"]):
+            default_id = "HmQv8Z4om4I"
+            default_title = "Software Testing & Automation Tutorial"
+            default_channel = "edureka!"
+        elif any(w in query_lower for w in ["angular", "ng-"]):
             default_id = "k5E2AVpwsko"
             default_title = "Angular Tutorial for Beginners"
             default_channel = "freeCodeCamp.org"
@@ -177,9 +205,9 @@ class CourseService:
             default_title = "Java Tutorial for Beginners"
             default_channel = "Programming with Mosh"
         else:
-            default_id = "bJzb-Ey42H0"  # Universal Software Engineering Fundamentals (NOT Java!)
-            default_title = f"Software Engineering Concepts: {query}"
-            default_channel = "Software Engineering Education"
+            default_id = "8mAITcNt710"  # Universal CS Fundamentals (Harvard CS50, 100% active)
+            default_title = f"Software Engineering & Computer Science: {query}"
+            default_channel = "Harvard CS50"
 
         return {
             "video_id": default_id,
@@ -534,7 +562,7 @@ Return ONLY valid JSON matching this structure:
         # Auto-healing: If any chapter has missing video, or Java video on non-Java course, fix it immediately
         for ch in chapters:
             v = ch.get("video")
-            if not v or not v.get("video_id") or (not is_java_course and v.get("video_id") == "eIrMbAQSU34"):
+            if not v or not v.get("video_id") or v.get("video_id") in ["bJzb-Ey42H0", ""] or (not is_java_course and v.get("video_id") == "eIrMbAQSU34"):
                 ch["video"] = self.fetch_youtube_video(f"{c_name} {ch.get('name', '')}")
                 self.chapters_col.update_one(
                     {"course_id": course_id, "chapter_id": ch.get("chapter_id")},

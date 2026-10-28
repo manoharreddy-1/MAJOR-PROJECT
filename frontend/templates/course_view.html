@@ -634,7 +634,28 @@
       // Video Integration
       const videoSection = document.getElementById('videoSection');
       const videoWrapper = document.getElementById('videoFrameWrapper');
-      const vidId = (ch.video && ch.video.video_id) ? ch.video.video_id : "bJzb-Ey42H0";
+      let vidId = (ch.video && ch.video.video_id) ? ch.video.video_id : "";
+      const cLower = (currentCourse.name || "").toLowerCase();
+      // Auto-heal dead placeholder or missing video IDs
+      if (!vidId || vidId === "bJzb-Ey42H0") {
+        if (/cucumber|bdd|gherkin/.test(cLower)) {
+          vidId = "4e9vhX7ZuCw";
+        } else if (/selenium|testing|qa|sdet/.test(cLower)) {
+          vidId = "HmQv8Z4om4I";
+        } else if (/angular|ng-/.test(cLower)) {
+          vidId = "k5E2AVpwsko";
+        } else if (/oop|object/.test(cLower)) {
+          vidId = "pTB0EiLXUC8";
+        } else if (/react|frontend|javascript|node/.test(cLower)) {
+          vidId = "W6NZfCO5SIk";
+        } else if (/python|data|ml|ai/.test(cLower)) {
+          vidId = "_uQrJ0TkZlc";
+        } else if (/java|spring|jvm/.test(cLower)) {
+          vidId = "eIrMbAQSU34";
+        } else {
+          vidId = "8mAITcNt710";
+        }
+      }
       const vidTitle = (ch.video && ch.video.title) ? ch.video.title : `${currentCourse.name} - ${ch.name}`;
       const vidChannel = (ch.video && ch.video.channel) ? ch.video.channel : 'YouTube Education';
       const searchUrl = (ch.video && ch.video.youtube_search_url) 

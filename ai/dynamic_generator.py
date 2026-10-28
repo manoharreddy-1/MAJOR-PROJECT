@@ -14,22 +14,51 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
-def detect_domain(target_role: str, skills: List[str], job_text: str = "") -> str:
-    """Detect candidate's engineering domain."""
-    combined = (f"{target_role} {' '.join(skills)} {job_text}").lower()
+def detect_domain(target_role: str, skills: Optional[List[str]] = None, job_text: str = "") -> str:
+    """Detect engineering domain strictly anchored in target_role first."""
+    skills = skills or []
+    r_lower = (target_role or "").lower().strip()
 
-    if any(k in combined for k in ["java", "spring", "hibernate", "jvm"]):
-        return "java"
-    elif any(k in combined for k in ["react", "frontend", "angular", "vue", "javascript", "typescript", "ui/ux", "web developer"]):
-        return "frontend"
-    elif any(k in combined for k in ["devops", "cloud", "aws", "docker", "kubernetes", "sre", "infrastructure", "terraform"]):
-        return "devops"
-    elif any(k in combined for k in ["python", "django", "fastapi", "flask", "backend"]):
-        return "python"
-    elif any(k in combined for k in ["machine learning", "deep learning", "nlp", "computer vision", "data scientist", "ai engineer"]):
+    # Priority 1: Target Role / Job Title is the key anchor
+    if any(k in r_lower for k in ["machine learning", "deep learning", "nlp", "computer vision", "data scientist", "data analyst", "data engineer", "ai engineer", "ai/ml", "artificial intelligence"]):
         return "data_ai"
-    elif any(k in combined for k in ["full stack", "fullstack", "mern", "mean"]):
+    elif any(k in r_lower for k in ["java", "spring", "hibernate", "jvm", "j2ee"]):
+        return "java"
+    elif any(k in r_lower for k in ["qa", "testing", "test", "quality assurance", "sdet", "cucumber", "selenium", "automation"]):
+        return "qa_testing"
+    elif any(k in r_lower for k in ["react", "frontend", "angular", "vue", "javascript", "typescript", "ui/ux", "web developer", "front-end"]):
+        return "frontend"
+    elif any(k in r_lower for k in ["devops", "cloud", "aws", "docker", "kubernetes", "sre", "infrastructure", "terraform", "ci/cd"]):
+        return "devops"
+    elif any(k in r_lower for k in ["python", "django", "fastapi", "flask"]):
+        return "python"
+    elif any(k in r_lower for k in ["full stack", "fullstack", "mern", "mean"]):
         return "fullstack"
+
+    # Priority 2: Job description text fallback if target role was ambiguous
+    j_lower = (job_text or "").lower()
+    if any(k in j_lower for k in ["machine learning", "deep learning", "nlp", "pytorch", "tensorflow"]):
+        return "data_ai"
+    elif any(k in j_lower for k in ["java", "spring boot", "hibernate"]):
+        return "java"
+    elif any(k in j_lower for k in ["cucumber", "selenium", "automation testing", "sdet", "test automation"]):
+        return "qa_testing"
+    elif any(k in j_lower for k in ["react", "angular", "vue", "frontend"]):
+        return "frontend"
+    elif any(k in j_lower for k in ["devops", "docker", "kubernetes", "aws"]):
+        return "devops"
+
+    # Priority 3: Candidate skills fallback
+    s_combined = " ".join(skills).lower()
+    if any(k in s_combined for k in ["machine learning", "tensorflow", "pytorch"]):
+        return "data_ai"
+    elif any(k in s_combined for k in ["java", "spring"]):
+        return "java"
+    elif any(k in s_combined for k in ["cucumber", "selenium", "qa"]):
+        return "qa_testing"
+    elif any(k in s_combined for k in ["react", "frontend"]):
+        return "frontend"
+
     return "general"
 
 
@@ -81,6 +110,30 @@ DOMAIN_TECHNICAL_QUESTIONS = {
         {"question": "How do you profile, identify, and fix memory leaks or slow database query bottlenecks in production Python web services?", "topic": "Performance Profiling", "difficulty": "hard"},
         {"question": "Explain how Python decorators and context managers (with statement) operate under the hood, and describe a production use case for each.", "topic": "Python Patterns", "difficulty": "medium"},
         {"question": "How do you structure comprehensive automated unit and integration tests using PyTest fixtures and mock patches?", "topic": "Automated Testing", "difficulty": "easy"},
+    ],
+    "data_ai": [
+        {"question": "Explain the Bias-Variance tradeoff and how regularization techniques (L1/Lasso, L2/Ridge, Dropout) mitigate overfitting in predictive models.", "topic": "Machine Learning Fundamentals", "difficulty": "medium"},
+        {"question": "How does gradient descent (Batch, Mini-batch, Adam) optimize loss functions? What is learning rate warmup and decay?", "topic": "Optimization Algorithms", "difficulty": "medium"},
+        {"question": "Explain the multi-head self-attention mechanism in Transformer architectures. How does it calculate queries, keys, and values?", "topic": "Transformers & Deep Learning", "difficulty": "hard"},
+        {"question": "How do you evaluate classification models when handling severe class imbalance? Compare F1-Score, PR-AUC, and ROC-AUC.", "topic": "Evaluation Metrics", "difficulty": "medium"},
+        {"question": "What is the difference between feature normalization (MinMaxScaler) and standardization (StandardScaler)? When is each preferred?", "topic": "Feature Engineering", "difficulty": "easy"},
+        {"question": "How do vector embeddings and approximate nearest neighbors algorithms (HNSW, FAISS) work in Retrieval-Augmented Generation (RAG) pipelines?", "topic": "Vector Search & RAG", "difficulty": "hard"},
+        {"question": "Explain how cross-validation (K-Fold vs Stratified K-Fold) prevents data leakage during model training and evaluation.", "topic": "Model Validation", "difficulty": "easy"},
+        {"question": "How do Decision Trees split nodes (Gini Impurity vs Information Gain), and how does Random Forest reduce model variance?", "topic": "Ensemble Methods", "difficulty": "medium"},
+        {"question": "What strategy do you use for hyperparameter tuning (GridSearchCV, RandomizedSearchCV, Bayesian Optimization with Optuna)?", "topic": "Hyperparameter Optimization", "difficulty": "medium"},
+        {"question": "How do you deploy, monitor, and detect data drift or concept drift for production machine learning models (MLflow / BentoML)?", "topic": "MLOps & Deployment", "difficulty": "hard"},
+    ],
+    "qa_testing": [
+        {"question": "Explain Behavior-Driven Development (BDD) principles and how Cucumber bridges technical specifications with business requirements using Gherkin syntax.", "topic": "BDD & Cucumber", "difficulty": "medium"},
+        {"question": "How do you design a Page Object Model (POM) automation framework in Selenium WebDriver to achieve code reusability and maintainability?", "topic": "Selenium Architecture", "difficulty": "medium"},
+        {"question": "Explain the difference between Implicit Wait, Explicit Wait, and Fluent Wait in Selenium WebDriver. Why are thread sleeps anti-patterns?", "topic": "Synchronization & Waits", "difficulty": "medium"},
+        {"question": "How do you structure Scenario Outlines and Examples tables in Cucumber feature files to execute data-driven test scenarios?", "topic": "Gherkin & Test Scenarios", "difficulty": "easy"},
+        {"question": "Describe how Cucumber Hooks (@Before, @After) and tagging (@smoke, @regression) orchestrate test execution lifecycle.", "topic": "Cucumber Lifecycle", "difficulty": "medium"},
+        {"question": "How do you automate REST API testing using Postman or RestAssured? Explain status validation, payload assertions, and auth handling.", "topic": "API Testing", "difficulty": "medium"},
+        {"question": "What is the Test Pyramid strategy, and why should unit tests outnumber end-to-end UI tests in enterprise delivery?", "topic": "Testing Strategy", "difficulty": "easy"},
+        {"question": "How do you handle dynamic web elements (dynamic XPath, CSS selectors, shadow DOM, iframe switching) in Selenium?", "topic": "Element Locators", "difficulty": "hard"},
+        {"question": "Describe how you integrate automated regression suites into CI/CD pipelines (GitHub Actions/Jenkins) and generate rich reports (Allure/ExtentReports).", "topic": "CI/CD & Reporting", "difficulty": "hard"},
+        {"question": "How do you execute parallel test automation across multiple browsers using TestNG / Selenium Grid or Docker containers?", "topic": "Parallel Execution", "difficulty": "hard"},
     ],
     "general": [
         {"question": "Explain the SOLID principles of Object-Oriented Software Design and provide an example of how each prevents architectural fragility.", "topic": "Software Architecture", "difficulty": "medium"},

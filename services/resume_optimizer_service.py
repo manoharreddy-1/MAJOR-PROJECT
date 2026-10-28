@@ -718,240 +718,288 @@ def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
     return file_stream
 
 
-def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
-    """Pure-Python standard PDF generator when PyMuPDF is unavailable (e.g. serverless)."""
-    lines = []
-    name = (resume_data.get("name") or "Candidate Name").strip()
-    lines.append(name.upper())
+def clean_pdf_str(text: str) -> str:
+    """Sanitize strings for PDF Type-1 Helvetica rendering, eliminating question-mark replacement errors."""
+    if not text:
+        return ""
+    text = str(text)
+    replacements = {
+        "\u2022": "-",
+        "\u2023": "-",
+        "\u25e6": "-",
+        "\u2043": "-",
+        "\u2219": "-",
+        "\u2013": "-",
+        "\u2014": "--",
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u2026": "...",
+        "\u00a0": " ",
+        "\t": "    "
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    
+    text = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    return text.encode("latin-1", errors="ignore").decode("latin-1")
 
+
+def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
+    """
+    Pure-Python standard ATS resume PDF generator.
+    Works 100% reliably in serverless environments (Vercel/AWS Lambda) with zero C-dependencies.
+    Features:
+    - Multi-page dynamic pagination
+    - 3 standard Type 1 fonts (/F1 Helvetica, /F2 Helvetica-Bold, /F3 Helvetica-Oblique)
+    - Full WinAnsiEncoding for clean bullet/character rendering (no '?' corruption)
+    - ATS single-column hierarchy with clean section rules
+    """
+    page_w = 595.0
+    page_h = 842.0
+    margin_l = 45.0
+    margin_r = 45.0
+    content_w = page_w - margin_l - margin_r
+    
+    pages = []
+    current_stream = []
+    y = 792.0
+    
+    def check_page_break(needed_space: float = 20.0):
+        nonlocal y, current_stream, pages
+        if y - needed_space < 45.0:
+            pages.append("\n".join(current_stream))
+            current_stream = []
+            y = 792.0
+            
+    def wrap_words(text: str, max_chars: int) -> List[str]:
+        words = str(text or "").split()
+        if not words:
+            return []
+        lines = []
+        cur = words[0]
+        for w in words[1:]:
+            if len(cur) + 1 + len(w) <= max_chars:
+                cur += " " + w
+            else:
+                lines.append(cur)
+                cur = w
+        lines.append(cur)
+        return lines
+
+    # Header: Name (Centered, Bold, 16pt)
+    name = (resume_data.get("name") or "Candidate Name").strip().upper()
+    c_name = clean_pdf_str(name)
+    name_w = len(name) * 9.2
+    name_x = max(margin_l, (page_w - name_w) / 2.0)
+    current_stream.append(f"BT /F2 16 Tf 0.06 0.09 0.16 rg {name_x:.1f} {y:.1f} Td ({c_name}) Tj ET")
+    y -= 18.0
+    
+    # Contact Info (Centered, Regular, 9pt)
     contact = resume_data.get("contact") or {}
     c_parts = [contact.get(k) for k in ("email", "phone", "location", "linkedin", "github") if contact.get(k)]
     if c_parts:
-        lines.append(" | ".join(c_parts))
-    lines.append("-" * 55)
-
-    if resume_data.get("summary"):
-        lines.append("PROFESSIONAL SUMMARY")
-        lines.append(resume_data.get("summary"))
-        lines.append("")
-
-    skills = resume_data.get("skills")
-    if skills:
-        lines.append("TECHNICAL SKILLS")
-        if isinstance(skills, dict):
-            for cat, s_list in skills.items():
-                s_str = ", ".join(s_list) if isinstance(s_list, list) else str(s_list)
-                lines.append(f"{cat}: {s_str}")
-        elif isinstance(skills, list):
-            lines.append(", ".join(skills))
-        lines.append("")
-
-    experience = resume_data.get("experience")
-    if experience:
-        lines.append("WORK EXPERIENCE")
-        for exp in experience:
-            if isinstance(exp, dict):
-                dur = f" ({exp.get('duration')})" if exp.get("duration") else ""
-                lines.append(f"{exp.get('title', 'Engineer')} - {exp.get('company', '')}{dur}")
-                for b in exp.get("bullets", []):
-                    lines.append(f"  * {b}")
-        lines.append("")
-
-    projects = resume_data.get("projects")
-    if projects:
-        lines.append("TECHNICAL PROJECTS")
-        for pr in projects:
-            if isinstance(pr, dict):
-                lines.append(f"{pr.get('title', 'Project')}")
-                for b in pr.get("bullets", []):
-                    lines.append(f"  * {b}")
-        lines.append("")
-
-    education = resume_data.get("education")
-    if education:
-        lines.append("EDUCATION")
-        for edu in education:
-            if isinstance(edu, dict):
-                lines.append(f"{edu.get('degree', '')} - {edu.get('institution', '')} ({edu.get('year', '')})")
-
-    wrapped = []
-    for l in lines:
-        while len(l) > 85:
-            sp = l[:85].rfind(" ")
-            if sp == -1: sp = 85
-            wrapped.append(l[:sp])
-            l = l[sp:].lstrip()
-        wrapped.append(l)
-
-    pdf_text = "BT\n/F1 10 Tf\n50 780 Td\n14 TL\n"
-    for idx, wl in enumerate(wrapped[:50]):
-        clean_wl = wl.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        if idx == 0:
-            pdf_text += f"/F1 14 Tf ({clean_wl}) Tj /F1 10 Tf T*\n"
-        elif wl.isupper() and len(wl) > 3 and not wl.startswith("  *"):
-            pdf_text += f"/F1 11 Tf T* ({clean_wl}) Tj /F1 10 Tf T*\n"
-        else:
-            pdf_text += f"({clean_wl}) Tj T*\n"
-    pdf_text += "ET\n"
-
-    content_bytes = pdf_text.encode("latin-1", errors="replace")
-    c_len = len(content_bytes)
-    pdf = (
-        b"%PDF-1.4\n"
-        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"
-        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"
-        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n"
-        b"4 0 obj\n<< /Length " + str(c_len).encode("ascii") + b" >>\nstream\n" +
-        content_bytes +
-        b"\nendstream\nendobj\n"
-        b"5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n"
-        b"xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n"
-        b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n300\n%%EOF\n"
-    )
-    buf = io.BytesIO(pdf)
-    buf.seek(0)
-    return buf
-
-
-def export_resume_to_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
-    """Generate clean, single-column ATS PDF."""
-    if not _FITZ_AVAILABLE or fitz is None:
-        return _generate_pure_python_pdf(resume_data)
-
-    doc = fitz.open()
-    page = doc.new_page(width=595, height=842)  # Standard A4: 595 x 842 pt
-
-    margin_x = 50
-    margin_y = 50
-    y = margin_y
-    max_w = 495
-
-    # Helper function to insert text and manage page breaks
-    def insert_line(text: str, fontsize: int = 10, bold: bool = False, color=(0.1, 0.1, 0.1), space_after: int = 4):
-        nonlocal y, page
-        if y > 790:
-            page = doc.new_page(width=595, height=842)
-            y = margin_y
-
-        fontname = "helv" if not bold else "helv"
-        page.insert_text(
-            fitz.Point(margin_x, y),
-            text,
-            fontsize=fontsize,
-            fontname=fontname,
-            color=color
-        )
-        y += fontsize + space_after
-
-    def insert_wrapped_text(text: str, fontsize: int = 9.5, color=(0.15, 0.15, 0.15), indent: int = 0):
-        nonlocal y, page
-        words = text.split()
-        line = ""
-        for word in words:
-            test_line = line + (" " if line else "") + word
-            # Approximate width calculation (char width ~ 0.5 * fontsize)
-            if len(test_line) * (fontsize * 0.52) > (max_w - indent):
-                if y > 790:
-                    page = doc.new_page(width=595, height=842)
-                    y = margin_y
-                page.insert_text(fitz.Point(margin_x + indent, y), line, fontsize=fontsize, fontname="helv", color=color)
-                y += fontsize + 3
-                line = word
-            else:
-                line = test_line
-        if line:
-            if y > 790:
-                page = doc.new_page(width=595, height=842)
-                y = margin_y
-            page.insert_text(fitz.Point(margin_x + indent, y), line, fontsize=fontsize, fontname="helv", color=color)
-            y += fontsize + 4
-
-    # Header Name
-    name = (resume_data.get("name") or "Candidate Name").strip()
-    insert_line(name, fontsize=16, bold=True, color=(0.06, 0.09, 0.16), space_after=2)
-
-    # Contact Info
-    contact = resume_data.get("contact") or {}
-    contact_parts = [
-        contact.get("email"),
-        contact.get("phone"),
-        contact.get("location"),
-        contact.get("linkedin"),
-        contact.get("github"),
-    ]
-    contact_str = " | ".join([p for p in contact_parts if p])
-    if contact_str:
-        insert_line(contact_str, fontsize=8.5, color=(0.3, 0.35, 0.45), space_after=8)
-
-    # Section divider helper
-    def draw_section_header(title: str):
+        c_line = " | ".join(c_parts)
+        cc_line = clean_pdf_str(c_line)
+        c_w = len(c_line) * 4.6
+        c_x = max(margin_l, (page_w - c_w) / 2.0)
+        current_stream.append(f"BT /F1 9 Tf 0.28 0.33 0.42 rg {c_x:.1f} {y:.1f} Td ({cc_line}) Tj ET")
+        y -= 14.0
+        
+    def add_section_header(title: str):
         nonlocal y
-        y += 4
-        insert_line(title.upper(), fontsize=10.5, bold=True, color=(0.06, 0.09, 0.16), space_after=3)
-        # Horizontal rule
-        page.draw_line(fitz.Point(margin_x, y - 2), fitz.Point(margin_x + max_w, y - 2), color=(0.8, 0.85, 0.9), width=0.75)
-        y += 4
+        check_page_break(32.0)
+        y -= 6.0
+        c_title = clean_pdf_str(title.upper())
+        current_stream.append(f"BT /F2 10.5 Tf 0.06 0.09 0.16 rg {margin_l:.1f} {y:.1f} Td ({c_title}) Tj ET")
+        line_y = y - 3.0
+        current_stream.append(f"q 0.78 0.82 0.88 RG 0.75 w {margin_l:.1f} {line_y:.1f} m {page_w - margin_r:.1f} {line_y:.1f} l S Q")
+        y -= 13.0
 
     # Summary
     summary = resume_data.get("summary")
     if summary:
-        draw_section_header("Professional Summary")
-        insert_wrapped_text(summary, fontsize=9.5)
+        add_section_header("Professional Summary")
+        for line in wrap_words(summary, 94):
+            check_page_break(13.0)
+            c_line = clean_pdf_str(line)
+            current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l:.1f} {y:.1f} Td ({c_line}) Tj ET")
+            y -= 12.5
+        y -= 4.0
 
-    # Skills
+    # Technical Skills
     skills = resume_data.get("skills")
     if skills:
-        draw_section_header("Technical Skills")
+        add_section_header("Technical Skills")
         if isinstance(skills, dict):
-            for cat, items in skills.items():
-                line_str = f"• {cat}: {', '.join([str(i) for i in items])}"
-                insert_wrapped_text(line_str, fontsize=9.5, indent=8)
+            for cat, s_list in skills.items():
+                items_str = ", ".join(s_list) if isinstance(s_list, list) else str(s_list)
+                full_line = f"- {cat}: {items_str}"
+                for line in wrap_words(full_line, 90):
+                    check_page_break(13.0)
+                    c_line = clean_pdf_str(line)
+                    if line.startswith("- "):
+                        cat_prefix = f"- {cat}: "
+                        rest = line[len(cat_prefix):] if line.startswith(cat_prefix) else line[2:]
+                        current_stream.append(f"BT /F2 9.5 Tf 0.06 0.09 0.16 rg {margin_l + 4.0:.1f} {y:.1f} Td ({clean_pdf_str(cat_prefix)}) Tj /F1 9.5 Tf 0.15 0.18 0.25 rg ({clean_pdf_str(rest)}) Tj ET")
+                    else:
+                        current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l + 16.0:.1f} {y:.1f} Td ({c_line}) Tj ET")
+                    y -= 12.5
         elif isinstance(skills, list):
-            insert_wrapped_text(f"• {', '.join([str(i) for i in skills])}", fontsize=9.5, indent=8)
+            for line in wrap_words("- " + ", ".join(skills), 90):
+                check_page_break(13.0)
+                current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l + 4.0:.1f} {y:.1f} Td ({clean_pdf_str(line)}) Tj ET")
+                y -= 12.5
+        y -= 4.0
 
-    # Experience
-    experience = resume_data.get("experience")
-    if experience:
-        draw_section_header("Professional Experience")
-        for exp in experience:
+    # Professional Experience
+    exp_list = resume_data.get("experience")
+    if exp_list:
+        add_section_header("Professional Experience")
+        for exp in exp_list:
             if isinstance(exp, dict):
-                header = exp.get("title", "Role")
-                if exp.get("company"):
-                    header += f" | {exp.get('company')}"
-                if exp.get("duration"):
-                    header += f" ({exp.get('duration')})"
-                insert_line(header, fontsize=9.5, bold=True, color=(0.1, 0.15, 0.25), space_after=2)
+                check_page_break(28.0)
+                title = exp.get("title", "Software Engineer")
+                comp = exp.get("company", "")
+                dur = exp.get("duration", "")
+                
+                header_line = f"{title}" + (f" | {comp}" if comp else "") + (f" ({dur})" if dur else "")
+                current_stream.append(f"BT /F2 10 Tf 0.06 0.09 0.16 rg {margin_l:.1f} {y:.1f} Td ({clean_pdf_str(header_line)}) Tj ET")
+                y -= 13.0
+                
                 for b in exp.get("bullets", []):
-                    insert_wrapped_text(f"• {b}", fontsize=9, indent=12)
+                    b_words = wrap_words(b, 86)
+                    for b_idx, b_line in enumerate(b_words):
+                        check_page_break(12.5)
+                        if b_idx == 0:
+                            current_stream.append(f"BT /F2 9.5 Tf 0.06 0.09 0.16 rg {margin_l + 8.0:.1f} {y:.1f} Td (-) Tj /F1 9.5 Tf 0.15 0.18 0.25 rg 6 0 Td ({clean_pdf_str(b_line)}) Tj ET")
+                        else:
+                            current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l + 18.0:.1f} {y:.1f} Td ({clean_pdf_str(b_line)}) Tj ET")
+                        y -= 12.0
+                    y -= 2.0
+                y -= 4.0
 
-    # Projects
-    projects = resume_data.get("projects")
-    if projects:
-        draw_section_header("Technical Projects")
-        for proj in projects:
+    # Technical Projects
+    proj_list = resume_data.get("projects")
+    if proj_list:
+        add_section_header("Technical Projects")
+        for proj in proj_list:
             if isinstance(proj, dict):
-                p_head = proj.get("title", "Project")
-                if proj.get("tech_stack"):
-                    p_head += f" [{', '.join(proj.get('tech_stack'))}]"
-                insert_line(p_head, fontsize=9.5, bold=True, color=(0.1, 0.15, 0.25), space_after=2)
+                check_page_break(28.0)
+                p_title = proj.get("title", "Project")
+                stack = proj.get("tech_stack")
+                stack_str = f" [{', '.join(stack)}]" if stack else ""
+                
+                current_stream.append(f"BT /F2 10 Tf 0.06 0.09 0.16 rg {margin_l:.1f} {y:.1f} Td ({clean_pdf_str(p_title)}) Tj /F3 9 Tf 0.35 0.4 0.5 rg ({clean_pdf_str(stack_str)}) Tj ET")
+                y -= 13.0
+                
                 for b in proj.get("bullets", []):
-                    insert_wrapped_text(f"• {b}", fontsize=9, indent=12)
+                    b_words = wrap_words(b, 86)
+                    for b_idx, b_line in enumerate(b_words):
+                        check_page_break(12.5)
+                        if b_idx == 0:
+                            current_stream.append(f"BT /F2 9.5 Tf 0.06 0.09 0.16 rg {margin_l + 8.0:.1f} {y:.1f} Td (-) Tj /F1 9.5 Tf 0.15 0.18 0.25 rg 6 0 Td ({clean_pdf_str(b_line)}) Tj ET")
+                        else:
+                            current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l + 18.0:.1f} {y:.1f} Td ({clean_pdf_str(b_line)}) Tj ET")
+                        y -= 12.0
+                    y -= 2.0
+                y -= 4.0
 
     # Education
-    education = resume_data.get("education")
-    if education:
-        draw_section_header("Education")
-        for edu in education:
+    edu_list = resume_data.get("education")
+    if edu_list:
+        add_section_header("Education")
+        for edu in edu_list:
             if isinstance(edu, dict):
-                ed_str = f"• {edu.get('degree', '')}"
-                if edu.get("institution"):
-                    ed_str += f" - {edu.get('institution')}"
-                if edu.get("year"):
-                    ed_str += f" ({edu.get('year')})"
-                insert_line(ed_str, fontsize=9.5, space_after=2)
+                check_page_break(14.0)
+                deg = edu.get("degree", "")
+                inst = edu.get("institution", "")
+                yr = edu.get("year", "")
+                edu_line = f"- {deg}" + (f" - {inst}" if inst else "") + (f" ({yr})" if yr else "")
+                current_stream.append(f"BT /F1 9.5 Tf 0.15 0.18 0.25 rg {margin_l + 4.0:.1f} {y:.1f} Td ({clean_pdf_str(edu_line)}) Tj ET")
+                y -= 13.0
 
-    file_stream = io.BytesIO()
-    doc.save(file_stream)
-    doc.close()
-    file_stream.seek(0)
-    return file_stream
+    if current_stream:
+        pages.append("\n".join(current_stream))
+        
+    num_pages = len(pages) if pages else 1
+    if not pages:
+        pages = ["BT /F1 10 Tf 50 780 Td (No content) Tj ET"]
+
+    cat_id = 1
+    pages_id = 2
+    f1_id = 3
+    f2_id = 4
+    f3_id = 5
+    
+    page_obj_ids = [6 + i for i in range(num_pages)]
+    stream_obj_ids = [6 + num_pages + i for i in range(num_pages)]
+    total_objs = 6 + 2 * num_pages
+    
+    cat_obj = f"{cat_id} 0 obj\n<< /Type /Catalog /Pages {pages_id} 0 R >>\nendobj\n".encode("ascii")
+    kids_str = " ".join([f"{pid} 0 R" for pid in page_obj_ids])
+    pages_obj = f"{pages_id} 0 obj\n<< /Type /Pages /Kids [{kids_str}] /Count {num_pages} >>\nendobj\n".encode("ascii")
+    
+    page_objs = []
+    for pid, sid in zip(page_obj_ids, stream_obj_ids):
+        p_str = (
+            f"{pid} 0 obj\n"
+            f"<< /Type /Page /Parent {pages_id} 0 R /MediaBox [0 0 595 842] "
+            f"/Contents {sid} 0 R "
+            f"/Resources << /Font << /F1 {f1_id} 0 R /F2 {f2_id} 0 R /F3 {f3_id} 0 R >> >> >>\n"
+            f"endobj\n"
+        )
+        page_objs.append((pid, p_str.encode("ascii")))
+        
+    stream_objs = []
+    for sid, stream_content in zip(stream_obj_ids, pages):
+        s_bytes = stream_content.encode("latin-1")
+        s_str = (
+            f"{sid} 0 obj\n"
+            f"<< /Length {len(s_bytes)} >>\n"
+            f"stream\n"
+        ).encode("ascii") + s_bytes + b"\nendstream\nendobj\n"
+        stream_objs.append((sid, s_str))
+        
+    buf = b"%PDF-1.4\n"
+    offsets = {}
+    
+    offsets[cat_id] = len(buf)
+    buf += cat_obj
+    
+    offsets[pages_id] = len(buf)
+    buf += pages_obj
+    
+    offsets[f1_id] = len(buf)
+    buf += f"{f1_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
+    
+    offsets[f2_id] = len(buf)
+    buf += f"{f2_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
+    
+    offsets[f3_id] = len(buf)
+    buf += f"{f3_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
+    
+    for pid, p_chunk in page_objs:
+        offsets[pid] = len(buf)
+        buf += p_chunk
+        
+    for sid, s_chunk in stream_objs:
+        offsets[sid] = len(buf)
+        buf += s_chunk
+        
+    startxref = len(buf)
+    xref = f"xref\n0 {total_objs}\n0000000000 65535 f \n".encode("ascii")
+    for i in range(1, total_objs):
+        xref += f"{offsets[i]:010d} 00000 n \n".encode("ascii")
+    trailer = f"trailer\n<< /Size {total_objs} /Root {cat_id} 0 R >>\nstartxref\n{startxref}\n%%EOF\n".encode("ascii")
+    
+    final_pdf = buf + xref + trailer
+    stream_io = io.BytesIO(final_pdf)
+    stream_io.seek(0)
+    return stream_io
+
+
+def export_resume_to_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
+    """Generate clean, single-column ATS PDF."""
+    return _generate_pure_python_pdf(resume_data)

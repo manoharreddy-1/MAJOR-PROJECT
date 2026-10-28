@@ -62,15 +62,20 @@ def interview_questions_prompt(
 
 Generate interview questions for this candidate and role.
 
+CRITICAL ROLE-ANCHORING RULE:
+The TARGET ROLE is: {target_role}
+All interview questions, especially technical and role-specific assessments, MUST be strictly asked from and grounded in this TARGET ROLE ({target_role}) and the target job requirements: {', '.join(job.get('required_skills', []))}.
+Do NOT deviate to unrelated skills from the candidate's past background (e.g. if the target role is Java Developer, do not ask machine learning questions even if mentioned in resume).
+
 TARGET ROLE: {target_role}
-CANDIDATE SKILLS: {', '.join(skills)}
+JOB REQUIREMENTS: {', '.join(job.get('required_skills', []))}
+CANDIDATE RELEVANT SKILLS: {', '.join(skills)}
 PROJECTS: {'; '.join(projects) if projects else 'Not provided'}
 MISSING SKILLS: {', '.join(missing_skills) or 'None'}
-JOB REQUIREMENTS: {', '.join(job.get('required_skills', []))}
 RESPONSIBILITIES: {'; '.join(job.get('responsibilities', [])[:5])}
 
-Generate specific, rigorous, and relevant interview questions (not generic).
-Provide 10 distinct in-depth questions for EACH category below. Base technical questions on actual resume skills and projects.
+Generate specific, rigorous, and relevant interview questions evaluating the candidate strictly for {target_role}.
+Provide 10 distinct in-depth questions for EACH category below. Base technical questions on {target_role} and required technical skills.
 
 Return JSON:
 {{
