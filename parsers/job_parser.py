@@ -167,16 +167,18 @@ class JobDescriptionParser:
 
     def _extract_education_requirements(self, text: str) -> List[str]:
         patterns = [
-            r"(?i)(bachelor['']?s?\s+(?:degree\s+)?(?:in\s+)?[\w\s,]+)",
-            r"(?i)(master['']?s?\s+(?:degree\s+)?(?:in\s+)?[\w\s,]+)",
-            r"(?i)(ph\.?d\.?\s+(?:in\s+)?[\w\s,]+)",
-            r"(?i)(b\.?tech|b\.?e\.?|m\.?tech|m\.?e\.?)\s*[\w\s,]*",
+            r"(?i)\b(bachelor['']?s?\s+(?:degree\s+)?(?:in\s+)?[\w\s,]{2,40})",
+            r"(?i)\b(master['']?s?\s+(?:degree\s+)?(?:in\s+)?[\w\s,]{2,40})",
+            r"(?i)\b(ph\.?d\.?\s+(?:in\s+)?[\w\s,]{2,40})",
+            r"(?i)\b(b\.?tech|b\.e\.|m\.?tech|m\.e\.)(?:\s+(?:in|of)\s+[\w\s,]{2,30})?\b",
+            r"(?i)\b(b\.?s\.?|m\.?s\.?|bca|mca)\b(?:\s+(?:in|of)\s+[\w\s,]{2,30})?",
         ]
         found = []
+        stop_words = {"me", "be", "in", "to", "at", "by", "for", "we", "the", "an", "a", "is", "it", "or", "and"}
         for p in patterns:
             for m in re.finditer(p, text):
-                cleaned = clean_text(m.group(1))
-                if len(cleaned) < 60:
+                cleaned = clean_text(m.group(1)).strip(" ,.-")
+                if 2 < len(cleaned) < 60 and cleaned.lower() not in stop_words:
                     found.append(cleaned)
         return list(dict.fromkeys(found))[:5]
 
@@ -194,11 +196,34 @@ class JobDescriptionParser:
         return list(dict.fromkeys(found))[:5]
 
     def _extract_responsibilities(self, text: str) -> List[str]:
-        section = extract_section(text, ["responsibilities", "duties", "what you'll do", "role overview", "key responsibilities"])
+        section = extract_section(
+            text,
+            [
+                "responsibilities",
+                "duties",
+                "what you'll do",
+                "what you will do",
+                "role overview",
+                "key responsibilities",
+                "job responsibilities",
+                "day-to-day",
+                "day to day",
+                "about the role",
+                "the role",
+            ],
+        )
         source = section if section else text
 
         items = re.split(r"\n\s*[•\-\*]\s*|\n\s*\d+\.\s*", source)
-        cleaned = [clean_text(i) for i in items if 15 < len(i.strip()) < 200]
+        cleaned = [clean_text(i) for i in items if 15 < len(i.strip()) < 300]
+
+        if not cleaned:
+            line_items = [clean_text(line) for line in source.split("\n") if 15 < len(line.strip()) < 300]
+            exclude_keywords = {"requirements", "qualifications", "skills", "experience", "education", "salary", "apply"}
+            for line in line_items:
+                if not any(line.lower().startswith(kw) for kw in exclude_keywords):
+                    cleaned.append(line)
+
         return cleaned[:15]
 
     def _extract_tools(self, text: str) -> List[str]:

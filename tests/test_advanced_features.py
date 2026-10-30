@@ -177,3 +177,74 @@ class TestCourseGeneratorVideosAndCurriculum:
         assert any("BDD" in n for n in chapter_names)
         assert any("Gherkin" in n for n in chapter_names)
         assert any("Step Definitions" in n for n in chapter_names)
+
+
+class TestATSAccurateScoring:
+    def setup_method(self):
+        from parsers.resume_parser import ResumeParser
+        from parsers.job_parser import JobDescriptionParser
+        from services.ats_service import ATSService
+        self.resume_parser = ResumeParser()
+        self.job_parser = JobDescriptionParser()
+        self.ats_service = ATSService()
+
+    def test_single_resume_accurate_high_score(self):
+        """A well-matched developer should receive a strong, fair ATS score (>= 75%)."""
+        resume = """
+        John Doe
+        john@example.com | 1234567890
+        Education:
+        B.Tech in Computer Science, ABC University, 2024
+        Technical Skills:
+        Python, Django, FastAPI, PostgreSQL, Docker, AWS, Git
+        Projects:
+        REST API Microservice:
+        - Built Python microservices with FastAPI and PostgreSQL
+        - Deployed containerized applications with Docker on AWS
+        """
+        jd = """
+        Backend Developer
+        Responsibilities:
+        - Design and develop scalable backend APIs with Python and FastAPI
+        - Work with PostgreSQL databases and Docker containers on AWS
+        Requirements:
+        - Bachelor's degree in Computer Science
+        - Python, FastAPI, Docker, PostgreSQL, AWS
+        """
+        parsed_res = self.resume_parser.parse(resume)
+        parsed_job = self.job_parser.parse(jd)
+        res = self.ats_service.analyze(parsed_res, parsed_job)
+        scores = res["scores"]
+        assert scores["overall"] >= 75.0
+        assert scores["skills"] >= 80.0
+        assert scores["experience"] >= 60.0
+        assert scores["education"] >= 80.0
+        assert res["match_label"] in ["Good Match", "Excellent Match"]
+
+    def test_unrelated_candidate_low_score(self):
+        """An unrelated candidate must receive a low ATS score (< 35%)."""
+        resume = """
+        Chef Pierre
+        pierre@kitchen.com
+        Education:
+        Diploma in Culinary Arts, Pastry School
+        Skills:
+        Baking, Pastry, French Cuisine, Food Plating, Kitchen Management
+        Experience:
+        Pastry Chef at Le Petit Bistro (2020 - 2023)
+        - Prepared pastries and managed kitchen inventory
+        """
+        jd = """
+        Backend Developer
+        Responsibilities:
+        - Build Python web APIs and microservices
+        Requirements:
+        - Bachelor's in Computer Science
+        - Python, Docker, PostgreSQL
+        """
+        parsed_res = self.resume_parser.parse(resume)
+        parsed_job = self.job_parser.parse(jd)
+        res = self.ats_service.analyze(parsed_res, parsed_job)
+        assert res["scores"]["overall"] < 35.0
+        assert res["match_label"] == "Poor Match"
+

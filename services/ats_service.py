@@ -40,8 +40,21 @@ class ATSService:
             resume_text=resume.get("raw_text", ""),
         )
 
-        # Experience score from SBERT
-        experience_score = semantic_scores["experience_semantic"]
+        # Experience score from SBERT (with neutral/project fallback)
+        experience_score = semantic_scores.get("experience_semantic")
+        projects_score = semantic_scores.get("projects_semantic")
+
+        if experience_score is not None and projects_score is not None:
+            experience_score = max(experience_score, projects_score)
+            experience_note = None
+        elif experience_score is not None:
+            experience_note = None
+        elif projects_score is not None:
+            experience_score = projects_score
+            experience_note = "Evaluated on technical projects"
+        else:
+            experience_score = 75.0  # Neutral baseline when not specified/extractable
+            experience_note = "Evaluated on profile skills and background"
 
         # Education score - only if job specifies requirements
         education_score = semantic_scores.get("education_semantic")
@@ -70,8 +83,8 @@ class ATSService:
         )
 
         # Strengths and improvements
-        strengths = self._identify_strengths(skill_analysis, semantic_scores, resume)
-        improvements = self._identify_improvements(skill_analysis, semantic_scores)
+        strengths = self._identify_strengths(skill_analysis, semantic_scores, resume, experience_score)
+        improvements = self._identify_improvements(skill_analysis, semantic_scores, experience_score)
 
         return {
             "target_role": target_role or job.get("job_title", "Target Role"),
@@ -85,6 +98,7 @@ class ATSService:
             "match_label": get_match_label(breakdown["overall"]),
             "score_breakdown": breakdown,
             "education_note": education_note,
+            "experience_note": experience_note,
             "skill_analysis": skill_analysis,
             "project_analysis": project_analysis,
             "semantic_details": semantic_scores,
@@ -97,7 +111,7 @@ class ATSService:
         }
 
     def _identify_strengths(
-        self, skill_analysis: Dict, semantic_scores: Dict, resume: Dict
+        self, skill_analysis: Dict, semantic_scores: Dict, resume: Dict, experience_score: float = 0.0
     ) -> List[str]:
         strengths = []
         matched = skill_analysis.get("matched", [])
@@ -105,10 +119,10 @@ class ATSService:
             top = [m["skill"] for m in matched[:5]]
             strengths.append(f"Strong skill alignment: {', '.join(top)}")
 
-        if semantic_scores.get("experience_semantic", 0) >= 70:
+        if experience_score >= 70 or semantic_scores.get("experience_semantic") and semantic_scores.get("experience_semantic", 0) >= 70:
             strengths.append("Experience section shows good semantic relevance to job responsibilities.")
 
-        if semantic_scores.get("projects_semantic", 0) >= 65:
+        if semantic_scores.get("projects_semantic") and semantic_scores.get("projects_semantic", 0) >= 65:
             strengths.append("Projects demonstrate relevant technical work for this role.")
 
         if resume.get("certifications"):
@@ -119,7 +133,9 @@ class ATSService:
 
         return strengths
 
-    def _identify_improvements(self, skill_analysis: Dict, semantic_scores: Dict) -> List[str]:
+    def _identify_improvements(
+        self, skill_analysis: Dict, semantic_scores: Dict, experience_score: float = 0.0
+    ) -> List[str]:
         improvements = []
         missing = skill_analysis.get("missing", [])
         if missing:
@@ -131,7 +147,7 @@ class ATSService:
             top_partial = [p["skill"] for p in partial[:2]]
             improvements.append(f"Strengthen partially matched skills: {', '.join(top_partial)}")
 
-        if semantic_scores.get("experience_semantic", 0) < 50:
+        if experience_score < 50:
             improvements.append("Reframe experience bullets to align with job responsibilities.")
 
         if semantic_scores.get("semantic", 0) < 60:
