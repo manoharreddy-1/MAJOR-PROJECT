@@ -607,8 +607,21 @@ FastAPI, Kubernetes, SQL, LangChain.`;
 
         const scoreColor = c.ats_score >= 75 ? '#16a34a' : c.ats_score >= 50 ? '#0284c7' : '#dc2626';
 
-        const matchedTags = (c.matched_skills || []).slice(0, 4).map(s => `<span class="skill-pill-badge" style="background:#e0f2fe; border-color:#bae6fd; color:#0369a1; font-size:0.75rem;">${s}</span>`).join(' ') || '<span style="color:#94a3b8; font-size:0.75rem;">None</span>';
-        const missingTags = (c.missing_skills || []).slice(0, 3).map(s => `<span class="skill-pill-badge" style="background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-size:0.75rem;">${s}</span>`).join(' ') || '<span style="color:#16a34a; font-size:0.75rem;">None</span>';
+        const matchedList = (c.matched_skills && c.matched_skills.length > 0)
+          ? c.matched_skills
+          : (c.all_skills && c.all_skills.length > 0 ? c.all_skills.slice(0, 4) : []);
+
+        const missingList = c.missing_skills || [];
+
+        const matchedTags = matchedList.slice(0, 4).map(s => {
+          const name = (typeof s === 'string' ? s : (s.skill || '')).trim();
+          return `<span class="skill-pill-badge" style="background:#e0f2fe; border-color:#bae6fd; color:#0369a1; font-size:0.75rem;">${name}</span>`;
+        }).join(' ') || '<span style="color:#94a3b8; font-size:0.75rem;">None</span>';
+
+        const missingTags = missingList.slice(0, 3).map(s => {
+          const name = (typeof s === 'string' ? s : (s.skill || '')).trim();
+          return `<span class="skill-pill-badge" style="background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-size:0.75rem;">${name}</span>`;
+        }).join(' ') || '<span style="color:#16a34a; font-size:0.75rem;">None</span>';
 
         const cgpaStr = c.cgpa !== null && c.cgpa !== undefined ? `${c.cgpa} / 10` : 'N/A';
         const tenthStr = c.tenth_pct !== null && c.tenth_pct !== undefined ? `${c.tenth_pct}%` : 'N/A';
@@ -657,8 +670,9 @@ FastAPI, Kubernetes, SQL, LangChain.`;
         list = list.filter(c => {
           return (c.candidate_name || '').toLowerCase().includes(q) ||
                  (c.email || '').toLowerCase().includes(q) ||
-                 (c.matched_skills || []).some(s => s.toLowerCase().includes(q)) ||
-                 (c.all_skills || []).some(s => s.toLowerCase().includes(q));
+                 (c.matched_skills || []).some(s => (typeof s === 'string' ? s : (s.skill || '')).toLowerCase().includes(q)) ||
+                 (c.missing_skills || []).some(s => (typeof s === 'string' ? s : (s.skill || '')).toLowerCase().includes(q)) ||
+                 (c.all_skills || []).some(s => (typeof s === 'string' ? s : (s.skill || '')).toLowerCase().includes(q));
         });
       }
       renderTableRows(list);

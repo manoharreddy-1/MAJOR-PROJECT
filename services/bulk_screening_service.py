@@ -159,16 +159,51 @@ class BulkScreeningService:
                 semantic_score = ats_result["scores"]["semantic"]
                 match_label = ats_result.get("match_label") or "Match"
                 skill_analysis = ats_result.get("skill_analysis") or {}
-                matched_skills = skill_analysis.get("matched_skills", [])
-                missing_skills = skill_analysis.get("missing_skills", [])
+
+                # 1. Extract key matched skills (from 'matched' list of dicts/strings)
+                raw_matched = skill_analysis.get("matched") or skill_analysis.get("matched_skills") or []
+                matched_skills = [
+                    (s.get("skill") if isinstance(s, dict) else str(s)).strip()
+                    for s in raw_matched
+                    if (isinstance(s, dict) and s.get("skill")) or (isinstance(s, str) and s.strip())
+                ]
+
+                # 2. Extract missing skills (from 'missing' list of dicts/strings)
+                raw_missing = skill_analysis.get("missing") or skill_analysis.get("missing_skills") or []
+                missing_skills = [
+                    (s.get("skill") if isinstance(s, dict) else str(s)).strip()
+                    for s in raw_missing
+                    if (isinstance(s, dict) and s.get("skill")) or (isinstance(s, str) and s.strip())
+                ]
+
+                # Graceful fallback: If matched_skills is empty, check overlap with candidate's parsed skills
+                if not matched_skills:
+                    cand_skills = parsed_resume.get("skills", [])
+                    job_req = parsed_job.get("required_skills", []) + parsed_job.get("technologies", [])
+                    cand_map = {s.lower().strip(): s.strip() for s in cand_skills if isinstance(s, str)}
+                    for req in job_req:
+                        if isinstance(req, str) and req.lower().strip() in cand_map:
+                            matched_skills.append(cand_map[req.lower().strip()])
+                    matched_skills = list(dict.fromkeys(matched_skills))
+
+                # Graceful fallback: If missing_skills is empty, check remaining required skills
+                if not missing_skills:
+                    matched_lower = {s.lower() for s in matched_skills}
+                    cand_skills_lower = {s.lower() for s in parsed_resume.get("skills", []) if isinstance(s, str)}
+                    known = matched_lower.union(cand_skills_lower)
+                    for req in parsed_job.get("required_skills", []):
+                        if isinstance(req, str) and req.lower().strip() not in known:
+                            missing_skills.append(req.strip())
+                    missing_skills = list(dict.fromkeys(missing_skills))
+
             except Exception as exc:
                 logger.error("ATS calculation failed for %s: %s", fname, exc)
                 overall_score = 40.0
                 skill_score = 40.0
                 semantic_score = 40.0
                 match_label = "Moderate Match"
-                matched_skills = parsed_resume.get("skills", [])[:5]
-                missing_skills = parsed_job.get("required_skills", [])[:5]
+                matched_skills = [s if isinstance(s, str) else s.get("skill", "") for s in parsed_resume.get("skills", [])[:5]]
+                missing_skills = [s if isinstance(s, str) else s.get("skill", "") for s in parsed_job.get("required_skills", [])[:5]]
 
             candidate_name = parsed_resume.get("name") or fname.rsplit(".", 1)[0]
             if len(candidate_name) > 40 or "\n" in candidate_name:
@@ -237,9 +272,37 @@ class BulkScreeningService:
         return serialize_doc(batch_doc)
 
     def get_batch(self, batch_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve batch by batch_id."""
+        """Retrieve batch by batch_id with auto-healing for any legacy empty skill lists."""
         doc = self.collection.find_one({"batch_id": batch_id})
-        return serialize_doc(doc) if doc else None
+        if not doc:
+            return None
+
+        # Auto-heal: If any candidate has empty matched_skills or missing_skills, populate from all_skills & required_skills
+        req_skills = doc.get("required_skills") or []
+        updated = False
+        candidates = doc.get("candidates", [])
+        for c in candidates:
+            all_s = c.get("all_skills") or []
+            if not c.get("matched_skills"):
+                c_map = {s.lower().strip(): s.strip() for s in all_s if isinstance(s, str)}
+                matched = [c_map[r.lower().strip()] for r in req_skills if isinstance(r, str) and r.lower().strip() in c_map]
+                if not matched and all_s:
+                    matched = all_s[:4]
+                c["matched_skills"] = matched
+                updated = True
+
+            if not c.get("missing_skills"):
+                c_matched_lower = {s.lower().strip() for s in c.get("matched_skills", []) if isinstance(s, str)}
+                all_s_lower = {s.lower().strip() for s in all_s if isinstance(s, str)}
+                known = c_matched_lower.union(all_s_lower)
+                missing = [r.strip() for r in req_skills if isinstance(r, str) and r.lower().strip() not in known]
+                c["missing_skills"] = missing[:5]
+                updated = True
+
+        if updated:
+            self.collection.update_one({"batch_id": batch_id}, {"$set": {"candidates": candidates}})
+
+        return serialize_doc(doc)
 
     def list_batches(self, user_id: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
         """List historical screening batches, optionally filtered by user_id."""

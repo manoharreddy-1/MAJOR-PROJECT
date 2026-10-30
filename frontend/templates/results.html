@@ -99,15 +99,17 @@
           <p class="text-muted" style="font-size: 0.8125rem;">${data.disclaimer || ''}</p>
         </div>
 
-        <div class="grid-3 mt-3">
+        <div class="grid-2 mt-3">
           <div class="card">
             <h3 class="card-title mb-2">Matched Skills</h3>
             <div class="skill-tags">${(skills.matched || []).map(s => `<span class="skill-tag matched">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>
           </div>
+          <!-- Commented out: Partial skills matching option
           <div class="card">
             <h3 class="card-title mb-2">Partially Matched</h3>
             <div class="skill-tags">${(skills.partial || []).map(s => `<span class="skill-tag partial">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>
           </div>
+          -->
           <div class="card">
             <h3 class="card-title mb-2">Missing Skills</h3>
             <div class="skill-tags">${(skills.missing || []).map(s => `<span class="skill-tag missing">${s.skill}</span>`).join('') || '<p class="text-muted">None</p>'}</div>

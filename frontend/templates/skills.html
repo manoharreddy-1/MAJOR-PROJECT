@@ -58,10 +58,12 @@
           <div class="card" style="display: flex; flex-direction: column; justify-content: center; padding: 1.5rem;">
             <h3 class="card-title mb-2">Skill Gap Summary</h3>
             <p style="margin-bottom: 0.5rem;"><strong>Matched Skills:</strong> <span class="badge badge-success">${(skills.matched || []).length}</span></p>
+            <!-- Commented out: Partial skills matching option
             <p style="margin-bottom: 0.5rem;"><strong>Partially Matched:</strong> <span class="badge badge-warning">${(skills.partial || []).length}</span></p>
+            -->
             <p style="margin-bottom: 0.5rem;"><strong>Missing Skills:</strong> <span class="badge badge-error">${(skills.missing || []).length}</span></p>
             <p class="text-muted mt-2" style="font-size: 0.8125rem; line-height: 1.4;">
-              Matched skills exceed the 0.72 similarity threshold. Partial matches fall between 0.55 and 0.72. Missing skills have no close semantic matches in your resume.
+              Matched skills exceed the 0.72 similarity threshold. Missing skills have no close semantic matches in your resume.
             </p>
           </div>
         </div>
@@ -71,10 +73,12 @@
           ${renderSkillTable(skills.matched, 'success')}
         </div>
 
+        <!-- Commented out: Partial skills matching option
         <div class="card mb-3">
           <h3 class="card-title mb-2">Partially Matched Skills (${(skills.partial || []).length})</h3>
           ${renderSkillTable(skills.partial, 'warning')}
         </div>
+        -->
 
         <div class="card mb-3">
           <h3 class="card-title mb-2">Missing Skills (${(skills.missing || []).length})</h3>
@@ -199,10 +203,10 @@
         new Chart(ctx, {
           type: 'doughnut',
           data: {
-            labels: ['Matched', 'Partial', 'Missing'],
+            labels: ['Matched', 'Missing'],
             datasets: [{
-              data: [(skills.matched || []).length, (skills.partial || []).length, (skills.missing || []).length],
-              backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+              data: [(skills.matched || []).length, (skills.missing || []).length],
+              backgroundColor: ['#10b981', '#ef4444'],
               borderColor: '#1e293b',
               borderWidth: 2,
             }]

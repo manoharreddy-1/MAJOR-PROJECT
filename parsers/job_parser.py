@@ -135,7 +135,7 @@ class JobDescriptionParser:
         # 2. Extract and parse items from the requirements section
         section = extract_section(text, ["requirements", "required skills", "must have", "qualifications", "what you need"])
         if section:
-            raw_items = re.split(r"[,|•\n;\-\*]", section)
+            raw_items = re.split(r"[,|•\n;\*]|\s+-\s+|(?:^|\n)\s*[-*•]\s*", section)
             for item in raw_items:
                 for sub in split_compound_phrase(item):
                     candidate = clean_skill_candidate(sub)
@@ -154,7 +154,7 @@ class JobDescriptionParser:
         if section:
             # First extract known skills from the preferred section
             skills.extend(extract_skills_from_text(section))
-            raw_items = re.split(r"[,|•\n;\-\*]", section)
+            raw_items = re.split(r"[,|•\n;\*]|\s+-\s+|(?:^|\n)\s*[-*•]\s*", section)
             for item in raw_items:
                 for sub in split_compound_phrase(item):
                     candidate = clean_skill_candidate(sub)
