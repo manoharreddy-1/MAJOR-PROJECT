@@ -1,5 +1,6 @@
 """Analysis, history, improvement, interview, and roadmap API routes."""
 import logging
+import re
 
 from bson import ObjectId
 from flask import Blueprint, request, send_file
@@ -286,22 +287,35 @@ def generate_roadmap():
 @analysis_bp.route("/optimize-resume", methods=["POST"])
 def optimize_resume():
     """
-    AI-powered ATS Resume Optimizer.
+    Produce AI-optimized ATS resume.
     Weaves cleaned missing skills into resume with evidence grounding,
     and recalculates genuine ATS score.
     """
     data = request.get_json() or {}
     resume_id = data.get("resume_id")
     job_id = data.get("job_id") or data.get("job_description_id")
-
-    # 1. Resolve resume data
-    resume_data = data.get("resume_data") or {}
     analysis_id = data.get("analysis_id")
 
+    # 1. Resolve job data first to ensure role and requirements are available
+    job_data = data.get("job_data")
+    if not job_data and job_id:
+        try:
+            job_doc = job_service.get_job(job_id)
+            if job_doc:
+                job_data = job_doc.get("requirements", job_doc)
+        except Exception:
+            pass
+
+    # 2. Resolve resume data
+    resume_data = data.get("resume_data") or {}
+
     if (not resume_data or not (resume_data.get("raw_text") or resume_data.get("skills"))) and resume_id:
-        resume_doc = resume_service.get_resume(resume_id)
-        if resume_doc:
-            resume_data = resume_doc.get("extracted", resume_doc)
+        try:
+            resume_doc = resume_service.get_resume(resume_id)
+            if resume_doc:
+                resume_data = resume_doc.get("extracted", resume_doc)
+        except Exception:
+            pass
 
     if (not resume_data or not (resume_data.get("raw_text") or resume_data.get("skills"))) and analysis_id:
         try:
@@ -316,8 +330,20 @@ def optimize_resume():
                     resume_data = resume_doc.get("extracted", resume_doc)
             if a_doc and not job_id and a_doc.get("job_description_id"):
                 job_id = a_doc["job_description_id"]
+                if not job_data:
+                    job_doc = job_service.get_job(job_id)
+                    if job_doc:
+                        job_data = job_doc.get("requirements", job_doc)
         except Exception:
             pass
+
+    if not job_data:
+        job_data = {
+            "job_title": data.get("target_role", "Software Engineer"),
+            "required_skills": data.get("missing_skills", []),
+            "preferred_skills": [],
+            "responsibilities": [],
+        }
 
     # Fallback to constructed candidate profile if resume payload was missing but context exists
     if not (resume_data.get("raw_text") or "").strip() and not resume_data.get("skills"):
@@ -365,21 +391,6 @@ def optimize_resume():
         else:
             return error_response("EMPTY_RESUME", "Resume data is missing or empty.", 400)
 
-    # 2. Resolve job data
-    job_data = data.get("job_data")
-    if not job_data and job_id:
-        job_doc = job_service.get_job(job_id)
-        if job_doc:
-            job_data = job_doc.get("requirements", job_doc)
-
-    if not job_data:
-        job_data = {
-            "job_title": data.get("target_role", "Software Engineer"),
-            "required_skills": data.get("missing_skills", []),
-            "preferred_skills": [],
-            "responsibilities": [],
-        }
-
     missing_skills = data.get("missing_skills")
     matched_skills = data.get("matched_skills") or []
     current_score = data.get("current_score")
@@ -412,7 +423,10 @@ def export_docx():
 
     try:
         file_stream = export_resume_to_docx(structured_resume)
-        filename = f"ATS_Optimized_Resume_{(structured_resume.get('name') or 'Candidate').replace(' ', '_')}.docx"
+        raw_name = structured_resume.get("name") or "Candidate"
+        clean_name = re.sub(r"[^\w\s-]", "", str(raw_name)).strip()[:40] or "Candidate"
+        clean_name = re.sub(r"\s+", "_", clean_name)
+        filename = f"ATS_Optimized_Resume_{clean_name}.docx"
         return send_file(
             file_stream,
             mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -434,7 +448,10 @@ def export_pdf():
 
     try:
         file_stream = export_resume_to_pdf(structured_resume)
-        filename = f"ATS_Optimized_Resume_{(structured_resume.get('name') or 'Candidate').replace(' ', '_')}.pdf"
+        raw_name = structured_resume.get("name") or "Candidate"
+        clean_name = re.sub(r"[^\w\s-]", "", str(raw_name)).strip()[:40] or "Candidate"
+        clean_name = re.sub(r"\s+", "_", clean_name)
+        filename = f"ATS_Optimized_Resume_{clean_name}.pdf"
         return send_file(
             file_stream,
             mimetype="application/pdf",
@@ -444,4 +461,3 @@ def export_pdf():
     except Exception as exc:
         logger.exception("PDF export failed")
         return error_response("EXPORT_FAILED", f"PDF generation failed: {str(exc)}", 500)
-

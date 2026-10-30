@@ -200,7 +200,6 @@ class ResumeOptimizerService:
         confirmed_skills: List[str],
     ) -> Dict[str, Any]:
         """Invoke Gemini LLM with JSON validation and retry on error, or use grounded generator."""
-        # Check if missing skills is empty (0 missing skills)
         has_missing = bool(missing_skills or confirmed_skills)
 
         prompt = (
@@ -298,7 +297,6 @@ class ResumeOptimizerService:
         }
 
         # Plausible domain evidence rules:
-        # e.g., if Python is present, NumPy/Pandas/scikit-learn can be woven into ML project
         has_python = any("python" in s.lower() for s in orig_skills) or "python" in resume_context
         has_web = any(k in resume_context for k in ["react", "node", "javascript", "html", "web"])
         has_data = any(k in resume_context for k in ["data", "sql", "analysis", "pandas", "ml"])
@@ -376,8 +374,26 @@ class ResumeOptimizerService:
         optimized_projects = []
         project_skills_added = [a["skill"] for a in added_skills if "Frameworks" in a.get("placed_in", "") or "Programming" in a.get("placed_in", "")]
         for i, p in enumerate(orig_proj):
-            p_dict = p if isinstance(p, dict) else {"title": f"Technical Project {i+1}", "bullets": [str(p)]}
-            bullets = list(p_dict.get("bullets") or [])
+            if isinstance(p, dict):
+                p_dict = copy.deepcopy(p)
+                bullets = list(p_dict.get("bullets") or [])
+            else:
+                p_str = str(p).strip()
+                if ":" in p_str and len(p_str.split(":", 1)[0].strip()) < 50:
+                    parts = p_str.split(":", 1)
+                    title = parts[0].strip()
+                    desc = parts[1].strip()
+                    bullets = [desc] if desc else [p_str]
+                elif "-" in p_str and len(p_str.split("-", 1)[0].strip()) < 40:
+                    parts = p_str.split("-", 1)
+                    title = parts[0].strip()
+                    desc = parts[1].strip()
+                    bullets = [desc] if desc else [p_str]
+                else:
+                    title = f"Technical Project {i+1}"
+                    bullets = [p_str]
+                p_dict = {"title": title, "bullets": bullets}
+
             if i == 0 and project_skills_added:
                 add_str = ", ".join(project_skills_added[:2])
                 bullets.append(f"Applied {add_str} to optimize system throughput and code modularity following industry best practices.")
@@ -399,21 +415,75 @@ class ResumeOptimizerService:
                 }
             ]
 
-        # Optimized Experience
+        # Optimized Experience: keep truthful, do not fabricate if candidate has none
         optimized_exp = []
         for i, e in enumerate(orig_exp):
-            e_dict = e if isinstance(e, dict) else {"title": f"Software Engineer", "company": "Technology Company", "bullets": [str(e)]}
-            optimized_exp.append(e_dict)
+            if isinstance(e, dict):
+                optimized_exp.append(copy.deepcopy(e))
+            else:
+                e_str = str(e).strip()
+                if not e_str:
+                    continue
+                if "|" in e_str:
+                    parts = [pt.strip() for pt in e_str.split("|")]
+                    title = parts[0]
+                    company = parts[1] if len(parts) > 1 else ""
+                    bullets = parts[2:] if len(parts) > 2 else [e_str]
+                elif ":" in e_str and len(e_str.split(":", 1)[0].strip()) < 60:
+                    parts = e_str.split(":", 1)
+                    title = parts[0].strip()
+                    company = ""
+                    bullets = [parts[1].strip()] if parts[1].strip() else [e_str]
+                else:
+                    title = "Professional Experience"
+                    company = ""
+                    bullets = [e_str]
+                optimized_exp.append({"title": title, "company": company, "bullets": bullets})
 
         # Optimized Education
         optimized_edu = []
         for ed in orig_edu:
             if isinstance(ed, dict):
-                optimized_edu.append(ed)
+                optimized_edu.append(copy.deepcopy(ed))
             else:
-                optimized_edu.append({"degree": str(ed), "institution": "Accredited University", "year": "2024"})
+                ed_str = str(ed).strip()
+                if not ed_str:
+                    continue
+                parts = [pt.strip() for pt in re.split(r"[,|-]", ed_str)]
+                deg = parts[0] if parts else ed_str
+                inst = parts[1] if len(parts) > 1 else ""
+                yr = parts[2] if len(parts) > 2 else ""
+                optimized_edu.append({"degree": deg, "institution": inst, "year": yr})
         if not optimized_edu:
-            optimized_edu = [{"degree": "Bachelor of Technology in Computer Science", "institution": "University College", "year": "2024"}]
+            optimized_edu = [{"degree": "Bachelor of Technology / Relevant Degree", "institution": "University / College", "year": "2024"}]
+
+        # Authentic candidate name and contact information
+        cand_name = (resume_data.get("name") or "Candidate Name").strip()
+        cand_name = re.sub(r"[|;•\n\r]+.*", "", cand_name).strip()
+        cand_name = re.sub(r"\s+", " ", cand_name) or "Candidate Name"
+
+        contact_in = resume_data.get("contact") or {}
+        urls_in = resume_data.get("urls") or []
+        email = contact_in.get("email") or resume_data.get("email") or ""
+        phone = contact_in.get("phone") or resume_data.get("phone") or ""
+        location = contact_in.get("location") or resume_data.get("location") or ""
+        linkedin = contact_in.get("linkedin") or ""
+        github = contact_in.get("github") or ""
+
+        for u in urls_in:
+            u_clean = str(u).strip()
+            if "linkedin.com" in u_clean.lower() and not linkedin:
+                linkedin = u_clean
+            elif "github.com" in u_clean.lower() and not github:
+                github = u_clean
+
+        contact_dict = {
+            "email": email,
+            "phone": phone,
+            "location": location,
+            "linkedin": linkedin,
+            "github": github,
+        }
 
         changes_summary = (
             f"Enhanced resume for target role '{role}'. Structured skills into clear technical categories, "
@@ -423,14 +493,8 @@ class ResumeOptimizerService:
 
         return {
             "optimized_resume": {
-                "name": resume_data.get("name") or "Candidate Name",
-                "contact": {
-                    "email": resume_data.get("email") or "candidate@example.com",
-                    "phone": resume_data.get("phone") or "+1-234-567-8900",
-                    "location": "City, State",
-                    "linkedin": "linkedin.com/in/candidate",
-                    "github": "github.com/candidate",
-                },
+                "name": cand_name,
+                "contact": contact_dict,
                 "summary": optimized_summary,
                 "skills": skills_by_category,
                 "experience": optimized_exp,
@@ -532,17 +596,47 @@ class ResumeOptimizerService:
             }
 
         # Format original resume data
+        orig_exp = resume.get("experience") or []
+        formatted_exp = []
+        for e in orig_exp:
+            if isinstance(e, dict):
+                formatted_exp.append(e)
+            else:
+                formatted_exp.append({"title": "Work Experience", "company": "", "bullets": [str(e)]})
+
+        orig_proj = resume.get("projects") or []
+        formatted_proj = []
+        for p in orig_proj:
+            if isinstance(p, dict):
+                formatted_proj.append(p)
+            else:
+                formatted_proj.append({"title": "Project", "bullets": [str(p)]})
+
+        orig_edu = resume.get("education") or []
+        formatted_edu = []
+        for ed in orig_edu:
+            if isinstance(ed, dict):
+                formatted_edu.append(ed)
+            else:
+                formatted_edu.append({"degree": str(ed), "institution": "", "year": ""})
+
+        cand_name = resume.get("name") or "Candidate"
+        cand_name = re.sub(r"[|;•\n\r]+.*", "", cand_name).strip() or "Candidate"
+
         return {
-            "name": resume.get("name") or "Candidate",
+            "name": cand_name,
             "contact": {
                 "email": resume.get("email") or "",
                 "phone": resume.get("phone") or "",
+                "location": resume.get("location") or "",
+                "linkedin": resume.get("linkedin") or "",
+                "github": resume.get("github") or "",
             },
             "summary": resume.get("summary") or "No explicit summary provided in original resume.",
             "skills": {"Technical Skills": resume.get("skills", [])},
-            "experience": [{"title": "Work Experience", "company": "", "bullets": resume.get("experience", [])}] if resume.get("experience") else [],
-            "projects": [{"title": "Projects", "bullets": resume.get("projects", [])}] if resume.get("projects") else [],
-            "education": [{"degree": e, "institution": "", "year": ""} for e in resume.get("education", [])],
+            "experience": formatted_exp,
+            "projects": formatted_proj,
+            "education": formatted_edu,
         }
 
 
@@ -563,7 +657,8 @@ def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
         section.right_margin = Inches(0.75)
 
     # Name Header
-    name = resume_data.get("name") or "Candidate Name"
+    name = (resume_data.get("name") or "Candidate Name").strip()
+    name = re.sub(r"[|;•\n\r]+.*", "", name).strip() or "Candidate Name"
     name_para = doc.add_paragraph()
     name_run = name_para.add_run(name)
     name_run.bold = True
@@ -582,7 +677,7 @@ def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
         contact.get("linkedin"),
         contact.get("github"),
     ]
-    contact_str = " | ".join([p for p in contact_parts if p])
+    contact_str = " | ".join([str(p).strip() for p in contact_parts if p and str(p).strip()])
     if contact_str:
         cp = doc.add_paragraph()
         c_run = cp.add_run(contact_str)
@@ -741,7 +836,7 @@ def clean_pdf_str(text: str) -> str:
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
-    
+
     text = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
     return text.encode("latin-1", errors="ignore").decode("latin-1")
 
@@ -761,18 +856,18 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
     margin_l = 45.0
     margin_r = 45.0
     content_w = page_w - margin_l - margin_r
-    
+
     pages = []
     current_stream = []
     y = 792.0
-    
+
     def check_page_break(needed_space: float = 20.0):
         nonlocal y, current_stream, pages
         if y - needed_space < 45.0:
             pages.append("\n".join(current_stream))
             current_stream = []
             y = 792.0
-            
+
     def wrap_words(text: str, max_chars: int) -> List[str]:
         words = str(text or "").split()
         if not words:
@@ -789,16 +884,18 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
         return lines
 
     # Header: Name (Centered, Bold, 16pt)
-    name = (resume_data.get("name") or "Candidate Name").strip().upper()
+    raw_name = (resume_data.get("name") or "Candidate Name").strip()
+    raw_name = re.sub(r"[|;•\n\r]+.*", "", raw_name).strip() or "Candidate Name"
+    name = raw_name.upper()
     c_name = clean_pdf_str(name)
     name_w = len(name) * 9.2
     name_x = max(margin_l, (page_w - name_w) / 2.0)
     current_stream.append(f"BT /F2 16 Tf 0.06 0.09 0.16 rg {name_x:.1f} {y:.1f} Td ({c_name}) Tj ET")
     y -= 18.0
-    
+
     # Contact Info (Centered, Regular, 9pt)
     contact = resume_data.get("contact") or {}
-    c_parts = [contact.get(k) for k in ("email", "phone", "location", "linkedin", "github") if contact.get(k)]
+    c_parts = [str(contact.get(k)).strip() for k in ("email", "phone", "location", "linkedin", "github") if contact.get(k) and str(contact.get(k)).strip()]
     if c_parts:
         c_line = " | ".join(c_parts)
         cc_line = clean_pdf_str(c_line)
@@ -806,7 +903,7 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
         c_x = max(margin_l, (page_w - c_w) / 2.0)
         current_stream.append(f"BT /F1 9 Tf 0.28 0.33 0.42 rg {c_x:.1f} {y:.1f} Td ({cc_line}) Tj ET")
         y -= 14.0
-        
+
     def add_section_header(title: str):
         nonlocal y
         check_page_break(32.0)
@@ -863,11 +960,11 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
                 title = exp.get("title", "Software Engineer")
                 comp = exp.get("company", "")
                 dur = exp.get("duration", "")
-                
+
                 header_line = f"{title}" + (f" | {comp}" if comp else "") + (f" ({dur})" if dur else "")
                 current_stream.append(f"BT /F2 10 Tf 0.06 0.09 0.16 rg {margin_l:.1f} {y:.1f} Td ({clean_pdf_str(header_line)}) Tj ET")
                 y -= 13.0
-                
+
                 for b in exp.get("bullets", []):
                     b_words = wrap_words(b, 86)
                     for b_idx, b_line in enumerate(b_words):
@@ -890,10 +987,10 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
                 p_title = proj.get("title", "Project")
                 stack = proj.get("tech_stack")
                 stack_str = f" [{', '.join(stack)}]" if stack else ""
-                
+
                 current_stream.append(f"BT /F2 10 Tf 0.06 0.09 0.16 rg {margin_l:.1f} {y:.1f} Td ({clean_pdf_str(p_title)}) Tj /F3 9 Tf 0.35 0.4 0.5 rg ({clean_pdf_str(stack_str)}) Tj ET")
                 y -= 13.0
-                
+
                 for b in proj.get("bullets", []):
                     b_words = wrap_words(b, 86)
                     for b_idx, b_line in enumerate(b_words):
@@ -922,7 +1019,7 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
 
     if current_stream:
         pages.append("\n".join(current_stream))
-        
+
     num_pages = len(pages) if pages else 1
     if not pages:
         pages = ["BT /F1 10 Tf 50 780 Td (No content) Tj ET"]
@@ -932,15 +1029,15 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
     f1_id = 3
     f2_id = 4
     f3_id = 5
-    
+
     page_obj_ids = [6 + i for i in range(num_pages)]
     stream_obj_ids = [6 + num_pages + i for i in range(num_pages)]
     total_objs = 6 + 2 * num_pages
-    
+
     cat_obj = f"{cat_id} 0 obj\n<< /Type /Catalog /Pages {pages_id} 0 R >>\nendobj\n".encode("ascii")
     kids_str = " ".join([f"{pid} 0 R" for pid in page_obj_ids])
     pages_obj = f"{pages_id} 0 obj\n<< /Type /Pages /Kids [{kids_str}] /Count {num_pages} >>\nendobj\n".encode("ascii")
-    
+
     page_objs = []
     for pid, sid in zip(page_obj_ids, stream_obj_ids):
         p_str = (
@@ -951,7 +1048,7 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
             f"endobj\n"
         )
         page_objs.append((pid, p_str.encode("ascii")))
-        
+
     stream_objs = []
     for sid, stream_content in zip(stream_obj_ids, pages):
         s_bytes = stream_content.encode("latin-1")
@@ -961,39 +1058,39 @@ def _generate_pure_python_pdf(resume_data: Dict[str, Any]) -> io.BytesIO:
             f"stream\n"
         ).encode("ascii") + s_bytes + b"\nendstream\nendobj\n"
         stream_objs.append((sid, s_str))
-        
+
     buf = b"%PDF-1.4\n"
     offsets = {}
-    
+
     offsets[cat_id] = len(buf)
     buf += cat_obj
-    
+
     offsets[pages_id] = len(buf)
     buf += pages_obj
-    
+
     offsets[f1_id] = len(buf)
     buf += f"{f1_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
-    
+
     offsets[f2_id] = len(buf)
     buf += f"{f2_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
-    
+
     offsets[f3_id] = len(buf)
     buf += f"{f3_id} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>\nendobj\n".encode("ascii")
-    
+
     for pid, p_chunk in page_objs:
         offsets[pid] = len(buf)
         buf += p_chunk
-        
+
     for sid, s_chunk in stream_objs:
         offsets[sid] = len(buf)
         buf += s_chunk
-        
+
     startxref = len(buf)
     xref = f"xref\n0 {total_objs}\n0000000000 65535 f \n".encode("ascii")
     for i in range(1, total_objs):
         xref += f"{offsets[i]:010d} 00000 n \n".encode("ascii")
     trailer = f"trailer\n<< /Size {total_objs} /Root {cat_id} 0 R >>\nstartxref\n{startxref}\n%%EOF\n".encode("ascii")
-    
+
     final_pdf = buf + xref + trailer
     stream_io = io.BytesIO(final_pdf)
     stream_io.seek(0)

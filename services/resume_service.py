@@ -32,7 +32,7 @@ class ResumeService:
             if ocr_text and len(ocr_text) > len(text):
                 text = ocr_text
 
-        text = clean_text(text)
+        text = clean_text(text, preserve_newlines=True)
         if len(text) < 50:
             raise ValueError(
                 "We could not extract enough text from this PDF. "
@@ -62,14 +62,26 @@ class ResumeService:
         }
 
     def get_resume(self, resume_id: str) -> Optional[Dict]:
-        """Retrieve resume by ID."""
-        doc = self.collection.find_one({"_id": ObjectId(resume_id)})
-        return serialize_doc(doc)
+        """Retrieve resume by ID safely."""
+        try:
+            if ObjectId.is_valid(resume_id):
+                doc = self.collection.find_one({"_id": ObjectId(resume_id)})
+            else:
+                doc = self.collection.find_one({"_id": resume_id})
+            return serialize_doc(doc)
+        except Exception as exc:
+            logger.warning("Error fetching resume %s: %s", resume_id, exc)
+            return None
 
     def update_extracted(self, resume_id: str, extracted: Dict) -> bool:
         """Allow user to edit extracted information."""
-        result = self.collection.update_one(
-            {"_id": ObjectId(resume_id)},
-            {"$set": {"extracted": extracted, "updated_at": utc_now()}},
-        )
-        return result.modified_count > 0
+        try:
+            query = {"_id": ObjectId(resume_id)} if ObjectId.is_valid(resume_id) else {"_id": resume_id}
+            result = self.collection.update_one(
+                query,
+                {"$set": {"extracted": extracted, "updated_at": utc_now()}},
+            )
+            return result.modified_count > 0
+        except Exception as exc:
+            logger.warning("Error updating resume %s: %s", resume_id, exc)
+            return False

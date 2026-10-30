@@ -84,17 +84,33 @@ class ResumeParser:
         return match.group(0) if match else None
 
     def _extract_name(self, text: str) -> Optional[str]:
-        """Extract name from first few lines."""
+        """Extract candidate name cleanly from header lines."""
         lines = [l.strip() for l in text.split("\n") if l.strip()]
         if not lines:
             return None
         for line in lines[:5]:
-            if EMAIL_PATTERN.search(line) or PHONE_PATTERN.search(line):
+            if EMAIL_PATTERN.search(line) or PHONE_PATTERN.search(line) or URL_PATTERN.search(line):
+                # If this line contains the name concatenated with contact info (e.g. 'John Doe | john@email.com')
+                candidate = re.split(r"[|•\t]|(?:\s+-\s+)", line)[0].strip()
+                candidate = EMAIL_PATTERN.sub("", candidate)
+                candidate = PHONE_PATTERN.sub("", candidate)
+                candidate = URL_PATTERN.sub("", candidate).strip(" ,.-|:")
+                if 2 <= len(candidate.split()) <= 4 and len(candidate) < 40:
+                    if not any(kw in candidate.lower() for kw in ["resume", "curriculum", "cv", "portfolio", "github", "linkedin", "http", "www."]):
+                        return candidate
                 continue
             if len(line.split()) <= 5 and len(line) < 60:
-                if not any(kw in line.lower() for kw in ["resume", "curriculum", "cv", "portfolio", "github", "linkedin"]):
+                if not any(kw in line.lower() for kw in ["resume", "curriculum", "cv", "portfolio", "github", "linkedin", "http", "www."]):
                     return line
-        return lines[0] if lines else None
+
+        # Final fallback
+        first = re.split(r"[|•\t]|(?:\s+-\s+)", lines[0])[0].strip()
+        first = EMAIL_PATTERN.sub("", first)
+        first = PHONE_PATTERN.sub("", first)
+        first = URL_PATTERN.sub("", first).strip(" ,.-|:")
+        if 2 <= len(first.split()) <= 5 and len(first) < 40:
+            return first
+        return "Candidate"
 
     def _extract_skills(self, text: str) -> List[str]:
         skills = []
@@ -107,6 +123,9 @@ class ResumeParser:
         # 2. Parse subcategory items (e.g. Languages: Java, Python; Web: React, Node)
         raw_skills = re.split(r"[,|•\n;/\\]", source)
         for s in raw_skills:
+            # If line has category prefix like 'Languages: Java', strip the category prefix
+            if ":" in s:
+                s = s.split(":", 1)[1]
             candidate = clean_skill_candidate(s)
             if candidate:
                 norm = normalize_skill_name(candidate)
@@ -156,7 +175,7 @@ class ResumeParser:
         return [clean_text(i) for i in items if len(i.strip()) > 5][:10]
 
     def _extract_summary(self, text: str) -> str:
-        summary = extract_section(text, ["summary", "objective", "profile", "about"])
+        summary = extract_section(text, ["summary", "objective", "profile", "about", "career objective", "professional summary"])
         if summary:
             return summary[:1000]
         return text[:500]
