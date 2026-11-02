@@ -2204,6 +2204,50 @@ public class LoginStepDefinitions {
         System.out.println("Verifying dashboard redirection...");
     }
 }"""
+    elif any(k in t_lower for k in ["maven", "apache maven"]):
+        modules = [
+            ("Maven Architecture, POM.xml & Directory Structure", "Understand standard Maven directory layout (src/main/java, src/test/java), Project Object Model (POM.xml), GAV coordinates (groupId, artifactId, version), and build lifecycle."),
+            ("Dependency Management, Repositories & Scopes", "Manage Maven Central vs local ~/.m2 repositories, transitive dependency resolution, exclusion tags, and dependency scopes (compile, test, provided, runtime)."),
+            ("Maven Build Lifecycles, Phases & Goals", "Master standard default, clean, and site lifecycles; execute validate, compile, test, package, verify, install, and deploy phases."),
+            ("Configuring Maven Plugins & Automated Test Execution", "Configure maven-compiler-plugin, maven-surefire-plugin for JUnit/TestNG automated tests, and maven-jar-plugin for packaging executable JARs."),
+            ("Multi-Module Projects, Profiles & CI/CD Pipelines", "Architect multi-module projects with parent POMs and dependencyManagement, manage environment build profiles, and automate builds in CI/CD pipelines.")
+        ]
+        category = "Build Tools & DevOps"
+        lang = "xml"
+        code_snip = """<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example.app</groupId>
+    <artifactId>maven-enterprise-app</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>5.10.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>"""
     elif any(k in t_lower for k in ["selenium", "automation testing", "software testing", "qa", "sdet"]):
         modules = [
             ("Software Testing Principles & Test Automation Foundations", "Understand QA lifecycle (STLC), verification vs validation, and the test automation pyramid."),

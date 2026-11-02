@@ -115,6 +115,21 @@ def handle_exception(e):
     return jsonify({"success": False, "error": {"code": "SERVER_ERROR", "message": str(e)}}), 500
 
 
+@app.route("/static/<path:filename>")
+def custom_static(filename):
+    """Explicit static handler ensuring static assets are served reliably across environments."""
+    candidates = [
+        os.path.join(BASE_DIR, "public", "static"),
+        os.path.join(BASE_DIR, "frontend", "static"),
+        os.path.join(os.getcwd(), "public", "static"),
+        os.path.join(os.getcwd(), "frontend", "static"),
+    ]
+    for c in candidates:
+        if os.path.exists(os.path.join(c, filename)):
+            return send_from_directory(c, filename)
+    return not_found(None)
+
+
 # Frontend routes
 @app.route("/")
 @app.route("/api/index")

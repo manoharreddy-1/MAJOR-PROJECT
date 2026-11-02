@@ -8,9 +8,110 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/style.css?v=2.5">
   <style>
+    :root {
+      --primary: #0f172a;
+      --primary-light: #1e293b;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --radius: 8px;
+      --radius-lg: 12px;
+      --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-alt);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .navbar-brand {
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .navbar-brand span {
+      color: var(--accent);
+    }
+    .navbar-nav {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+    .navbar-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+    .navbar-nav a.active {
+      color: var(--accent);
+    }
+    .nav-toggle {
+      display: none;
+    }
+    .container {
+      flex: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    .btn {
+      display: inline-block;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid transparent;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.9375rem;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+    .btn-lg {
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+    }
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+      background: white;
+      margin-top: auto;
+    }
     .auth-container {
       max-width: 440px;
-      margin: 4rem auto;
+      margin: 2rem auto;
       padding: 2.5rem;
       background: white;
       border: 1px solid var(--border);
@@ -75,7 +176,7 @@
       <div style="text-align: center; margin-bottom: 1.5rem;">
         <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">&#128100;</div>
         <h2 id="authTitle" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">Sign In</h2>
-        <p class="text-muted" style="font-size: 0.875rem;">Access your personalized ATS history, courses, and profile</p>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">Access your personalized ATS history, courses, and profile</p>
       </div>
 
       <div class="auth-tabs">
@@ -121,6 +222,26 @@
 
   <script src="/static/js/app.js?v=2.5"></script>
   <script>
+    // Bulletproof fallback in case external app.js is slow or blocked
+    if (typeof API === 'undefined' || !window.API) {
+      window.API = {
+        async request(endpoint, options = {}) {
+          const url = '/api' + endpoint;
+          const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+          const res = await fetch(url, {
+            ...options,
+            headers: headers,
+            body: options.body ? JSON.stringify(options.body) : undefined
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.success === false) {
+            throw new Error(data.error?.message || data.message || ('Request failed (' + res.status + ')'));
+          }
+          return data;
+        }
+      };
+    }
+
     let mode = 'login';
 
     function switchAuthMode(newMode) {

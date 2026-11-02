@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Authentication Guard & Dynamic Navigation Bar
   const path = window.location.pathname;
   const isLoginPage = (path === '/' || path === '/login');
-  
+
   // Check user session
   let user = null;
   try {
@@ -263,8 +263,14 @@ async function triggerResumeOptimization(confirmedSkills = []) {
   const container = document.getElementById('aiResumeContainer');
   const loading = document.getElementById('aiResumeLoading');
   const results = document.getElementById('aiResumeResults');
+  const errBox = document.getElementById('aiResumeError');
 
   if (!container || !loading || !results) return;
+
+  if (errBox) {
+    errBox.style.display = 'none';
+    errBox.innerHTML = '';
+  }
 
   const analysis = Store.get('analysis_data') || {};
   const resume = Store.get('resume_data') || analysis.resume_data || analysis.resume || {};
@@ -315,14 +321,14 @@ async function triggerResumeOptimization(confirmedSkills = []) {
     }
   } catch (err) {
     loading.style.display = 'none';
+    results.style.display = 'none';
     if (btn) {
       btn.disabled = false;
       btn.innerHTML = '<span>✨</span> Create Resume with AI';
     }
-    const errContainer = document.getElementById('aiResumeContainer');
-    if (errContainer) {
-      errContainer.style.display = 'block';
-      errContainer.innerHTML = `
+    if (errBox) {
+      errBox.style.display = 'block';
+      errBox.innerHTML = `
         <div class="card mb-3" style="border: 1px solid #f87171; background: #fef2f2; padding: 1.5rem; text-align: center;">
           <div style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</div>
           <h4 style="color: #991b1b; font-weight: 700; margin-bottom: 0.5rem;">Could Not Optimize Resume</h4>
@@ -541,7 +547,9 @@ async function downloadOptimizedDocx() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ATS_Optimized_Resume_${(latestOptimization.structured_optimized.name || 'Candidate').replace(/\s+/g, '_')}.docx`;
+    const rawName = latestOptimization.structured_optimized.name || 'Candidate';
+    const cleanName = rawName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'Candidate';
+    a.download = `ATS_Optimized_Resume_${cleanName}.docx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -567,7 +575,9 @@ async function downloadOptimizedPdf() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ATS_Optimized_Resume_${(latestOptimization.structured_optimized.name || 'Candidate').replace(/\s+/g, '_')}.pdf`;
+    const rawName = latestOptimization.structured_optimized.name || 'Candidate';
+    const cleanName = rawName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'Candidate';
+    a.download = `ATS_Optimized_Resume_${cleanName}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();
