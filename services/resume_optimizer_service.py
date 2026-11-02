@@ -10,6 +10,8 @@ import json
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple
+import xml.sax.saxutils
+import zipfile
 
 try:
     import pymupdf as fitz
@@ -644,31 +646,14 @@ class ResumeOptimizerService:
 # Export Generators (DOCX & PDF)
 # ==========================================
 
-def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
-    """Generate clean, single-column ATS Word Document (.docx)."""
-    doc = Document()
+def _generate_pure_python_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
+    """Generate ATS Word Document (.docx) purely using standard library zipfile.
+    100% resilient across serverless/cloud environments where python-docx might be absent."""
+    buf = io.BytesIO()
 
-    # Set 0.75-inch standard margins
-    sections = doc.sections
-    for section in sections:
-        section.top_margin = Inches(0.75)
-        section.bottom_margin = Inches(0.75)
-        section.left_margin = Inches(0.75)
-        section.right_margin = Inches(0.75)
-
-    # Name Header
     name = (resume_data.get("name") or "Candidate Name").strip()
     name = re.sub(r"[|;•\n\r]+.*", "", name).strip() or "Candidate Name"
-    name_para = doc.add_paragraph()
-    name_run = name_para.add_run(name)
-    name_run.bold = True
-    name_run.font.size = Pt(18)
-    name_run.font.name = "Calibri"
-    name_run.font.color.rgb = RGBColor(15, 23, 42)
-    name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    name_para.paragraph_format.space_after = Pt(2)
 
-    # Contact Info
     contact = resume_data.get("contact") or {}
     contact_parts = [
         contact.get("email"),
@@ -678,139 +663,311 @@ def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
         contact.get("github"),
     ]
     contact_str = " | ".join([str(p).strip() for p in contact_parts if p and str(p).strip()])
+
+    body_xml_parts = []
+
+    # Name Paragraph (Centered, Bold, 18pt = 36 half-pts)
+    esc_name = xml.sax.saxutils.escape(name)
+    body_xml_parts.append(f"""<w:p>
+      <w:pPr><w:jc w:val="center"/><w:spacing w:after="40"/></w:pPr>
+      <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="36"/><w:color w:val="0F172A"/></w:rPr><w:t>{esc_name}</w:t></w:r>
+    </w:p>""")
+
+    # Contact Info (Centered, 9.5pt = 19 half-pts)
     if contact_str:
-        cp = doc.add_paragraph()
-        c_run = cp.add_run(contact_str)
-        c_run.font.size = Pt(9.5)
-        c_run.font.name = "Calibri"
-        c_run.font.color.rgb = RGBColor(71, 85, 105)
-        cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        cp.paragraph_format.space_after = Pt(12)
+        esc_contact = xml.sax.saxutils.escape(contact_str)
+        body_xml_parts.append(f"""<w:p>
+          <w:pPr><w:jc w:val="center"/><w:spacing w:after="200"/></w:pPr>
+          <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="19"/><w:color w:val="475569"/></w:rPr><w:t>{esc_contact}</w:t></w:r>
+        </w:p>""")
 
-    def add_section_header(title: str):
-        p = doc.add_paragraph()
-        run = p.add_run(title.upper())
-        run.bold = True
-        run.font.size = Pt(11)
-        run.font.name = "Calibri"
-        run.font.color.rgb = RGBColor(15, 23, 42)
-        p.paragraph_format.space_before = Pt(8)
-        p.paragraph_format.space_after = Pt(4)
+    def make_section_header(title: str) -> str:
+        esc_title = xml.sax.saxutils.escape(title.upper())
+        return f"""<w:p>
+          <w:pPr><w:spacing w:before="160" w:after="80"/><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="CBD5E1"/></w:pBdr></w:pPr>
+          <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="22"/><w:color w:val="0F172A"/></w:rPr><w:t>{esc_title}</w:t></w:r>
+        </w:p>"""
 
-    # Professional Summary
+    # Summary
     summary = resume_data.get("summary")
     if summary:
-        add_section_header("Professional Summary")
-        sp = doc.add_paragraph()
-        s_run = sp.add_run(summary)
-        s_run.font.size = Pt(10)
-        s_run.font.name = "Calibri"
-        sp.paragraph_format.space_after = Pt(8)
+        body_xml_parts.append(make_section_header("Professional Summary"))
+        esc_sum = xml.sax.saxutils.escape(str(summary))
+        body_xml_parts.append(f"""<w:p>
+          <w:pPr><w:spacing w:after="160"/></w:pPr>
+          <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="20"/><w:color w:val="1E293B"/></w:rPr><w:t>{esc_sum}</w:t></w:r>
+        </w:p>""")
 
     # Technical Skills
     skills = resume_data.get("skills")
     if skills:
-        add_section_header("Technical Skills")
+        body_xml_parts.append(make_section_header("Technical Skills"))
         if isinstance(skills, dict):
             for cat, items in skills.items():
-                p = doc.add_paragraph(style="List Bullet")
-                p.paragraph_format.space_after = Pt(2)
-                cat_run = p.add_run(f"{cat}: ")
-                cat_run.bold = True
-                cat_run.font.size = Pt(10)
-                cat_run.font.name = "Calibri"
-                it_run = p.add_run(", ".join([str(i) for i in items]))
-                it_run.font.size = Pt(10)
-                it_run.font.name = "Calibri"
+                esc_cat = xml.sax.saxutils.escape(str(cat))
+                esc_items = xml.sax.saxutils.escape(", ".join([str(i) for i in items]))
+                body_xml_parts.append(f"""<w:p>
+                  <w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+                  <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="20"/><w:color w:val="0F172A"/></w:rPr><w:t>{esc_cat}: </w:t></w:r>
+                  <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="20"/><w:color w:val="1E293B"/></w:rPr><w:t>{esc_items}</w:t></w:r>
+                </w:p>""")
         elif isinstance(skills, list):
-            p = doc.add_paragraph(style="List Bullet")
-            p.paragraph_format.space_after = Pt(2)
-            run = p.add_run(", ".join([str(i) for i in skills]))
-            run.font.size = Pt(10)
-            run.font.name = "Calibri"
+            esc_items = xml.sax.saxutils.escape(", ".join([str(i) for i in skills]))
+            body_xml_parts.append(f"""<w:p>
+              <w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+              <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="20"/><w:color w:val="1E293B"/></w:rPr><w:t>{esc_items}</w:t></w:r>
+            </w:p>""")
 
     # Experience
     experience = resume_data.get("experience")
     if experience:
-        add_section_header("Professional Experience")
+        body_xml_parts.append(make_section_header("Professional Experience"))
         for exp in experience:
             if isinstance(exp, dict):
-                ep = doc.add_paragraph()
-                ep.paragraph_format.space_before = Pt(4)
-                ep.paragraph_format.space_after = Pt(1)
-                t_run = ep.add_run(exp.get("title", "Software Engineer"))
-                t_run.bold = True
-                t_run.font.size = Pt(10.5)
-                t_run.font.name = "Calibri"
-                if exp.get("company"):
-                    c_run = ep.add_run(f" | {exp.get('company')}")
-                    c_run.font.size = Pt(10)
-                    c_run.font.name = "Calibri"
-                if exp.get("duration"):
-                    d_run = ep.add_run(f" ({exp.get('duration')})")
-                    d_run.italic = True
-                    d_run.font.size = Pt(9.5)
-                    d_run.font.name = "Calibri"
-
+                title_str = exp.get("title", "Software Engineer")
+                comp_str = f" | {exp.get('company')}" if exp.get("company") else ""
+                dur_str = f" ({exp.get('duration')})" if exp.get("duration") else ""
+                full_line = xml.sax.saxutils.escape(title_str + comp_str + dur_str)
+                body_xml_parts.append(f"""<w:p>
+                  <w:pPr><w:spacing w:before="80" w:after="20"/></w:pPr>
+                  <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="21"/><w:color w:val="0F172A"/></w:rPr><w:t>{full_line}</w:t></w:r>
+                </w:p>""")
                 for bullet in exp.get("bullets", []):
-                    bp = doc.add_paragraph(style="List Bullet")
-                    bp.paragraph_format.space_after = Pt(2)
-                    b_run = bp.add_run(bullet)
-                    b_run.font.size = Pt(9.5)
-                    b_run.font.name = "Calibri"
+                    esc_b = xml.sax.saxutils.escape(str(bullet))
+                    body_xml_parts.append(f"""<w:p>
+                      <w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+                      <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="19"/><w:color w:val="334155"/></w:rPr><w:t>• {esc_b}</w:t></w:r>
+                    </w:p>""")
 
     # Projects
     projects = resume_data.get("projects")
     if projects:
-        add_section_header("Technical Projects")
+        body_xml_parts.append(make_section_header("Technical Projects"))
         for proj in projects:
             if isinstance(proj, dict):
-                pp = doc.add_paragraph()
-                pp.paragraph_format.space_before = Pt(4)
-                pp.paragraph_format.space_after = Pt(1)
-                p_run = pp.add_run(proj.get("title", "Project"))
-                p_run.bold = True
-                p_run.font.size = Pt(10.5)
-                p_run.font.name = "Calibri"
-                if proj.get("tech_stack"):
-                    stack_run = pp.add_run(f" [{', '.join(proj.get('tech_stack'))}]")
-                    stack_run.italic = True
-                    stack_run.font.size = Pt(9.5)
-                    stack_run.font.name = "Calibri"
-
+                p_title = proj.get("title", "Project")
+                p_stack = f" [{', '.join(proj.get('tech_stack'))}]" if proj.get("tech_stack") else ""
+                esc_phead = xml.sax.saxutils.escape(p_title + p_stack)
+                body_xml_parts.append(f"""<w:p>
+                  <w:pPr><w:spacing w:before="80" w:after="20"/></w:pPr>
+                  <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="21"/><w:color w:val="0F172A"/></w:rPr><w:t>{esc_phead}</w:t></w:r>
+                </w:p>""")
                 for bullet in proj.get("bullets", []):
-                    bp = doc.add_paragraph(style="List Bullet")
-                    bp.paragraph_format.space_after = Pt(2)
-                    b_run = bp.add_run(bullet)
-                    b_run.font.size = Pt(9.5)
-                    b_run.font.name = "Calibri"
+                    esc_b = xml.sax.saxutils.escape(str(bullet))
+                    body_xml_parts.append(f"""<w:p>
+                      <w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+                      <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="19"/><w:color w:val="334155"/></w:rPr><w:t>• {esc_b}</w:t></w:r>
+                    </w:p>""")
 
     # Education
     education = resume_data.get("education")
     if education:
-        add_section_header("Education")
+        body_xml_parts.append(make_section_header("Education"))
         for edu in education:
             if isinstance(edu, dict):
-                edp = doc.add_paragraph()
-                edp.paragraph_format.space_after = Pt(2)
-                deg_run = edp.add_run(edu.get("degree", ""))
-                deg_run.bold = True
-                deg_run.font.size = Pt(10)
-                deg_run.font.name = "Calibri"
-                if edu.get("institution"):
-                    inst_run = edp.add_run(f" - {edu.get('institution')}")
-                    inst_run.font.size = Pt(10)
-                    inst_run.font.name = "Calibri"
-                if edu.get("year"):
-                    yr_run = edp.add_run(f" ({edu.get('year')})")
-                    yr_run.italic = True
-                    yr_run.font.size = Pt(9.5)
-                    yr_run.font.name = "Calibri"
+                deg = edu.get("degree", "")
+                inst = f" - {edu.get('institution')}" if edu.get("institution") else ""
+                yr = f" ({edu.get('year')})" if edu.get("year") else ""
+                esc_edu = xml.sax.saxutils.escape(deg + inst + yr)
+                body_xml_parts.append(f"""<w:p>
+                  <w:pPr><w:spacing w:after="40"/><w:ind w:left="360"/></w:pPr>
+                  <w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:b/><w:sz w:val="20"/><w:color w:val="1E293B"/></w:rPr><w:t>{esc_edu}</w:t></w:r>
+                </w:p>""")
 
-    file_stream = io.BytesIO()
-    doc.save(file_stream)
-    file_stream.seek(0)
-    return file_stream
+    # Page Margins (0.75 in = 1080 twips)
+    sectPr = '<w:sectPr><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080"/></w:sectPr>'
+    doc_content = "\n".join(body_xml_parts) + "\n" + sectPr
+
+    doc_xml = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    {doc_content}
+  </w:body>
+</w:document>"""
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+        z.writestr("_rels/.rels", '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+        z.writestr("word/document.xml", doc_xml.encode("utf-8"))
+
+    buf.seek(0)
+    return buf
+
+
+def export_resume_to_docx(resume_data: Dict[str, Any]) -> io.BytesIO:
+    """Generate clean, single-column ATS Word Document (.docx)."""
+    if not _DOCX_AVAILABLE or Document is None:
+        return _generate_pure_python_docx(resume_data)
+
+    try:
+        doc = Document()
+
+        # Set 0.75-inch standard margins
+        sections = doc.sections
+        for section in sections:
+            section.top_margin = Inches(0.75)
+            section.bottom_margin = Inches(0.75)
+            section.left_margin = Inches(0.75)
+            section.right_margin = Inches(0.75)
+
+        # Name Header
+        name = (resume_data.get("name") or "Candidate Name").strip()
+        name = re.sub(r"[|;•\n\r]+.*", "", name).strip() or "Candidate Name"
+        name_para = doc.add_paragraph()
+        name_run = name_para.add_run(name)
+        name_run.bold = True
+        name_run.font.size = Pt(18)
+        name_run.font.name = "Calibri"
+        name_run.font.color.rgb = RGBColor(15, 23, 42)
+        name_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        name_para.paragraph_format.space_after = Pt(2)
+
+        # Contact Info
+        contact = resume_data.get("contact") or {}
+        contact_parts = [
+            contact.get("email"),
+            contact.get("phone"),
+            contact.get("location"),
+            contact.get("linkedin"),
+            contact.get("github"),
+        ]
+        contact_str = " | ".join([str(p).strip() for p in contact_parts if p and str(p).strip()])
+        if contact_str:
+            cp = doc.add_paragraph()
+            c_run = cp.add_run(contact_str)
+            c_run.font.size = Pt(9.5)
+            c_run.font.name = "Calibri"
+            c_run.font.color.rgb = RGBColor(71, 85, 105)
+            cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cp.paragraph_format.space_after = Pt(12)
+
+        def add_section_header(title: str):
+            p = doc.add_paragraph()
+            run = p.add_run(title.upper())
+            run.bold = True
+            run.font.size = Pt(11)
+            run.font.name = "Calibri"
+            run.font.color.rgb = RGBColor(15, 23, 42)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(4)
+
+        # Professional Summary
+        summary = resume_data.get("summary")
+        if summary:
+            add_section_header("Professional Summary")
+            sp = doc.add_paragraph()
+            s_run = sp.add_run(summary)
+            s_run.font.size = Pt(10)
+            s_run.font.name = "Calibri"
+            sp.paragraph_format.space_after = Pt(8)
+
+        # Technical Skills
+        skills = resume_data.get("skills")
+        if skills:
+            add_section_header("Technical Skills")
+            if isinstance(skills, dict):
+                for cat, items in skills.items():
+                    p = doc.add_paragraph(style="List Bullet")
+                    p.paragraph_format.space_after = Pt(2)
+                    cat_run = p.add_run(f"{cat}: ")
+                    cat_run.bold = True
+                    cat_run.font.size = Pt(10)
+                    cat_run.font.name = "Calibri"
+                    it_run = p.add_run(", ".join([str(i) for i in items]))
+                    it_run.font.size = Pt(10)
+                    it_run.font.name = "Calibri"
+            elif isinstance(skills, list):
+                p = doc.add_paragraph(style="List Bullet")
+                p.paragraph_format.space_after = Pt(2)
+                run = p.add_run(", ".join([str(i) for i in skills]))
+                run.font.size = Pt(10)
+                run.font.name = "Calibri"
+
+        # Experience
+        experience = resume_data.get("experience")
+        if experience:
+            add_section_header("Professional Experience")
+            for exp in experience:
+                if isinstance(exp, dict):
+                    ep = doc.add_paragraph()
+                    ep.paragraph_format.space_before = Pt(4)
+                    ep.paragraph_format.space_after = Pt(1)
+                    t_run = ep.add_run(exp.get("title", "Software Engineer"))
+                    t_run.bold = True
+                    t_run.font.size = Pt(10.5)
+                    t_run.font.name = "Calibri"
+                    if exp.get("company"):
+                        c_run = ep.add_run(f" | {exp.get('company')}")
+                        c_run.font.size = Pt(10)
+                        c_run.font.name = "Calibri"
+                    if exp.get("duration"):
+                        d_run = ep.add_run(f" ({exp.get('duration')})")
+                        d_run.italic = True
+                        d_run.font.size = Pt(9.5)
+                        d_run.font.name = "Calibri"
+
+                    for bullet in exp.get("bullets", []):
+                        bp = doc.add_paragraph(style="List Bullet")
+                        bp.paragraph_format.space_after = Pt(2)
+                        b_run = bp.add_run(bullet)
+                        b_run.font.size = Pt(9.5)
+                        b_run.font.name = "Calibri"
+
+        # Projects
+        projects = resume_data.get("projects")
+        if projects:
+            add_section_header("Technical Projects")
+            for proj in projects:
+                if isinstance(proj, dict):
+                    pp = doc.add_paragraph()
+                    pp.paragraph_format.space_before = Pt(4)
+                    pp.paragraph_format.space_after = Pt(1)
+                    p_run = pp.add_run(proj.get("title", "Project"))
+                    p_run.bold = True
+                    p_run.font.size = Pt(10.5)
+                    p_run.font.name = "Calibri"
+                    if proj.get("tech_stack"):
+                        stack_run = pp.add_run(f" [{', '.join(proj.get('tech_stack'))}]")
+                        stack_run.italic = True
+                        stack_run.font.size = Pt(9.5)
+                        stack_run.font.name = "Calibri"
+
+                    for bullet in proj.get("bullets", []):
+                        bp = doc.add_paragraph(style="List Bullet")
+                        bp.paragraph_format.space_after = Pt(2)
+                        b_run = bp.add_run(bullet)
+                        b_run.font.size = Pt(9.5)
+                        b_run.font.name = "Calibri"
+
+        # Education
+        education = resume_data.get("education")
+        if education:
+            add_section_header("Education")
+            for edu in education:
+                if isinstance(edu, dict):
+                    edp = doc.add_paragraph()
+                    edp.paragraph_format.space_after = Pt(2)
+                    deg_run = edp.add_run(edu.get("degree", ""))
+                    deg_run.bold = True
+                    deg_run.font.size = Pt(10)
+                    deg_run.font.name = "Calibri"
+                    if edu.get("institution"):
+                        inst_run = edp.add_run(f" - {edu.get('institution')}")
+                        inst_run.font.size = Pt(10)
+                        inst_run.font.name = "Calibri"
+                    if edu.get("year"):
+                        yr_run = edp.add_run(f" ({edu.get('year')})")
+                        yr_run.italic = True
+                        yr_run.font.size = Pt(9.5)
+                        yr_run.font.name = "Calibri"
+
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
+        return file_stream
+    except Exception as exc:
+        logger.warning("python-docx encountered error (%s), using pure-Python DOCX generator", exc)
+        return _generate_pure_python_docx(resume_data)
 
 
 def clean_pdf_str(text: str) -> str:

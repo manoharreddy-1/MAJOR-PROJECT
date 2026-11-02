@@ -311,6 +311,10 @@ async function triggerResumeOptimization(confirmedSkills = []) {
     });
 
     latestOptimization = res.data;
+    Store.set('latestOptimization', res.data);
+    try {
+      localStorage.setItem('latestOptimization', JSON.stringify(res.data));
+    } catch (e) {}
     renderOptimizationView(latestOptimization);
 
     loading.style.display = 'none';
@@ -531,23 +535,66 @@ function resetOptimizedEdits() {
   }
 }
 
+function getResolvedResumeData() {
+  if (latestOptimization && latestOptimization.structured_optimized) {
+    return latestOptimization.structured_optimized;
+  }
+  let storedOpt = Store.get('latestOptimization');
+  if (!storedOpt) {
+    try {
+      storedOpt = JSON.parse(localStorage.getItem('latestOptimization') || 'null');
+    } catch (e) {}
+  }
+  if (storedOpt && (storedOpt.structured_optimized || storedOpt.optimized)) {
+    latestOptimization = storedOpt;
+    return storedOpt.structured_optimized || storedOpt.optimized;
+  }
+  // Fallback to analyzed resume data so download is never completely blocked
+  const analysis = Store.get('analysis_data') || {};
+  const resume = Store.get('resume_data') || analysis.resume_data || analysis.resume;
+  if (resume && typeof resume === 'object' && (resume.skills || resume.raw_text || resume.name)) {
+    return {
+      name: resume.name || resume.candidate_name || 'Candidate',
+      contact: resume.contact || {},
+      summary: resume.summary || '',
+      skills: resume.skills || {},
+      experience: resume.experience || [],
+      projects: resume.projects || [],
+      education: resume.education || []
+    };
+  }
+  return null;
+}
+
 async function downloadOptimizedDocx() {
-  if (!latestOptimization || !latestOptimization.structured_optimized) {
-    alert('Please generate the AI resume first.');
+  const structuredResume = getResolvedResumeData();
+  if (!structuredResume) {
+    alert('Please upload or analyze a resume first before downloading.');
     return;
   }
+
+  const btn = (typeof event !== 'undefined' && event?.currentTarget) || document.querySelector('button[onclick="downloadOptimizedDocx()"]');
+  const oldText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generating DOCX...';
+  }
+
   try {
     const res = await fetch('/api/optimize-resume/export/docx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ structured_optimized: latestOptimization.structured_optimized })
+      body: JSON.stringify({ structured_optimized: structuredResume })
     });
-    if (!res.ok) throw new Error('Download failed');
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error?.message || errJson.message || `Download failed (${res.status})`);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const rawName = latestOptimization.structured_optimized.name || 'Candidate';
+    const rawName = structuredResume.name || 'Candidate';
     const cleanName = rawName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'Candidate';
     a.download = `ATS_Optimized_Resume_${cleanName}.docx`;
     document.body.appendChild(a);
@@ -556,26 +603,43 @@ async function downloadOptimizedDocx() {
     window.URL.revokeObjectURL(url);
   } catch (err) {
     alert('Error downloading DOCX: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = oldText;
+    }
   }
 }
 
 async function downloadOptimizedPdf() {
-  if (!latestOptimization || !latestOptimization.structured_optimized) {
-    alert('Please generate the AI resume first.');
+  const structuredResume = getResolvedResumeData();
+  if (!structuredResume) {
+    alert('Please upload or analyze a resume first before downloading.');
     return;
   }
+
+  const btn = (typeof event !== 'undefined' && event?.currentTarget) || document.querySelector('button[onclick="downloadOptimizedPdf()"]');
+  const oldText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Generating PDF...';
+  }
+
   try {
     const res = await fetch('/api/optimize-resume/export/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ structured_optimized: latestOptimization.structured_optimized })
+      body: JSON.stringify({ structured_optimized: structuredResume })
     });
-    if (!res.ok) throw new Error('Download failed');
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error?.message || errJson.message || `Download failed (${res.status})`);
+    }
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const rawName = latestOptimization.structured_optimized.name || 'Candidate';
+    const rawName = structuredResume.name || 'Candidate';
     const cleanName = rawName.replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'Candidate';
     a.download = `ATS_Optimized_Resume_${cleanName}.pdf`;
     document.body.appendChild(a);
@@ -584,6 +648,11 @@ async function downloadOptimizedPdf() {
     window.URL.revokeObjectURL(url);
   } catch (err) {
     alert('Error downloading PDF: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = oldText;
+    }
   }
 }
 
