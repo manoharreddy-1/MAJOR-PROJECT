@@ -9,6 +9,7 @@ from utils.skill_normalizer import (
     deduplicate_skills,
     extract_skills_from_text,
     normalize_skill_name,
+    SKILL_BLACKLIST,
 )
 from utils.clean_skill_extractor import split_compound_phrase, clean_missing_skills
 
@@ -128,29 +129,57 @@ class JobDescriptionParser:
     def _extract_required_skills(self, text: str) -> List[str]:
         skills = []
 
-        # 1. First prioritize recognized industry skills found in the text
+        # 1. First prioritize recognized industry skills found across the entire text
         known_found = extract_skills_from_text(text)
         skills.extend(known_found)
 
-        # 2. Extract and parse items from the requirements section
-        section = extract_section(text, ["requirements", "required skills", "must have", "qualifications", "what you need"])
+        # 2. Extract and parse items from all relevant requirement and tooling sections
+        section_headers = [
+            "requirements",
+            "required skills",
+            "must have",
+            "qualifications",
+            "what you need",
+            "what you'll need",
+            "technical skills",
+            "technologies",
+            "tech stack",
+            "tools",
+            "tooling",
+            "tools & technologies",
+            "tools and technologies",
+            "skills & tools",
+            "proficiencies",
+            "core competencies",
+        ]
+        section = extract_section(text, section_headers)
         if section:
+            skills.extend(extract_skills_from_text(section))
             raw_items = re.split(r"[,|•\n;\*]|\s+-\s+|(?:^|\n)\s*[-*•]\s*", section)
             for item in raw_items:
                 for sub in split_compound_phrase(item):
                     candidate = clean_skill_candidate(sub)
                     if candidate:
                         norm = normalize_skill_name(candidate)
-                        if norm:
+                        if norm and len(norm.split()) <= 4 and norm.lower() not in SKILL_BLACKLIST:
                             skills.append(norm)
+
+        # 3. Dedicated tooling extraction for bullet points like "• Tools: ..."
+        for line in text.split("\n"):
+            line_str = line.strip()
+            if not line_str:
+                continue
+            tool_match = re.search(r"(?i)(?:tools|tooling|tech stack|technologies|proficiencies)\s*[:\-]\s*(.+)", line_str)
+            if tool_match:
+                skills.extend(extract_skills_from_text(tool_match.group(1)))
 
         # Clean and deduplicate
         deduped = clean_missing_skills(skills)
-        return deduped[:25]
+        return deduped[:30]
 
     def _extract_preferred_skills(self, text: str) -> List[str]:
         skills = []
-        section = extract_section(text, ["preferred", "preferred skills", "nice to have", "bonus", "good to have"])
+        section = extract_section(text, ["preferred", "preferred skills", "nice to have", "bonus", "good to have", "plus"])
         if section:
             # First extract known skills from the preferred section
             skills.extend(extract_skills_from_text(section))

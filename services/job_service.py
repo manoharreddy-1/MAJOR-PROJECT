@@ -61,4 +61,4 @@ class JobService:
             {"_id": ObjectId(job_id)},
             {"$set": {"requirements": requirements, "updated_at": utc_now()}},
         )
-        return result.modified_count > 0
+        return (result.matched_count > 0) or (result.modified_count > 0)
