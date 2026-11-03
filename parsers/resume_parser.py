@@ -181,7 +181,7 @@ class ResumeParser:
         return text[:500]
 
     def _extract_academics(self, text: str) -> Dict[str, Optional[float]]:
-        """Extract CGPA, 10th percentage, and 12th percentage from resume text."""
+        """Extract CGPA, 10th percentage, and 12th/Intermediate percentage from resume text."""
         return {
             "cgpa": self._extract_cgpa(text),
             "tenth_pct": self._extract_tenth_marks(text),
@@ -190,53 +190,113 @@ class ResumeParser:
 
     def _extract_cgpa(self, text: str) -> Optional[float]:
         """Extract CGPA/GPA value from text (normalized to 10 scale if <= 10)."""
-        # Look in education section first, then full text
-        edu_section = extract_section(text, SECTION_KEYWORDS["education"]) or ""
-        search_targets = [edu_section, text]
+        if not text:
+            return None
 
-        patterns = [
-            r"(?:cgpa|gpa|grade\s*point)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)(?:\s*/\s*(?:10|4))?",
-            r"([0-9]+\.[0-9]+)\s*(?:/\s*10)?\s*(?:cgpa|gpa)",
-            r"([0-9]+\.[0-9]+)\s*/\s*10\.0?",
-            r"(?:score|pointer)\s*[:=-]?\s*([0-9]+\.[0-9]+)",
-        ]
-
-        for target in search_targets:
-            if not target:
-                continue
-            for pat in patterns:
-                m = re.search(pat, target, re.IGNORECASE)
-                if m:
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        degree_kw = r"(?i)\b(?:b\.?tech|b\.?e\.|bachelor|undergraduate|degree|bca|mca|m\.?tech)\b"
+        for line in lines:
+            if re.search(degree_kw, line):
+                m_cgpa = re.search(r"\b([0-9]\.[0-9]{1,2})\b\s*(?:cgpa|gpa|/\s*10)?", line, re.I)
+                if m_cgpa:
                     try:
-                        val = float(m.group(1))
-                        # If on 4.0 scale (e.g. 3.8/4.0), convert to 10 scale
-                        if "/ 4" in m.group(0) or "/4" in m.group(0) or (val <= 4.0 and "/ 10" not in m.group(0) and "10" not in m.group(0) and val > 1.0):
-                            if "/ 4" in m.group(0) or "/4" in m.group(0):
-                                return round((val / 4.0) * 10.0, 2)
+                        val = float(m_cgpa.group(1))
                         if 1.0 <= val <= 10.0:
                             return round(val, 2)
-                        elif 40.0 <= val <= 100.0:
-                            # Percentage given instead of CGPA -> convert roughly to CGPA
-                            return round(val / 9.5, 2)
                     except ValueError:
                         pass
+                m_pct = re.search(r"\b([0-9]{2}(?:\.[0-9]+)?)\s*%", line)
+                if m_pct:
+                    try:
+                        pct = float(m_pct.group(1))
+                        if 40.0 <= pct <= 100.0:
+                            return round(pct / 9.5, 2)
+                    except ValueError:
+                        pass
+
+        patterns = [
+            r"(?i)(?:cgpa|gpa|grade\s*point)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)(?:\s*/\s*(?:10|4))?",
+            r"(?i)\b([0-9]\.[0-9]{1,2})\s*(?:/\s*10)?\s*(?:cgpa|gpa)\b",
+            r"(?i)\b([0-9]\.[0-9]{1,2})\s*/\s*10\.0?",
+            r"(?i)(?:score|pointer|aggregate)\s*[:=-]?\s*([0-9]+\.[0-9]+)",
+        ]
+
+        for pat in patterns:
+            m = re.search(pat, text)
+            if m:
+                try:
+                    val = float(m.group(1))
+                    if "/ 4" in m.group(0) or "/4" in m.group(0):
+                        return round((val / 4.0) * 10.0, 2)
+                    if 1.0 <= val <= 10.0:
+                        return round(val, 2)
+                    elif 40.0 <= val <= 100.0:
+                        return round(val / 9.5, 2)
+                except ValueError:
+                    pass
         return None
 
     def _extract_tenth_marks(self, text: str) -> Optional[float]:
         """Extract 10th standard / SSC / Secondary school percentage."""
+        if not text:
+            return None
+
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        tenth_kw_pat = r"(?i)\b(?:10th|class\s*10\b|class\s*x\b|x\s*class\b|ssc\b|s\.s\.c\b|matriculation|secondary\s*school(?:\s*certificate)?|high\s*school)\b"
+
+        # 1. Line-by-line inspection (table rows or bullet points)
+        for line in lines:
+            if re.search(tenth_kw_pat, line) and not re.search(r"(?i)\b(?:12th|intermediate|inter\b|xii\b|hsc|\+2)\b", line):
+                # Marks out of 600 or 500
+                m_marks = re.search(r"\b([0-9]{3})\s*/\s*(?:600|500)", line)
+                if m_marks:
+                    total = 600.0 if "600" in line else 500.0
+                    return round((float(m_marks.group(1)) / total) * 100.0, 1)
+
+                # Explicit percentage e.g. 95% or 95.5%
+                m_pct = re.search(r"\b([0-9]{2}(?:\.[0-9]+)?)\s*%", line)
+                if m_pct:
+                    val = float(m_pct.group(1))
+                    if 35.0 <= val <= 100.0:
+                        return round(val, 1)
+
+                # CGPA/GPA e.g. 9.8 CGPA, 10.0 CGPA, 10 CGPA, 9.8 / 10
+                m_cgpa = re.search(r"\b([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/\s*10)\b", line, re.I)
+                if m_cgpa:
+                    val = float(m_cgpa.group(1))
+                    if val <= 10.0:
+                        return round(val * 9.5 if val < 10.0 else 95.0, 1)
+                    elif 35.0 <= val <= 100.0:
+                        return round(val, 1)
+
+                # Standalone numbers at end of line (e.g. table column)
+                tokens = re.findall(r"\b([0-9]+(?:\.[0-9]+)?)\b", line)
+                for tok in reversed(tokens):
+                    try:
+                        v = float(tok)
+                        if 1990 <= v <= 2030:
+                            continue
+                        if 1.0 <= v <= 10.0:
+                            return round(v * 9.5 if v < 10.0 else 95.0, 1)
+                        if 35.0 <= v <= 100.0:
+                            return round(v, 1)
+                    except ValueError:
+                        pass
+
+        # 2. General regex patterns across text
         patterns = [
-            r"(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
-            r"(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)[^\n\r\d]{1,30}([0-9]+(?:\.[0-9]+)?)\s*%",
-            r"([0-9]+(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:10th|class\s*x\b|ssc|matriculation|secondary)",
-            r"(?:10th|class\s*x\b|ssc)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
+            r"(?i)(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"(?i)(?:10th|class\s*x\b|ssc|matriculation|secondary(?:\s*school)?)[^\n\r]{1,50}?([0-9]{2}(?:\.[0-9]+)?)\s*%",
+            r"(?i)([0-9]{2}(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:10th|class\s*x\b|ssc|matriculation|secondary)",
+            r"(?i)(?:10th|class\s*x\b|ssc)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
         ]
         for pat in patterns:
-            m = re.search(pat, text, re.IGNORECASE)
+            m = re.search(pat, text)
             if m:
                 try:
                     val = float(m.group(1))
-                    if val <= 10.0:  # CGPA format in 10th
-                        return round(val * 9.5, 1)  # CBSE standard formula
+                    if val <= 10.0:
+                        return round(val * 9.5 if val < 10.0 else 95.0, 1)
                     if 35.0 <= val <= 100.0:
                         return round(val, 1)
                 except ValueError:
@@ -245,19 +305,70 @@ class ResumeParser:
 
     def _extract_twelfth_marks(self, text: str) -> Optional[float]:
         """Extract 12th standard / HSC / Intermediate / Senior secondary percentage."""
+        if not text:
+            return None
+
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        twelfth_kw_pat = r"(?i)\b(?:12th|class\s*12\b|class\s*xii\b|xii\s*class\b|xii\b|intermediate|inter\b|hsc|senior\s*secondary|puc|plus\s*two|\+2\b|10\+2\b|junior\s*college)\b"
+
+        # 1. Line-by-line inspection (table rows or bullet points)
+        for line in lines:
+            if re.search(twelfth_kw_pat, line) and not re.search(r"(?i)\b(?:10th|ssc|class\s*x\b)\b", line):
+                # Marks out of 1000 e.g. 950/1000 or 950 / 1000
+                m_marks = re.search(r"\b([0-9]{3})\s*/\s*1000", line)
+                if m_marks:
+                    return round(float(m_marks.group(1)) / 10.0, 1)
+
+                # Marks out of 500 or 600
+                m_marks2 = re.search(r"\b([0-9]{3})\s*/\s*(?:500|600)", line)
+                if m_marks2:
+                    tot = 600.0 if "600" in line else 500.0
+                    return round((float(m_marks2.group(1)) / tot) * 100.0, 1)
+
+                # Explicit percentage e.g. 95% or 95.5%
+                m_pct = re.search(r"\b([0-9]{2}(?:\.[0-9]+)?)\s*%", line)
+                if m_pct:
+                    val = float(m_pct.group(1))
+                    if 35.0 <= val <= 100.0:
+                        return round(val, 1)
+
+                # CGPA/GPA e.g. 9.5 CGPA, 10.0 CGPA, 9.5 / 10
+                m_cgpa = re.search(r"\b([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/\s*10)\b", line, re.I)
+                if m_cgpa:
+                    val = float(m_cgpa.group(1))
+                    if val <= 10.0:
+                        return round(val * 9.5 if val < 10.0 else 95.0, 1)
+                    elif 35.0 <= val <= 100.0:
+                        return round(val, 1)
+
+                # Standalone numbers at end of line (e.g. table column)
+                tokens = re.findall(r"\b([0-9]+(?:\.[0-9]+)?)\b", line)
+                for tok in reversed(tokens):
+                    try:
+                        v = float(tok)
+                        if 1990 <= v <= 2030:
+                            continue
+                        if 1.0 <= v <= 10.0:
+                            return round(v * 9.5 if v < 10.0 else 95.0, 1)
+                        if 35.0 <= v <= 100.0:
+                            return round(v, 1)
+                    except ValueError:
+                        pass
+
+        # 2. General regex patterns across text
         patterns = [
-            r"(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary|puc|pre[- ]university)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
-            r"(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary|puc)[^\n\r\d]{1,30}([0-9]+(?:\.[0-9]+)?)\s*%",
-            r"([0-9]+(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:12th|class\s*xii\b|hsc|intermediate|senior\s*secondary)",
-            r"(?:12th|class\s*xii\b|hsc|intermediate)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
+            r"(?i)(?:12th|class\s*xii\b|hsc|intermediate|inter\b|senior\s*secondary|puc|pre[- ]university)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*%",
+            r"(?i)(?:12th|class\s*xii\b|hsc|intermediate|inter\b|senior\s*secondary|puc)[^\n\r]{1,50}?([0-9]{2}(?:\.[0-9]+)?)\s*%",
+            r"(?i)([0-9]{2}(?:\.[0-9]+)?)\s*%\s*(?:in\s*)?(?:12th|class\s*xii\b|hsc|intermediate|inter\b|senior\s*secondary)",
+            r"(?i)(?:12th|class\s*xii\b|hsc|intermediate|inter\b)\s*[:=-]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:cgpa|gpa|/10)",
         ]
         for pat in patterns:
-            m = re.search(pat, text, re.IGNORECASE)
+            m = re.search(pat, text)
             if m:
                 try:
                     val = float(m.group(1))
-                    if val <= 10.0:  # CGPA format in 12th
-                        return round(val * 9.5, 1)
+                    if val <= 10.0:
+                        return round(val * 9.5 if val < 10.0 else 95.0, 1)
                     if 35.0 <= val <= 100.0:
                         return round(val, 1)
                 except ValueError:

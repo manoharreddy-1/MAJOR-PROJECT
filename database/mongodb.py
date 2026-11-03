@@ -113,11 +113,14 @@ class MockCollection:
             insert_res = self.insert_one(new_doc)
             upserted_id = insert_res.inserted_id
         
+        matched_count = 1 if doc else (1 if upserted_id else 0)
+
         class UpdateResult:
-            def __init__(self, modified_count, upserted_id=None):
+            def __init__(self, modified_count, upserted_id=None, matched_count=0):
                 self.modified_count = modified_count
                 self.upserted_id = upserted_id
-        return UpdateResult(modified_count, upserted_id)
+                self.matched_count = matched_count
+        return UpdateResult(modified_count, upserted_id, matched_count)
 
 
 def get_client() -> MongoClient:

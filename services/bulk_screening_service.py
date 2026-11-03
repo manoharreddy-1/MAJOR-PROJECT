@@ -139,14 +139,31 @@ class BulkScreeningService:
 
             cutoff_reasons = []
             if min_cgpa is not None:
-                if cgpa is not None and cgpa < min_cgpa:
-                    cutoff_reasons.append(f"CGPA {cgpa:.2f} < Min {min_cgpa:.2f}")
+                if cgpa is None:
+                    cutoff_reasons.append(f"CGPA not found (Min {min_cgpa:.2f} required)")
+                else:
+                    eff_min_cgpa = min_cgpa / 9.5 if min_cgpa > 10.0 else min_cgpa
+                    eff_cgpa = cgpa / 9.5 if cgpa > 10.0 else cgpa
+                    if eff_cgpa < eff_min_cgpa:
+                        cutoff_reasons.append(f"CGPA {cgpa:.2f} < Min {min_cgpa:.2f}")
+
             if min_tenth is not None:
-                if tenth is not None and tenth < min_tenth:
-                    cutoff_reasons.append(f"10th {tenth:.1f}% < Min {min_tenth:.1f}%")
+                if tenth is None:
+                    cutoff_reasons.append(f"10th % not found (Min {min_tenth:.1f}% required)")
+                else:
+                    eff_min_tenth = min_tenth * 9.5 if min_tenth <= 10.0 else min_tenth
+                    eff_tenth = tenth * 9.5 if tenth <= 10.0 else tenth
+                    if eff_tenth < eff_min_tenth:
+                        cutoff_reasons.append(f"10th {tenth:.1f}% < Min {min_tenth:.1f}%")
+
             if min_twelfth is not None:
-                if twelfth is not None and twelfth < min_twelfth:
-                    cutoff_reasons.append(f"12th {twelfth:.1f}% < Min {min_twelfth:.1f}%")
+                if twelfth is None:
+                    cutoff_reasons.append(f"12th/Inter % not found (Min {min_twelfth:.1f}% required)")
+                else:
+                    eff_min_twelfth = min_twelfth * 9.5 if min_twelfth <= 10.0 else min_twelfth
+                    eff_twelfth = twelfth * 9.5 if twelfth <= 10.0 else twelfth
+                    if eff_twelfth < eff_min_twelfth:
+                        cutoff_reasons.append(f"12th {twelfth:.1f}% < Min {min_twelfth:.1f}%")
 
             is_eligible = len(cutoff_reasons) == 0
             cutoff_status = "Eligible" if is_eligible else f"Below Cutoff ({', '.join(cutoff_reasons)})"

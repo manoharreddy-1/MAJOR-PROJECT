@@ -54,9 +54,9 @@
           <div class="upload-zone" id="jobUploadZone">
             <div class="upload-icon">&#128196;</div>
             <p><strong>Upload job description file</strong></p>
-            <p>PDF or TXT (max 10 MB)</p>
+            <p>PDF, DOCX, or TXT (max 10 MB)</p>
           </div>
-          <input type="file" id="jobFile" accept=".pdf,.txt" hidden>
+          <input type="file" id="jobFile" accept=".pdf,.docx,.txt" hidden>
         </div>
         <button id="analyzeJobBtn" class="btn btn-primary mt-2">Analyze Job Description</button>
         <div id="jobStatus" class="mt-2"></div>
@@ -96,8 +96,22 @@
 
     if (jobId) loadJob(jobId);
 
-    document.getElementById('analyzeJobBtn').addEventListener('click', analyzeJobText);
+    document.getElementById('analyzeJobBtn').addEventListener('click', onAnalyzeClick);
     runBtn.addEventListener('click', runAnalysis);
+
+    async function onAnalyzeClick() {
+      const isUploadTab = document.getElementById('uploadTab')?.classList.contains('active');
+      const fileInput = document.getElementById('jobFile');
+      if (isUploadTab) {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          return handleJobFile(fileInput.files[0]);
+        } else {
+          jobStatus.innerHTML = '<div class="error-state">Please select or drop a job description file (PDF, DOCX, or TXT).</div>';
+          return;
+        }
+      }
+      return analyzeJobText();
+    }
 
     async function analyzeJobText() {
       const text = document.getElementById('jobText').value.trim();
@@ -110,7 +124,7 @@
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">Job description analyzed.</div>';
+        jobStatus.innerHTML = '<div class="success-state">Job description analyzed successfully.</div>';
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
@@ -120,15 +134,24 @@
     }
 
     async function handleJobFile(file) {
+      if (!file) return;
       const formData = new FormData();
       formData.append('file', file);
-      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing file...</p></div>';
+      const title = document.getElementById('jobTitle')?.value.trim();
+      if (title) formData.append('title', title);
+
+      const zone = document.getElementById('jobUploadZone');
+      if (zone) {
+        zone.innerHTML = `<div class="upload-icon">&#9989;</div><p><strong>${file.name}</strong></p><p>${(file.size / 1024).toFixed(1)} KB &bull; Selected</p>`;
+      }
+
+      jobStatus.innerHTML = `<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing file (${file.name})...</p></div>`;
       try {
         const res = await API.upload('/job/analyze', formData);
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">Job description analyzed.</div>';
+        jobStatus.innerHTML = '<div class="success-state">Job description analyzed successfully from file.</div>';
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
@@ -214,7 +237,11 @@
       };
 
       try {
-        await API.request(`/job/${jobId}`, { method: 'PUT', body: { requirements } });
+        try {
+          await API.request(`/job/${jobId}`, { method: 'PUT', body: { requirements } });
+        } catch (putErr) {
+          console.warn('Could not persist updated requirements to server (continuing):', putErr);
+        }
 
         let userId = null;
         try {

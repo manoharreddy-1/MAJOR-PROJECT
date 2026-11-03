@@ -20,11 +20,12 @@ def analyze_job():
     # File upload
     if "file" in request.files and request.files["file"].filename:
         file = request.files["file"]
+        title = request.form.get("title")
         valid, msg = validate_upload(file)
         if not valid:
             return error_response("INVALID_FILE", msg)
         try:
-            result = job_service.analyze_file(file.read(), file.filename, user_id)
+            result = job_service.analyze_file(file.read(), file.filename, title=title, user_id=user_id)
             return success_response(result, "Job description analyzed successfully.")
         except ValueError as exc:
             return error_response("INVALID_DATA", str(exc))

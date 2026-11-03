@@ -143,14 +143,17 @@ const UI = {
   },
 
   initTabs(container) {
+    if (!container) return;
     const tabs = container.querySelectorAll('.tab');
+    const scope = container.closest('.card') || container.parentElement || document;
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
         container.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-        container.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+        scope.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
         tab.classList.add('active');
-        container.querySelector(`#${target}`)?.classList.add('active');
+        const targetEl = document.getElementById(target) || scope.querySelector(`#${target}`);
+        if (targetEl) targetEl.classList.add('active');
       });
     });
   },

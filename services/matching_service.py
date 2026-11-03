@@ -29,7 +29,8 @@ class MatchingService:
 
         # Build substantive resume content for overall semantic matching
         if raw_resume_text and len(raw_resume_text) > 150:
-            resume_overall = raw_resume_text[:3500]
+            # Normalize whitespace so identical text across PDF & DOCX yields consistent embedding scores
+            resume_overall = " ".join(raw_resume_text.split())[:3500]
         else:
             resume_overall = " ".join(filter(None, [resume_summary, resume_skills, resume_experience, resume_projects])) or raw_resume_text[:500]
 
