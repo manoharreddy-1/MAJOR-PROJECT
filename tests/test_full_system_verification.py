@@ -243,3 +243,102 @@ def test_resume_export_docx_and_pdf():
     assert isinstance(pdf_bytes, bytes)
     assert len(pdf_bytes) > 500
     assert pdf_bytes[:4] == b"%PDF"  # Valid PDF magic bytes
+
+
+def test_special_character_skills_and_noise_filtering():
+    """Verify C++, C#, .NET, Node.js work without regex crashes, and non-skill noise is filtered."""
+    from utils.clean_skill_extractor import clean_missing_skills
+    raw = [
+        'C++', 'MySQL', 'PostgreSQL', 'Linear', 'Deep Learning', 'NLP', 'PyTorch',
+        'Track Metrics', 'Evaluate Model Accuracy', 'Flag Data Drift', 'Latency',
+        'Data Sources', 'Model Architectures', "Education: Bachelor'S", 'Mathematics'
+    ]
+    cleaned = clean_missing_skills(raw)
+    # Valid skills must remain
+    assert 'C++' in cleaned
+    assert 'MySQL' in cleaned
+    assert 'PostgreSQL' in cleaned
+    assert 'Deep Learning' in cleaned
+    assert 'NLP' in cleaned
+    assert 'PyTorch' in cleaned
+    # Noise items must be completely removed
+    assert "Education: Bachelor'S" not in cleaned
+    assert 'Track Metrics' not in cleaned
+    assert 'Evaluate Model Accuracy' not in cleaned
+    assert 'Flag Data Drift' not in cleaned
+    assert 'Latency' not in cleaned
+    assert 'Data Sources' not in cleaned
+    assert 'Model Architectures' not in cleaned
+    assert 'Linear' not in cleaned
+
+
+def test_multiline_and_table_academic_extraction():
+    """Verify 10th and Inter extraction succeeds across both tabular and multi-line resume extractions."""
+    from parsers.resume_parser import ResumeParser
+    p = ResumeParser()
+
+    table_text = """
+    Degree / Course | Institution | Board / University | Year | Aggregate
+    B.Tech (CSE) | Pragati Engineering College | JNTUK | 2024 | 8.54 CGPA
+    Intermediate (MPC) | Sri Chaitanya Junior College | BIEAP | 2020 | 95%
+    SSC | ZPH School | BSEAP | 2018 | 9.8 CGPA
+    """
+
+    multiline_text = """
+    B.Tech (CSE)
+    Pragati Engineering College
+    JNTUK
+    2024
+    8.54 CGPA
+
+    Intermediate (MPC)
+    Sri Chaitanya Junior College
+    BIEAP
+    2020
+    95%
+
+    SSC
+    ZPH School
+    BSEAP
+    2018
+    9.8 CGPA
+    """
+
+    res_table = p._extract_academics(table_text)
+    assert res_table["cgpa"] == 8.54
+    assert res_table["twelfth_pct"] == 95.0
+    assert res_table["tenth_pct"] == 93.1
+
+    res_multi = p._extract_academics(multiline_text)
+    assert res_multi["cgpa"] == 8.54
+    assert res_multi["twelfth_pct"] == 95.0
+    assert res_multi["tenth_pct"] == 93.1
+
+
+def test_bulk_screening_ranking_btech_and_skills():
+    """Verify bulk ranking: Eligible first -> B.Tech higher qualification result -> Skills/ATS score."""
+    candidates = [
+        {"name": "Cand_Low_CGPA_High_ATS", "is_eligible": True, "cgpa": 7.2, "ats_score": 85.0, "skill_score": 90.0},
+        {"name": "Cand_High_CGPA_Med_ATS", "is_eligible": True, "cgpa": 9.1, "ats_score": 65.0, "skill_score": 70.0},
+        {"name": "Cand_Med_CGPA_High_ATS", "is_eligible": True, "cgpa": 8.5, "ats_score": 75.0, "skill_score": 80.0},
+        {"name": "Cand_Med_CGPA_Low_ATS",  "is_eligible": True, "cgpa": 8.5, "ats_score": 55.0, "skill_score": 60.0},
+        {"name": "Cand_Ineligible_High_CGPA", "is_eligible": False, "cgpa": 9.9, "ats_score": 95.0, "skill_score": 95.0},
+    ]
+
+    def candidate_ranking_key(c):
+        eligibility_rank = 0 if c["is_eligible"] else 1
+        btech_academic = float(c["cgpa"]) if c.get("cgpa") is not None else 0.0
+        ats_score = float(c.get("ats_score", 0.0))
+        skill_score = float(c.get("skill_score", 0.0))
+        return (eligibility_rank, -btech_academic, -ats_score, -skill_score)
+
+    candidates.sort(key=candidate_ranking_key)
+    names = [c["name"] for c in candidates]
+    assert names == [
+        "Cand_High_CGPA_Med_ATS",      # Highest B.Tech CGPA (9.1) among eligible
+        "Cand_Med_CGPA_High_ATS",       # B.Tech CGPA 8.5, Higher ATS (75.0)
+        "Cand_Med_CGPA_Low_ATS",        # B.Tech CGPA 8.5, Lower ATS (55.0)
+        "Cand_Low_CGPA_High_ATS",       # B.Tech CGPA 7.2
+        "Cand_Ineligible_High_CGPA",    # Ineligible at bottom despite 9.9 CGPA
+    ]
+

@@ -63,6 +63,27 @@ NON_SKILL_BLACKLIST: Set[str] = {
     "& soft skills",
     "soft skills",
     "soft skill",
+    "education: bachelor's",
+    "education: bachelors",
+    "education: bachelor",
+    "education: master's",
+    "education: masters",
+    "education: master",
+    "education",
+    "education:",
+    "bachelor's",
+    "master's",
+    "track metrics",
+    "evaluate model accuracy",
+    "flag data drift",
+    "latency",
+    "data sources",
+    "model architectures",
+    "model architecture",
+    "linear",
+    "results",
+    "summary",
+    "overview",
 }
 
 # Prefixes to strip from raw skill candidates
@@ -475,6 +496,14 @@ def canonicalize_skill(skill: str) -> Optional[str]:
     if len(cleaned) < 2 and lower not in ("c", "r"):
         return None
     if len(cleaned) > 35:
+        return None
+
+    # Reject education or qualification labels
+    if lower.startswith(("education:", "qualification:", "degree:")):
+        return None
+
+    # Reject responsibilities and action verb sentences
+    if lower.startswith(("track ", "evaluate ", "flag ", "monitor ", "measure ", "support ", "ensure ")):
         return None
 
     # Reject non-skills containing generic filler

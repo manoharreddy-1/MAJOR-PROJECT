@@ -46,9 +46,9 @@ class BulkScreeningService:
             paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
             for table in doc.tables:
                 for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            paragraphs.append(cell.text.strip())
+                    row_cells = [cell.text.strip().replace("\n", " ") for cell in row.cells if cell.text.strip()]
+                    if row_cells:
+                        paragraphs.append(" | ".join(row_cells))
             return "\n".join(paragraphs)
         elif lower_name.endswith((".txt", ".md", ".csv")):
             for enc in ("utf-8", "latin-1", "cp1252"):
@@ -248,9 +248,17 @@ class BulkScreeningService:
             })
 
         # Rank candidates:
-        # Eligible candidates first (sorted by highest ATS score descending),
-        # followed by non-eligible candidates (also sorted by ATS score descending).
-        candidates.sort(key=lambda c: (0 if c["is_eligible"] else 1, -c["ats_score"]))
+        # 1. Eligibility conditions (Eligible candidates first, below cutoff last)
+        # 2. Higher qualification (B-Tech / Degree CGPA/percentage) people come first
+        # 3. Later show based on skills (ATS score / skill match score)
+        def candidate_ranking_key(c):
+            eligibility_rank = 0 if c["is_eligible"] else 1
+            btech_academic = float(c["cgpa"]) if c.get("cgpa") is not None else 0.0
+            ats_score = float(c.get("ats_score", 0.0))
+            skill_score = float(c.get("skill_score", 0.0))
+            return (eligibility_rank, -btech_academic, -ats_score, -skill_score)
+
+        candidates.sort(key=candidate_ranking_key)
 
         # Assign 1-indexed rank
         for rank_idx, cand in enumerate(candidates, 1):

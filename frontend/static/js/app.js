@@ -419,13 +419,34 @@ function renderOptimizationView(data) {
 function formatResumeHtml(res, highlights = []) {
   if (!res) return '<p class="text-muted">No resume details provided.</p>';
 
+  const escapeRegExp = (str) => {
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
   const highlightText = (txt) => {
     if (!txt || !highlights.length) return txt || '';
     let result = String(txt);
     highlights.forEach(h => {
-      if (h && h.length > 1) {
-        const regex = new RegExp(`\\b(${h})\\b`, 'gi');
-        result = result.replace(regex, '<span class="highlight-addition">$1</span>');
+      if (h && typeof h === 'string' && h.trim().length > 0) {
+        const cleanH = h.trim();
+        try {
+          const escaped = escapeRegExp(cleanH);
+          const prefix = /^\w/.test(cleanH) ? '\\b' : '(?:^|\\s|[,.;:!?(/])';
+          const suffix = /\w$/.test(cleanH) ? '\\b' : '(?=$|\\s|[,.;:!?)/])';
+          const regex = new RegExp(`${prefix}(${escaped})${suffix}`, 'gi');
+          result = result.replace(regex, (match, p1) => {
+            return match.replace(p1, `<span class="highlight-addition">${p1}</span>`);
+          });
+        } catch (e) {
+          // Safe literal fallback
+          const lowerRes = result.toLowerCase();
+          const lowerH = cleanH.toLowerCase();
+          const idx = lowerRes.indexOf(lowerH);
+          if (idx !== -1) {
+            const actual = result.substring(idx, idx + cleanH.length);
+            result = result.substring(0, idx) + `<span class="highlight-addition">${actual}</span>` + result.substring(idx + cleanH.length);
+          }
+        }
       }
     });
     return result;
