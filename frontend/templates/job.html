@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Description | AI Resume Analyzer</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.5">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.7">
 </head>
 <body>
   <nav class="navbar">
@@ -37,8 +37,11 @@
       <div class="card">
         <div class="card-header"><h2 class="card-title">Input Job Description</h2></div>
         <div class="form-group">
-          <label class="form-label">Target Role / Job Title</label>
-          <input type="text" class="form-input" id="jobTitle" placeholder="e.g. Machine Learning Engineer">
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Target Role / Job Title <span style="color:#ef4444;">*</span></span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Required for role alignment</span>
+          </label>
+          <input type="text" class="form-input" id="jobTitle" placeholder="e.g. Python Developer, Machine Learning Engineer">
         </div>
         <div class="tabs" id="inputTabs">
           <button class="tab active" data-tab="pasteTab">Paste Text</button>
@@ -80,7 +83,7 @@
 
   <footer class="footer"><p>AI Resume Analyzer &mdash; CSE(AI) Major Project</p></footer>
 
-  <script src="/static/js/app.js?v=2.5"></script>
+  <script src="/static/js/app.js?v=2.7"></script>
   <script>
     let jobId = Store.get('job_id');
     const jobStatus = document.getElementById('jobStatus');
@@ -116,47 +119,69 @@
     async function analyzeJobText() {
       const text = document.getElementById('jobText').value.trim();
       const title = document.getElementById('jobTitle').value.trim();
-      if (!text) { jobStatus.innerHTML = '<div class="error-state">Please enter a job description.</div>'; return; }
+      if (!title) {
+        jobStatus.innerHTML = '<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; font-weight:600;">⚠️ Target Role / Job Title is required. Please specify the job title (e.g. Python Developer, Machine Learning Engineer).</div>';
+        return;
+      }
+      if (!text) {
+        jobStatus.innerHTML = '<div class="error-state">Please enter a job description.</div>';
+        return;
+      }
 
-      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing...</p></div>';
+      jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Validating role alignment and analyzing requirements...</p></div>';
       try {
         const res = await API.request('/job/analyze', { method: 'POST', body: { text, title } });
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">Job description analyzed successfully.</div>';
+        jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully.</div>';
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
       } catch (err) {
-        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}</div>`;
+        jobRequirements.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#b91c1c; font-weight:600;">${err.message}</p><p class="text-muted" style="margin-top:6px;">Please enter a proper job description according to the role '${title}'.</p></div>`;
+        runBtn.classList.add('hidden');
+        runBtn.disabled = true;
+        Store.remove('job_id');
+        Store.remove('job_data');
       }
     }
 
     async function handleJobFile(file) {
       if (!file) return;
+      const title = document.getElementById('jobTitle')?.value.trim();
+      if (!title) {
+        jobStatus.innerHTML = '<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; font-weight:600;">⚠️ Target Role / Job Title is required. Please enter a job title before uploading.</div>';
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      const title = document.getElementById('jobTitle')?.value.trim();
-      if (title) formData.append('title', title);
+      formData.append('title', title);
 
       const zone = document.getElementById('jobUploadZone');
       if (zone) {
         zone.innerHTML = `<div class="upload-icon">&#9989;</div><p><strong>${file.name}</strong></p><p>${(file.size / 1024).toFixed(1)} KB &bull; Selected</p>`;
       }
 
-      jobStatus.innerHTML = `<div class="loading-overlay"><div class="loading-spinner"></div><p>Analyzing file (${file.name})...</p></div>`;
+      jobStatus.innerHTML = `<div class="loading-overlay"><div class="loading-spinner"></div><p>Validating role and analyzing file (${file.name})...</p></div>`;
       try {
         const res = await API.upload('/job/analyze', formData);
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">Job description analyzed successfully from file.</div>';
+        jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully from file.</div>';
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
       } catch (err) {
-        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}</div>`;
+        jobRequirements.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#b91c1c; font-weight:600;">${err.message}</p><p class="text-muted" style="margin-top:6px;">Please enter a proper job description according to the role '${title}'.</p></div>`;
+        runBtn.classList.add('hidden');
+        runBtn.disabled = true;
+        Store.remove('job_id');
+        Store.remove('job_data');
       }
     }
 
@@ -172,21 +197,6 @@
     function renderRequirements(req) {
       if (!req) return;
       jobRequirements.innerHTML = `
-        ${(req.role_alignment && req.role_alignment.is_mismatch) ? `
-          <div class="mismatch-banner" id="mismatchBanner" style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; border-radius:8px; padding:12px 14px; margin-bottom:14px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-              <div>
-                <div style="font-weight:700; color:#b45309; font-size:0.9rem;">⚠️ Target Role Mismatch Detected</div>
-                <div style="font-size:0.825rem; color:#78350f; margin-top:3px;">
-                  You entered <strong>"${req.role_alignment.entered_role}"</strong>, but this job description is for <strong>"${req.role_alignment.detected_role}"</strong>.
-                  Proceeding without sync will generate misaligned questions and lower your ATS score.
-                </div>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-warning" id="syncRoleBtn" style="white-space:nowrap; padding:4px 10px; font-size:0.8rem; font-weight:600; cursor:pointer;">
-                Sync to "${req.role_alignment.detected_role}"
-              </button>
-            </div>
-          </div>` : ''}
         <div class="form-group"><label class="form-label">Job Title</label>
           <input class="form-input" id="reqTitle" value="${req.job_title || ''}"></div>
         <div class="form-group"><label class="form-label">Required Skills</label>
@@ -198,26 +208,6 @@
         <div class="form-group"><label class="form-label">Education Requirements</label>
           <input class="form-input" id="reqEdu" value="${(req.education || []).join(', ')}"></div>
         <p class="text-muted" style="font-size: 0.8125rem;">Edit requirements before running analysis for better accuracy.</p>`;
-      const syncBtn = document.getElementById('syncRoleBtn');
-      if (syncBtn && req.role_alignment) {
-        syncBtn.addEventListener('click', () => {
-          const det = req.role_alignment.detected_role;
-          const jtInput = document.getElementById('jobTitle');
-          if (jtInput) jtInput.value = det;
-          const rtInput = document.getElementById('reqTitle');
-          if (rtInput) rtInput.value = det;
-          const jd = Store.get('job_data') || {};
-          jd.job_title = det;
-          Store.set('job_data', jd);
-          const banner = document.getElementById('mismatchBanner');
-          if (banner) {
-            banner.style.background = '#ecfdf5';
-            banner.style.borderColor = '#a7f3d0';
-            banner.style.borderLeftColor = '#10b981';
-            banner.innerHTML = `<div style="color:#065f46; font-size:0.85rem; font-weight:600;">✅ Target Role synchronized to "${det}".</div>`;
-          }
-        });
-      }
     }
 
     async function runAnalysis() {
@@ -284,7 +274,7 @@
 
         window.location.href = '/results';
       } catch (err) {
-        jobStatus.innerHTML = `<div class="error-state">${err.message}</div>`;
+        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px;">${err.message}</div>`;
         runBtn.disabled = false;
         runBtn.textContent = 'Run SBERT Analysis';
       }

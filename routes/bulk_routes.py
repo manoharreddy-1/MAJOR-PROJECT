@@ -85,6 +85,9 @@ def analyze_bulk_resumes():
             batch_name=batch_name,
         )
         return success_response(batch_result, "Bulk screening completed successfully.", 201)
+    except ValueError as exc:
+        code = "INVALID_JOB_ROLE_ALIGNMENT" if "Invalid job" in str(exc) else "VALIDATION_ERROR"
+        return error_response(code, str(exc), 400)
     except Exception as exc:
         logger.exception("Error processing bulk screening: %s", exc)
         return error_response("SERVER_ERROR", f"Screening process failed: {str(exc)}", 500)

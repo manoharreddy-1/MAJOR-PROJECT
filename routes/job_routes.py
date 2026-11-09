@@ -1,4 +1,4 @@
-"""Job description analysis API routes."""
+"""Job description analysis and validation API routes."""
 import logging
 
 from flask import Blueprint, request
@@ -14,38 +14,54 @@ job_service = JobService()
 
 @job_bp.route("/analyze", methods=["POST"])
 def analyze_job():
-    """Analyze job description from text or file upload."""
+    """Analyze job description from text or file upload with role alignment verification."""
     user_id = request.form.get("user_id") or (request.get_json() or {}).get("user_id")
 
     # File upload
     if "file" in request.files and request.files["file"].filename:
         file = request.files["file"]
-        title = request.form.get("title")
+        title = (request.form.get("title") or "").strip()
+        if not title:
+            return error_response(
+                "MISSING_JOB_TITLE",
+                "Target Role / Job Title is required. Please enter a job title (e.g. 'Python Developer', 'Machine Learning Engineer').",
+                400
+            )
+
         valid, msg = validate_upload(file)
         if not valid:
-            return error_response("INVALID_FILE", msg)
+            return error_response("INVALID_FILE", msg, 400)
         try:
             result = job_service.analyze_file(file.read(), file.filename, title=title, user_id=user_id)
             return success_response(result, "Job description analyzed successfully.")
         except ValueError as exc:
-            return error_response("INVALID_DATA", str(exc))
+            code = "INVALID_JOB_ROLE_ALIGNMENT" if "Invalid job" in str(exc) else "INVALID_DATA"
+            return error_response(code, str(exc), 400)
 
     # JSON text input
     data = request.get_json()
     if not data:
-        return error_response("INVALID_DATA", "Job description text or file is required.")
+        return error_response("INVALID_DATA", "Job description text or file is required.", 400)
 
     text = data.get("text", "")
-    title = data.get("title")
+    title = (data.get("title") or "").strip()
+    if not title:
+        return error_response(
+            "MISSING_JOB_TITLE",
+            "Target Role / Job Title is required. Please enter a job title (e.g. 'Python Developer', 'Machine Learning Engineer').",
+            400
+        )
+
     valid, msg = validate_text(text, "Job description", min_length=20)
     if not valid:
-        return error_response("INVALID_DATA", msg)
+        return error_response("INVALID_DATA", msg, 400)
 
     try:
         result = job_service.analyze_text(text, title=title, user_id=user_id)
         return success_response(result, "Job description analyzed successfully.")
     except ValueError as exc:
-        return error_response("INVALID_DATA", str(exc))
+        code = "INVALID_JOB_ROLE_ALIGNMENT" if "Invalid job" in str(exc) else "INVALID_DATA"
+        return error_response(code, str(exc), 400)
 
 
 @job_bp.route("/<job_id>", methods=["GET"])
@@ -66,7 +82,7 @@ def update_job(job_id):
         return error_response("NOT_FOUND", "Job description not found.", 404)
     data = request.get_json()
     if not data or "requirements" not in data:
-        return error_response("INVALID_DATA", "Requirements data is required.")
+        return error_response("INVALID_DATA", "Requirements data is required.", 400)
 
     updated = job_service.update_requirements(job_id, data["requirements"])
     if not updated:

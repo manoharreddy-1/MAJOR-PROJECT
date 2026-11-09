@@ -1,4 +1,4 @@
-"""Job description analysis and storage service."""
+"""Job description analysis, role alignment validation, and storage service."""
 import logging
 from typing import Any, Dict, Optional
 
@@ -8,6 +8,7 @@ from database.models import serialize_doc, utc_now
 from database.mongodb import get_collection, COLLECTIONS
 from parsers.job_parser import JobDescriptionParser
 from parsers.pdf_parser import extract_text_from_pdf
+from services.job_validator_service import JobValidatorService
 from utils.text_cleaner import clean_text
 from utils.validators import validate_text
 
@@ -15,19 +16,30 @@ logger = logging.getLogger(__name__)
 
 
 class JobService:
-    """Handle job description input and requirement extraction."""
+    """Handle job description input, validation against target title, and requirement extraction."""
 
     def __init__(self):
         self.parser = JobDescriptionParser()
+        self.validator = JobValidatorService()
         self.collection = get_collection(COLLECTIONS["job_descriptions"])
 
     def analyze_text(self, text: str, title: str = None, user_id: str = None) -> Dict[str, Any]:
-        """Parse pasted job description text."""
+        """Parse pasted job description text with role alignment validation."""
         valid, msg = validate_text(text, "Job description", min_length=20)
         if not valid:
             raise ValueError(msg)
 
-        parsed = self.parser.parse(text, title=title)
+        effective_title = (title or "").strip()
+        if not effective_title:
+            effective_title = self.parser._extract_title(text)
+
+        # Validate Job Title vs Job Description
+        is_valid, error_msg, details = self.validator.validate_title_and_description(effective_title, text)
+        if not is_valid:
+            logger.warning("Job validation failed for title '%s': %s", effective_title, error_msg)
+            raise ValueError(error_msg)
+
+        parsed = self.parser.parse(text, title=effective_title)
 
         doc = {
             "user_id": user_id,

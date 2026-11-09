@@ -14,6 +14,7 @@ from parsers.pdf_parser import extract_text_from_pdf
 from parsers.resume_parser import ResumeParser
 from parsers.job_parser import JobDescriptionParser
 from services.ats_service import ATSService
+from services.job_validator_service import JobValidatorService
 from utils.text_cleaner import clean_text
 
 logger = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ class BulkScreeningService:
         self.resume_parser = ResumeParser()
         self.job_parser = JobDescriptionParser()
         self.ats_service = ATSService()
+        self.validator = JobValidatorService()
         self.collection = get_collection(COLLECTIONS["bulk_batches"])
 
     @staticmethod
@@ -104,9 +106,16 @@ class BulkScreeningService:
         min_tenth = float(cutoffs.get("min_tenth")) if cutoffs.get("min_tenth") is not None and str(cutoffs.get("min_tenth")).strip() != "" else None
         min_twelfth = float(cutoffs.get("min_twelfth")) if cutoffs.get("min_twelfth") is not None and str(cutoffs.get("min_twelfth")).strip() != "" else None
 
+        # Validate job title and job description alignment
+        effective_title = (job_title or "").strip() or self.job_parser._extract_title(job_description)
+        is_valid, err_msg, _ = self.validator.validate_title_and_description(effective_title, job_description)
+        if not is_valid:
+            logger.warning("Bulk screening validation failed: %s", err_msg)
+            raise ValueError(err_msg)
+
         # Parse job description once
-        parsed_job = self.job_parser.parse(job_description, title=job_title)
-        job_title = job_title or parsed_job.get("job_title") or "Target Job Role"
+        parsed_job = self.job_parser.parse(job_description, title=effective_title)
+        job_title = effective_title or parsed_job.get("job_title") or "Target Job Role"
 
         candidates = []
         for idx, (fname, fbytes) in enumerate(files, 1):
