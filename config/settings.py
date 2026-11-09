@@ -1,8 +1,10 @@
 """Application configuration and ATS scoring weights."""
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 def _get_int(key: str, default: int) -> int:
@@ -38,9 +40,19 @@ HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY") or ""
 HUGGINGFACE_LLM_MODEL = os.getenv("HUGGINGFACE_LLM_MODEL") or "HuggingFaceH4/zephyr-7b-beta"
 
 # Gemini API (Google Generative AI)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyBNl9TtEJKWC_feqFVjG71gIKKR4lRSW-A"
-GEMINI_API_KEY_ALT = os.getenv("GEMINI_API_KEY_ALT") or "AIzaSyAPF9Cxk0ut4XgV9jyai-lOFh98L1C5DH4"
-GEMINI_MODEL = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_API_KEY_ALT = os.getenv("GEMINI_API_KEY_ALT", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+
+# Pool of available Gemini API keys with sequential rotation and fallback
+# Dynamically reads from GEMINI_API_KEYS (comma-separated list) or numbered GEMINI_API_KEY_1..10
+_env_key_list = [k.strip() for k in os.getenv("GEMINI_API_KEYS", "").split(",") if k.strip()]
+_numbered_keys = [
+    os.getenv(f"GEMINI_API_KEY_{i}", "").strip() for i in range(1, 11)
+]
+_all_candidate_keys = _env_key_list + _numbered_keys + [GEMINI_API_KEY, GEMINI_API_KEY_ALT]
+_seen_keys = set()
+GEMINI_API_KEYS_POOL = [k for k in _all_candidate_keys if k and not (k in _seen_keys or _seen_keys.add(k))]
 
 # YouTube Data API Key
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("NEXT_PUBLIC_YOUTUBE_API_KEY") or GEMINI_API_KEY
