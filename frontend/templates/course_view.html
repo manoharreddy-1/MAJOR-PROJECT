@@ -477,6 +477,9 @@
       try {
         const res = await API.request(`/course/${courseId}`);
         currentCourse = res.data;
+        if (Array.isArray(currentCourse.completed_chapters)) {
+          currentCourse.completed_chapters.forEach(id => completedChapters.add(Number(id)));
+        }
         renderCourseDetails();
       } catch (err) {
         document.getElementById('chapterContentArea').innerHTML = `
@@ -503,7 +506,7 @@
 
     function renderCourseDetails() {
       document.getElementById('courseTitle').innerText = currentCourse.name;
-      document.getElementById('courseLevelBadge').innerText = `${currentCourse.level || 'Beginner'} &bull; ${currentCourse.duration || '1 Hour'}`;
+      document.getElementById('courseLevelBadge').innerText = `${currentCourse.level || 'Beginner'} • ${currentCourse.duration || '1 Hour'}`;
       document.getElementById('courseSummary').innerText = currentCourse.summary || 'Custom generated curriculum.';
 
       const chapters = getNormalizedChapters();
@@ -560,6 +563,12 @@
         completedChapters.add(chId);
       }
       saveProgress();
+
+      const isDone = completedChapters.has(chId);
+      API.request(`/course/${courseId}/progress`, {
+        method: 'POST',
+        body: { chapter_id: chId, completed: isDone }
+      }).catch(err => console.warn('Failed to sync progress with account:', err));
 
       // Update button appearance
       const btn = document.getElementById('toggleCompleteBtn');

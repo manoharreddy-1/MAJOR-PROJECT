@@ -120,8 +120,19 @@ DOMAIN_TAXONOMY: Dict[str, Dict[str, Any]] = {
             "sales", "lead generation", "marketing", "seo", "campaigns", "crm", "recruitment",
             "talent acquisition", "onboarding", "payroll", "client relations", "cold calling"
         ]
+    },
+    "logistics_transport": {
+        "title_keywords": [
+            "driver", "chauffeur", "delivery driver", "truck driver", "courier", "dispatch",
+            "logistics", "fleet", "transport", "cab driver", "van driver"
+        ],
+        "jd_keywords": [
+            "driving", "license", "vehicle", "delivery", "route", "transport", "shipment",
+            "traffic", "cargo", "safety", "dispatch", "van", "truck", "commercial license", "dl"
+        ]
     }
 }
+
 
 
 class JobValidatorService:
@@ -142,12 +153,19 @@ class JobValidatorService:
         title = (job_title or "").strip()
         text = clean_text(job_description or "", preserve_newlines=True).strip()
 
-        # 1. Verify Job Title exists
+        # 1. Verify Job Title exists and is a plausible occupational role
         if not title:
             return (
                 False,
                 "Job title / target role is required. Please enter a job title (e.g. 'Python Developer', 'Machine Learning Engineer', 'Orthopedic Doctor').",
                 {"code": "MISSING_JOB_TITLE"}
+            )
+        is_plausible, title_err = self._is_plausible_job_title(title)
+        if not is_plausible:
+            return (
+                False,
+                f"Invalid job title: {title_err}",
+                {"code": "INVALID_JOB_TITLE", "title": title}
             )
 
         # 2. Verify Job Description exists and meets minimal length
@@ -158,7 +176,16 @@ class JobValidatorService:
                 {"code": "JD_TOO_SHORT"}
             )
 
-        # 3. Check if text is a candidate resume/profile rather than a job description
+        # 3. Check for gibberish or nonsense keyboard mashing
+        is_gibberish, gibberish_err = self._is_gibberish_or_nonsense(text)
+        if is_gibberish:
+            return (
+                False,
+                f"Invalid job description: {gibberish_err} Please enter a proper job description according to the role '{title}'.",
+                {"code": "GIBBERISH_JD_TEXT"}
+            )
+
+        # 4. Check if text is a candidate resume/profile rather than a job description
         is_resume, resume_reason = self._is_resume_or_candidate_profile(text)
         if is_resume:
             return (
@@ -168,8 +195,8 @@ class JobValidatorService:
                 {"code": "RESUME_PASTED_AS_JD", "reason": resume_reason}
             )
 
-        # 4. Check if text is random gibberish or just a name
-        if len(text.split()) < 10 and not any(k in text.lower() for k in ["engineer", "developer", "doctor", "skills", "experience", "requirements"]):
+        # 5. Check if text is too brief or lacks role context
+        if len(text.split()) < 10 and not any(k in text.lower() for k in ["engineer", "developer", "doctor", "skills", "experience", "requirements", "driver"]):
             return (
                 False,
                 f"Invalid job description: The entered text is not a valid job description. "
@@ -177,7 +204,7 @@ class JobValidatorService:
                 {"code": "INVALID_JD_TEXT"}
             )
 
-        # 5. Check Alignment between Job Title and Job Description
+        # 6. Check Alignment between Job Title and Job Description
         # First attempt LLM validation
         llm_valid, llm_msg, llm_details = self._validate_via_llm(title, text)
         if llm_details.get("llm_verified"):
@@ -199,6 +226,103 @@ class JobValidatorService:
             )
 
         return (True, "", grounded_details)
+
+    def _is_plausible_job_title(self, title: str) -> Tuple[bool, str]:
+        """Verify that title is an occupational job title and not a personal name or random text."""
+        t_clean = title.strip().lower()
+
+        # Direct blacklist of common personal names when entered alone without an occupational role
+        personal_names = {
+            "manohar", "rahul", "rohit", "priya", "anita", "john", "alex", "david", "smith",
+            "kumar", "reddy", "sharma", "patel", "singh", "gupta", "suresh", "ramesh", "sneha",
+            "pooja", "swathi", "dhanisetti", "durga", "rupa", "arjun", "kiran", "sai", "ravi"
+        }
+        if t_clean in personal_names:
+            return False, f"'{title}' is a personal name, not a recognized occupational job title."
+
+        # Recognized occupational nouns and indicators
+        occupational_nouns = {
+            "developer", "engineer", "doctor", "specialist", "analyst", "consultant", "manager",
+            "lead", "architect", "intern", "officer", "administrator", "designer", "driver",
+            "technician", "assistant", "nurse", "accountant", "pilot", "mechanic", "scientist",
+            "teacher", "executive", "associate", "programmer", "operator", "clerk", "supervisor",
+            "coordinator", "head", "director", "trainee", "fresher", "tester", "auditor",
+            "attendant", "advisor", "practitioner", "physician", "surgeon", "sdet", "devops",
+            "prof", "professor", "lecturer", "instructor", "recruiter", "marketer", "bdr",
+            "chauffeur", "courier", "cashier", "chef", "cook", "writer", "editor", "artist"
+        }
+
+        # Recognized tech, domain, or industry keywords that commonly form standalone roles (e.g. "Python", "Data Science")
+        domain_role_keywords = {
+            "python", "java", "c++", "c#", ".net", "javascript", "typescript", "react",
+            "angular", "node", "sql", "ai", "machine learning", "ml", "deep learning", "nlp",
+            "devops", "cloud", "aws", "azure", "frontend", "backend", "full stack", "fullstack",
+            "qa", "sdet", "ui/ux", "ui", "ux", "seo", "sales", "hr", "finance", "accounting",
+            "cyber security", "data science", "data analytics", "sysadmin", "database administrator",
+            "dba", "scrum master", "product owner"
+        }
+
+        has_occupational_noun = any(re.search(rf"\b{re.escape(noun)}\b", t_clean) for noun in occupational_nouns)
+        has_domain_role = any(re.search(rf"\b{re.escape(dom)}\b", t_clean) for dom in domain_role_keywords)
+
+        if has_occupational_noun or has_domain_role:
+            return True, ""
+
+        # Check in taxonomy
+        in_taxonomy = any(
+            any(kw in t_clean for kw in d["title_keywords"])
+            for d in DOMAIN_TAXONOMY.values()
+        )
+        if in_taxonomy:
+            return True, ""
+
+        # Single-word without occupational noun or recognized tech skill
+        words = t_clean.split()
+        if len(words) == 1:
+            return False, f"'{title}' is not a recognized occupational job title. Please enter a specific job title (e.g., 'Software Engineer', 'Driver', 'Java Developer')."
+
+        return False, f"'{title}' is not recognized as a job title. Please enter a valid occupational title (e.g., 'Software Engineer', 'Driver', 'Python Developer')."
+
+    def _is_gibberish_or_nonsense(self, text: str) -> Tuple[bool, str]:
+        """Detect keyboard mashing or random gibberish strings in job description."""
+        clean = re.sub(r"[^a-zA-Z\s]", " ", text)
+        words = [w.lower() for w in clean.split() if len(w) >= 3]
+        if not words:
+            return True, "Job description contains no valid text."
+
+        gibberish_count = 0
+        vowels = set("aeiou")
+
+        for w in words:
+            # Check 1: 5 or more consecutive consonants (e.g. ndjnsdc in iuendijnsdc)
+            if re.search(r"[bcdfghjklmnpqrstvwxyz]{5,}", w):
+                gibberish_count += 1
+                continue
+            # Check 2: 4 or more consecutive vowels (e.g. aeiou)
+            if re.search(r"[aeiou]{4,}", w):
+                gibberish_count += 1
+                continue
+            # Check 3: Word >= 4 chars with 0 vowels (e.g. scc)
+            if len(w) >= 3 and not any(c in vowels for c in w):
+                gibberish_count += 1
+                continue
+            # Check 4: Keyboard walks / repetitive keys (asdf, jkl;, etc.)
+            if any(walk in w for walk in ["asdf", "qwer", "zxcv", "hjkl", "sdfg", "fghj", "ghjk", "jkl"]):
+                gibberish_count += 1
+                continue
+            # Check 5: High consonant ratio on words > 6 chars (e.g. aijdnia, iuendijnsdc)
+            vowel_ratio = sum(1 for c in w if c in vowels) / len(w)
+            if len(w) >= 6 and (vowel_ratio < 0.15 or vowel_ratio > 0.70):
+                gibberish_count += 1
+                continue
+
+        # If gibberish ratio is > 25% of words, or if text is short and contains multiple gibberish words
+        gibberish_ratio = gibberish_count / len(words)
+        if gibberish_ratio >= 0.25 or (len(words) < 25 and gibberish_count >= 2):
+            return True, "The provided job description contains nonsense or keyboard-mashed text."
+
+        return False, ""
+
 
     def _is_resume_or_candidate_profile(self, text: str) -> Tuple[bool, str]:
         """Detect if pasted text is actually a candidate resume instead of a job description."""
@@ -397,7 +521,6 @@ class JobValidatorService:
                 )
 
         # Case 5: Verify that at least some relevant tokens or domain relevance from the job title exist in the JD
-        # Tokenize title into meaningful keywords (excluding junior, senior, intern, lead, engineer, developer)
         stop_tokens = {"junior", "senior", "intern", "lead", "fresher", "trainee", "associate", "role", "job", "title"}
         meaningful_tokens = [
             tok for tok in re.findall(r"\b[a-z]{3,}\b", t_lower)
@@ -405,12 +528,18 @@ class JobValidatorService:
         ]
 
         if meaningful_tokens:
-            # Check if any meaningful token appears in the JD
             token_matches = [tok for tok in meaningful_tokens if tok in jd_lower]
-            # If title is very specific (e.g. ortho doctor) and none of the tokens exist in JD
-            if not token_matches and len(meaningful_tokens) >= 2:
-                # If neither the title domain keywords nor the tokens match
+            if not token_matches:
+                # If title domain keywords don't match JD
                 if title_domain and jd_domain_scores.get(title_domain, 0) == 0:
+                    return (
+                        False,
+                        f"Invalid job title and job description: The job description does not mention or relate to '{title}'. "
+                        f"Please enter a proper job description according to the role.",
+                        {"code": "ZERO_TOKEN_MATCH", "title": title}
+                    )
+                # If title tokens don't appear in JD and JD has domain keywords from another domain
+                if len(meaningful_tokens) >= 2 or sum(jd_domain_scores.values()) >= 2:
                     return (
                         False,
                         f"Invalid job title and job description: The job description does not mention or relate to '{title}'. "

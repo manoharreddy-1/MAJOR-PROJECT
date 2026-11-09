@@ -8,6 +8,7 @@ Based on the 'AI Course Generator' specification:
 """
 import logging
 import os
+import re
 import uuid
 from typing import Any, Dict, List, Optional
 import requests
@@ -451,7 +452,19 @@ class CourseService:
             default_id = "i_LwzRVP7bg"
             default_title = "Machine Learning & AI Tutorial"
             default_channel = "freeCodeCamp.org"
-        elif any(w in query_lower for w in ["java", "spring", "jvm"]):
+        elif any(w in query_lower for w in ["spring boot"]):
+            default_id = "9SGDpanrc8U"
+            default_title = "Spring Boot Tutorial for Beginners"
+            default_channel = "Amigoscode"
+        elif any(w in query_lower for w in ["spring framework", "spring"]):
+            default_id = "9SGDpanrc8U"
+            default_title = "Spring Framework & Dependency Injection Tutorial"
+            default_channel = "Amigoscode"
+        elif any(w in query_lower for w in ["hibernate", "jpa"]):
+            default_id = "Yv2xctJxE-w"
+            default_title = "Hibernate and JPA Tutorial"
+            default_channel = "Telusko"
+        elif any(w in query_lower for w in ["java", "jvm"]):
             default_id = "eIrMbAQSU34"
             default_title = "Java Tutorial for Beginners"
             default_channel = "Programming with Mosh"
@@ -473,6 +486,40 @@ class CourseService:
             "youtube_search_url": f"https://www.youtube.com/results?search_query={requests.utils.quote(query + ' tutorial')}"
         }
 
+    def _validate_course_alignment(self, topic: str, course_data: Dict[str, Any]) -> bool:
+        """Verify that generated course name and chapters strictly correspond to requested topic."""
+        t_clean = (topic or "").strip().lower()
+        if not t_clean:
+            return False
+
+        # Extract meaningful keywords from topic
+        stop_words = {"and", "or", "the", "in", "for", "with", "to", "of", "a", "an", "basics", "framework", "tutorial"}
+        keywords = [w for w in re.findall(r"[a-z0-9+#.]+", t_clean) if w not in stop_words and len(w) >= 2]
+        if not keywords:
+            keywords = [t_clean]
+
+        name = (course_data.get("name") or "").lower()
+        chapters = course_data.get("chapters", [])
+        if not chapters or not isinstance(chapters, list):
+            return False
+
+        # If user asked for Spring, do NOT accept a purely Java course
+        if "spring" in t_clean and ("java programming" in name or "java basics" in name) and "spring" not in name:
+            return False
+
+        # Name match or at least 1 keyword in name
+        name_matches = any(k in name for k in keywords) or (t_clean in name)
+
+        # Check chapter titles and about texts
+        chapter_matches = 0
+        for ch in chapters:
+            ch_text = f"{ch.get('name', '')} {ch.get('about', '')}".lower()
+            if any(k in ch_text for k in keywords):
+                chapter_matches += 1
+
+        # Must have name match OR at least 50% of chapters mentioning the topic
+        return name_matches or (chapter_matches >= max(1, len(chapters) // 2))
+
     def generate_course_layout(
         self,
         topic: Any,
@@ -485,7 +532,7 @@ class CourseService:
         user_name: str = "User",
         user_id: str = None
     ) -> Dict[str, Any]:
-        """Generate course layout/outline using Gemini AI."""
+        """Generate course layout/outline strictly anchored in the requested topic."""
         if isinstance(topic, dict):
             category = topic.get("category", category)
             level = topic.get("level", level)
@@ -497,35 +544,42 @@ class CourseService:
             user_id = topic.get("user_id", user_id)
             topic = topic.get("topic") or topic.get("name") or topic.get("title") or "Programming Course"
 
+        clean_topic = str(topic).strip() or "Software Engineering"
+
         prompt = f"""
 You are an expert curriculum designer and educator.
-Create a structured course layout for:
-- Course Topic: {topic}
+Create a structured course layout ONLY and SPECIFICALLY for:
+- Course Topic/Skill: {clean_topic}
 - Category: {category}
 - Difficulty Level: {level}
 - Target Duration: {duration}
 - Number of Chapters: {num_chapters}
 - Additional Description/Focus: {description}
 
+STRICT REQUIREMENTS:
+1. Create a course ONLY about '{clean_topic}'. Every single chapter must be specifically about '{clean_topic}'.
+2. Do NOT substitute a related or more general topic (e.g., if topic is 'Spring', do NOT generate a 'Java' course; if 'Node.js', do NOT generate a 'JavaScript' course).
+3. The course name, summary, and chapter titles must clearly reflect '{clean_topic}'.
+
 Return ONLY valid JSON in the exact following schema:
 {{
-  "name": "{topic}",
+  "name": "{clean_topic}",
   "category": "{category}",
   "level": "{level}",
   "duration": "{duration}",
-  "summary": "2-3 sentences overview of the course and what the student will achieve.",
+  "summary": "2-3 sentences overview of the course and what the student will achieve in {clean_topic}.",
   "courseBanner": "/placeholder.svg",
   "chapters": [
     {{
       "chapter_id": 1,
-      "name": "Chapter Title",
+      "name": "Chapter Title focusing on {clean_topic}",
       "about": "Clear 1-2 sentence description of what this chapter covers.",
       "duration": "15 mins"
     }}
   ]
 }}
 """
-        curated = get_curated_course(topic)
+        curated = get_curated_course(clean_topic)
         if curated and len(curated.get("chapters", [])) > 0:
             chapters = [
                 {
@@ -537,17 +591,16 @@ Return ONLY valid JSON in the exact following schema:
                 }
                 for ch in curated["chapters"][:num_chapters]
             ]
-            # Ensure at least num_chapters exist
             while len(chapters) < num_chapters:
                 next_id = len(chapters) + 1
                 chapters.append({
                     "chapter_id": next_id,
-                    "name": f"Advanced Practices & Integration in {topic}",
-                    "about": f"Practical patterns, performance tuning, and enterprise applications of {topic}.",
+                    "name": f"Advanced Practices & Integration in {clean_topic}",
+                    "about": f"Practical patterns, performance tuning, and enterprise applications of {clean_topic}.",
                     "duration": "15 mins",
                 })
             response = {
-                "name": curated.get("name", topic),
+                "name": curated.get("name", clean_topic),
                 "category": curated.get("category", category),
                 "level": level,
                 "duration": duration,
@@ -556,33 +609,42 @@ Return ONLY valid JSON in the exact following schema:
                 "chapters": chapters
             }
         else:
+            # Generate via LLM and validate alignment
             response = self.llm.generate_json(prompt)
-            
-            # Validate or fallback
-            if "chapters" not in response or not isinstance(response.get("chapters"), list):
-                # Construct standard chapters
-                chapters = []
-                for i in range(1, num_chapters + 1):
-                    chapters.append({
-                        "chapter_id": i,
-                        "name": f"Module {i}: Fundamental Principles of {topic}",
-                        "about": f"Comprehensive guide to core concepts and practical workflows in {topic}.",
-                        "duration": f"{max(10, 60 // num_chapters)} mins",
-                    })
+            if not self._validate_course_alignment(clean_topic, response):
+                logger.warning("First LLM course generation for '%s' failed alignment check. Retrying once...", clean_topic)
+                retry_prompt = prompt + f"\n\nCRITICAL: The previous output failed alignment. You MUST output a curriculum specifically teaching {clean_topic}."
+                response = self.llm.generate_json(retry_prompt)
+
+            # If still mismatched or invalid, safely fallback to smart curriculum
+            if not self._validate_course_alignment(clean_topic, response):
+                logger.warning("Course generation for '%s' fell back to smart curriculum generator.", clean_topic)
+                smart = generate_smart_curriculum(clean_topic)
                 response = {
-                    "name": topic,
-                    "category": category,
+                    "name": smart.get("name", clean_topic),
+                    "category": smart.get("category", category),
                     "level": level,
                     "duration": duration,
-                    "summary": f"A comprehensive {level}-level course covering fundamental and advanced concepts in {topic}.",
+                    "summary": smart.get("summary", f"A comprehensive {level}-level course covering fundamental and advanced concepts in {clean_topic}."),
                     "courseBanner": "/placeholder.svg",
-                    "chapters": chapters,
+                    "chapters": [
+                        {
+                            "chapter_id": ch["chapter_id"],
+                            "name": ch["name"],
+                            "about": ch["about"],
+                            "duration": ch.get("duration", "15 mins"),
+                            "coding_challenge": ch.get("coding_challenge")
+                        }
+                        for ch in smart.get("chapters", [])[:num_chapters]
+                    ]
                 }
 
         course_id = str(uuid.uuid4())[:12]
         doc = {
             "course_id": course_id,
-            "name": response.get("name", topic),
+            "name": response.get("name", clean_topic),
+            "skill": clean_topic,
+            "skill_lower": clean_topic.lower(),
             "category": category,
             "level": level,
             "duration": duration,
@@ -590,10 +652,13 @@ Return ONLY valid JSON in the exact following schema:
             "summary": response.get("summary", ""),
             "courseBanner": response.get("courseBanner", "/placeholder.svg"),
             "chapters_outline": response.get("chapters", []),
+            "completed_chapters": [],
             "created_by": user_id or "anonymous",
+            "user_id": user_id,
             "user_name": user_name or "Learner",
             "publish": True,
             "created_at": utc_now(),
+            "updated_at": utc_now(),
         }
 
         self.courses_col.insert_one(doc)
@@ -769,11 +834,17 @@ Return ONLY valid JSON matching this structure:
             "chapters_count": len(chapters) or len(course.get("chapters_outline", []))
         }
 
-    def get_course_details(self, course_id: str) -> Optional[Dict[str, Any]]:
-        """Retrieve full course details along with generated chapters, with auto self-healing."""
+    def get_course_details(self, course_id: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Retrieve full course details along with generated chapters, with auto self-healing and ownership check."""
         course = self.courses_col.find_one({"course_id": course_id})
         if not course:
             return None
+
+        # Ownership authorization check
+        owner = course.get("user_id") or course.get("created_by")
+        if owner and owner != "anonymous":
+            if not user_id or (user_id != owner and user_id != str(owner)):
+                raise PermissionError("Access forbidden: Course belongs to another account.")
 
         c_name = course.get("name", "Course")
         c_lower = c_name.lower()
@@ -840,10 +911,79 @@ Return ONLY valid JSON matching this structure:
         result["chapters"] = [serialize_doc(ch) for ch in chapters]
         return result
 
-    def list_courses(self, limit: int = 20) -> List[Dict[str, Any]]:
-        """Retrieve list of courses for dashboard and explore views."""
-        courses = list(self.courses_col.find().sort("created_at", -1).limit(limit))
-        return [serialize_doc(c) for c in courses]
+    def list_courses(self, user_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieve list of courses filtered strictly by user account."""
+        all_courses = list(self.courses_col.find().sort("created_at", -1))
+        if user_id:
+            filtered = [
+                c for c in all_courses
+                if str(c.get("user_id") or "") == str(user_id) or str(c.get("created_by") or "") == str(user_id)
+            ]
+        else:
+            filtered = [
+                c for c in all_courses
+                if c.get("created_by") in [None, "anonymous"] and not c.get("user_id")
+            ]
+        return [serialize_doc(c) for c in filtered[:limit]]
+
+    def get_user_course_by_skill(self, user_id: str, skill: str) -> Optional[Dict[str, Any]]:
+        """Check if user already has an active course for this skill."""
+        if not user_id or not skill:
+            return None
+        s_clean = skill.strip().lower()
+        all_courses = list(self.courses_col.find().sort("created_at", -1))
+        for c in all_courses:
+            owner = str(c.get("user_id") or c.get("created_by") or "")
+            if owner == str(user_id):
+                c_skill = str(c.get("skill") or c.get("name") or "").strip().lower()
+                c_lower = str(c.get("skill_lower") or "").strip().lower()
+                if c_skill == s_clean or c_lower == s_clean or s_clean in c_skill:
+                    return serialize_doc(c)
+        return None
+
+    def update_chapter_progress(
+        self, course_id: str, user_id: Optional[str], chapter_id: int, completed: bool
+    ) -> Dict[str, Any]:
+        """Persist chapter completion status in the course document."""
+        course = self.courses_col.find_one({"course_id": course_id})
+        if not course:
+            raise ValueError(f"Course {course_id} not found")
+
+        owner = str(course.get("user_id") or course.get("created_by") or "")
+        if user_id and owner and owner != "anonymous" and owner != str(user_id):
+            raise PermissionError("Unauthorized to update progress on this course")
+
+        current = list(course.get("completed_chapters") or [])
+        ch_num = int(chapter_id)
+        if completed and ch_num not in current:
+            current.append(ch_num)
+        elif not completed and ch_num in current:
+            current.remove(ch_num)
+
+        self.courses_col.update_one(
+            {"course_id": course_id},
+            {"$set": {"completed_chapters": current, "updated_at": utc_now()}}
+        )
+        return {
+            "course_id": course_id,
+            "chapter_id": chapter_id,
+            "completed": completed,
+            "completed_chapters": current
+        }
+
+    def delete_course(self, course_id: str, user_id: Optional[str]) -> bool:
+        """Delete course and associated chapters verifying owner authorization."""
+        course = self.courses_col.find_one({"course_id": course_id})
+        if not course:
+            return False
+
+        owner = course.get("user_id") or course.get("created_by")
+        if user_id and owner and owner != "anonymous" and owner != user_id:
+            raise PermissionError("Unauthorized to delete this course")
+
+        self.courses_col.delete_one({"course_id": course_id})
+        self.chapters_col.delete_many({"course_id": course_id})
+        return True
 
     def _build_domain_code_example(self, course_name: str, chapter_name: str) -> Dict[str, str]:
         c_lower = course_name.lower()

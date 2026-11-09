@@ -250,7 +250,7 @@
         <p class="text-muted mt-1" style="font-size: 0.875rem;">${s.reason || ''}</p>
         <p class="mt-1" style="font-size: 0.875rem;"><strong>Learning Objective:</strong> ${s.learning_objective || ''}</p>
         <div style="text-align: right; margin-top: 0.75rem;">
-          <a href="/courses?topic=${encodeURIComponent(s.skill)}" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.8125rem;">&#10024; Generate AI Course for ${s.skill}</a>
+          <a href="/courses?topic=${encodeURIComponent(s.skill)}" onclick="if(this.dataset.clicked){return false;} this.dataset.clicked='true'; this.innerText='Opening...'; this.style.pointerEvents='none';" class="btn btn-primary" style="padding: 0.3rem 0.75rem; font-size: 0.8125rem;">&#10024; Generate AI Course for ${s.skill}</a>
         </div>
       </div>`).join('');
     }

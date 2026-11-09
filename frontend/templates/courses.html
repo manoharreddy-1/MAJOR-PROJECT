@@ -368,13 +368,17 @@
     });
 
     // Generate Course Action
-    document.getElementById('generateCourseBtn').addEventListener('click', async () => {
+    async function startCourseGeneration(forceRegenerate = false) {
       const topic = document.getElementById('topicInput').value.trim();
       const description = document.getElementById('descInput').value.trim();
       const level = document.getElementById('levelSelect').value;
       const duration = document.getElementById('durationSelect').value;
       const num_chapters = parseInt(document.getElementById('chaptersSelect').value);
       const include_video = document.getElementById('includeVideoCheck').checked ? 'Yes' : 'No';
+
+      const genBtn = document.getElementById('generateCourseBtn');
+      genBtn.disabled = true;
+      genBtn.innerText = 'Initializing...';
 
       document.getElementById('step3').style.display = 'none';
       document.getElementById('generatingState').style.display = 'block';
@@ -390,9 +394,20 @@
             duration,
             num_chapters,
             include_video,
-            description
+            description,
+            force_regenerate: forceRegenerate
           }
         });
+
+        if (res.data && res.data.already_exists) {
+          const openExisting = confirm(`You already have a course for "${topic}".\n\nClick [OK] to open your existing course, or [Cancel] to regenerate a brand new one.`);
+          if (openExisting) {
+            window.location.href = `/course/${res.data.course_id}`;
+            return;
+          } else {
+            return startCourseGeneration(true);
+          }
+        }
 
         const courseId = res.data.course_id;
 
@@ -411,8 +426,28 @@
         alert('Generation failed: ' + err.message);
         document.getElementById('generatingState').style.display = 'none';
         document.getElementById('step3').style.display = 'block';
+      } finally {
+        genBtn.disabled = false;
+        genBtn.innerText = 'Generate Course Content 🚀';
       }
+    }
+
+    document.getElementById('generateCourseBtn').addEventListener('click', () => {
+      startCourseGeneration(false);
     });
+
+    // Delete Course Action
+    async function deleteCourse(courseId, courseName) {
+      if (!confirm(`Are you sure you want to delete the course "${courseName}"?\n\nThis will remove it from your account.`)) {
+        return;
+      }
+      try {
+        await API.request(`/course/${courseId}`, { method: 'DELETE' });
+        loadCourses();
+      } catch (err) {
+        alert('Failed to delete course: ' + err.message);
+      }
+    }
 
     // Load Courses List
     async function loadCourses() {
@@ -452,7 +487,10 @@
                 </div>
                 <div class="course-footer">
                   <span style="font-size: 0.75rem; color: var(--text-muted);">&#128100; ${c.user_name || 'AI Course'}</span>
-                  <a href="/course/${c.course_id}" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem;">Open Course &rarr;</a>
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button onclick="deleteCourse('${c.course_id}', '${(c.name || '').replace(/'/g, "\\'")}')" class="btn btn-outline" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem; color: #dc2626; border-color: #fca5a5;" title="Delete Course">&#128465;</button>
+                    <a href="/course/${c.course_id}" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem;">Open Course &rarr;</a>
+                  </div>
                 </div>
               </div>
             `).join('')}

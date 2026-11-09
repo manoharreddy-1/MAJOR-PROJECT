@@ -1,6 +1,6 @@
 """Comprehensive syllabus, concept breakdowns, code examples, coding questions, test cases, and quizzes for popular topics."""
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 SYLLABUS_KNOWLEDGE_BASE: Dict[str, Dict[str, Any]] = {
     "java": {
@@ -2125,7 +2125,121 @@ def generate_smart_curriculum(topic_str: str) -> Dict[str, Any]:
     clean_topic = topic_str.strip() or "Software Engineering"
     t_lower = clean_topic.lower()
 
-    if "angular" in t_lower:
+    if "spring boot" in t_lower:
+        modules = [
+            ("Spring Boot Architecture, Starters & Auto-Configuration", "Understand Spring Boot opinionated defaults, @SpringBootApplication, starter POMs, and embed Tomcat runtime."),
+            ("RESTful API Development with Spring MVC", "Build REST controllers using @RestController, @GetMapping, @PostMapping, request validation, and ResponseEntity."),
+            ("Spring Data JPA, Hibernate & Database Repositories", "Implement CrudRepository and JpaRepository, entity lifecycle, derived queries, and transaction management with @Transactional."),
+            ("Application Configuration, Profiles & Externalized Properties", "Manage application.properties/yml, active profiles (dev, prod), @Value, and @ConfigurationProperties binding."),
+            ("Spring Boot Actuator, Security & Production Deployment", "Expose health metrics with Actuator, configure basic Spring Security, package executable JARs, and containerize for cloud.")
+        ]
+        category = "Backend & Enterprise Java"
+        lang = "java"
+        code_snip = """@RestController
+@RequestMapping("/api/v1/users")
+public class UserController {
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+        return ResponseEntity.ok(new UserResponse(id, "Alex", "alex@example.com"));
+    }
+}"""
+    elif "spring" in t_lower:
+        modules = [
+            ("Spring Framework Architecture & IoC Container", "Understand Inversion of Control (IoC), ApplicationContext, BeanFactory, and the Spring component lifecycle."),
+            ("Dependency Injection & Bean Configuration", "Master constructor vs setter injection, @Autowired, @Component, @Service, @Repository, and Java-based @Configuration."),
+            ("Spring Bean Lifecycle & Scopes", "Explore singleton, prototype, request, session scopes, @PostConstruct, @PreDestroy, and BeanPostProcessor hooks."),
+            ("Aspect-Oriented Programming (AOP) with Spring", "Decouple cross-cutting concerns (logging, security, metrics) using @Aspect, Pointcuts, @Before, @After, and @Around advice."),
+            ("Spring MVC Architecture & Enterprise Integration", "Understand DispatcherServlet, HandlerMapping, ModelAndView, view resolvers, and transactional service boundaries.")
+        ]
+        category = "Backend Frameworks"
+        lang = "java"
+        code_snip = """@Configuration
+@ComponentScan(basePackages = "com.example.service")
+public class AppConfig {
+    @Bean
+    public PaymentService paymentService() {
+        return new StripePaymentService();
+    }
+}"""
+    elif any(k in t_lower for k in ["hibernate", "jpa", "orm"]):
+        modules = [
+            ("ORM Architecture & Hibernate / JPA Foundations", "Understand Object-Relational Mapping paradigms, JPA specifications vs Hibernate implementations, and SessionFactory."),
+            ("Entity Mappings & Primary Key Generation", "Map POJOs to tables with @Entity, @Table, @Id, @GeneratedValue (IDENTITY/SEQUENCE), and @Column constraints."),
+            ("Entity Relationships: OneToOne, OneToMany & ManyToMany", "Model complex domain relationships, configure cascade types, orphan removal, and FetchType.LAZY vs EAGER."),
+            ("Hibernate Query Language (HQL) & Criteria API", "Write type-safe, database-agnostic HQL queries, pagination, native SQL fallbacks, and projections."),
+            ("Hibernate Caching, N+1 Problem & Performance Tuning", "Eliminate N+1 queries using JOIN FETCH, configure First-Level and Second-Level (Ehcache/Redis) caches.")
+        ]
+        category = "Database & ORM"
+        lang = "java"
+        code_snip = """@Entity
+@Table(name = "products")
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(nullable = false)
+    private String name;
+    private Double price;
+}"""
+    elif any(k in t_lower for k in ["node", "nodejs", "express"]):
+        modules = [
+            ("Node.js Architecture, Event Loop & V8 Engine", "Understand asynchronous non-blocking I/O, libuv event loop phases, process nextTick, and Node.js modules."),
+            ("Building REST APIs with Express.js Framework", "Configure Express server, routing parameters, request/response lifecycle, and custom middleware."),
+            ("Asynchronous Programming, Promises & Async/Await", "Manage asynchronous control flow, error propagation, event emitters, and worker threads."),
+            ("Database Integration: MongoDB, Mongoose & PostgreSQL", "Connect Express backends to persistent databases, define Mongoose schemas, and perform CRUD operations."),
+            ("Authentication (JWT), Security & Production Deployment", "Implement bcrypt password hashing, JWT authorization middleware, CORS, rate limiting, and PM2 process management.")
+        ]
+        category = "Backend Development"
+        lang = "javascript"
+        code_snip = """const express = require('express');
+const app = express();
+app.use(express.json());
+
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'UP', timestamp: new Date().toISOString() });
+});
+
+app.listen(3000, () => console.log('Server running on port 3000'));"""
+    elif "fastapi" in t_lower:
+        modules = [
+            ("FastAPI Architecture, ASGI & Uvicorn", "Explore ASGI specification, high-concurrency event loops, and Uvicorn server execution."),
+            ("Pydantic Models, Request Validation & Serialization", "Define type-annotated schemas with Pydantic BaseModel, Field validation, and automated JSON documentation."),
+            ("Path Operations, Query Parameters & Response Models", "Design clean REST endpoints with HTTP status codes, response models, and custom error handlers."),
+            ("FastAPI Dependency Injection System", "Leverage Depends for database sessions, authentication guards, and shared configuration."),
+            ("Asynchronous Database Sessions & Security (OAuth2 / JWT)", "Integrate async SQLAlchemy, execute non-blocking database queries, and implement OAuth2 password flows.")
+        ]
+        category = "Python Backend & APIs"
+        lang = "python"
+        code_snip = """from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI(title="Product API")
+
+class Item(BaseModel):
+    name: str
+    price: float
+
+@app.post("/items")
+async def create_item(item: Item):
+    return {"message": f"Item '{item.name}' created", "price": item.price}"""
+    elif "django" in t_lower:
+        modules = [
+            ("Django Architecture & MVT Pattern", "Understand Model-View-Template separation, settings.py, manage.py commands, and application structure."),
+            ("Django ORM, Models & Database Migrations", "Define database models, run makemigrations and migrate, and query databases using the QuerySet API."),
+            ("Django Views, URL Routing & Class-Based Views", "Route URLs with path converters, build Function-Based and generic Class-Based Views."),
+            ("Django REST Framework (DRF) & API Serializers", "Build REST APIs using ModelSerializers, APIView, ViewSets, and DefaultRouter."),
+            ("Authentication, Django Admin & Production Deployment", "Utilize built-in User models, permission decorators, Django Admin customization, and Gunicorn/Nginx deployment.")
+        ]
+        category = "Python Full-Stack & APIs"
+        lang = "python"
+        code_snip = """from django.http import JsonResponse
+from django.views import View
+
+class HealthCheckView(View):
+    def get(self, request):
+        return JsonResponse({"status": "healthy", "service": "django-app"})"""
+    elif "angular" in t_lower:
         modules = [
             ("Angular Architecture & Component Essentials", "Explore Angular CLI, standalone components, template syntax, and modular application architecture."),
             ("Data Binding, Directives & Event Handling", "Master property binding, two-way ngModel, structural directives (*ngIf, *ngFor), and custom pipes."),
@@ -2685,47 +2799,27 @@ pm.test("Payload contains required user ID", function () {
     }
 
 
-def get_curated_course(topic: Any) -> Dict[str, Any]:
-    """Retrieve pre-curated full-fidelity course if matching topic, else generate structured curriculum."""
+def get_curated_course(topic: Any) -> Optional[Dict[str, Any]]:
+    """Retrieve pre-curated full-fidelity course ONLY if exact match for high-level core course, else return None."""
     if isinstance(topic, dict):
         topic = topic.get("topic") or topic.get("name") or topic.get("title") or ""
     topic_lower = (topic or "").lower().strip()
-    # Remove leading punctuation
     topic_lower = re.sub(r"^[&\s+\-•*,]+", "", topic_lower).strip()
 
-    for key, data in SYLLABUS_KNOWLEDGE_BASE.items():
-        if key in topic_lower or topic_lower in key:
-            return data
-
-    aliases = {
-        "node": "javascript",
-        "web": "javascript",
-        "frontend": "javascript",
-        "backend": "python",
-        "django": "python",
-        "flask": "python",
-        "fastapi": "python",
-        "ai": "machine learning",
-        "deep learning": "machine learning",
-        "nlp": "machine learning",
-        "data science": "machine learning",
-        "spring": "java",
-        "spring boot": "java",
-        "sql": "sql",
-        "mysql": "sql",
-        "postgres": "sql",
-        "postgresql": "sql",
-        "database": "sql",
-        "docker": "docker",
-        "container": "docker",
-        "soft skills": "soft skills",
-        "soft skill": "soft skills",
-        "communication": "soft skills",
-        "interview": "soft skills",
+    # Exact knowledge base matching - NEVER substitute specific technologies like Spring with Java!
+    exact_matches = {
+        "java": ["java", "core java", "java programming", "learn java"],
+        "python": ["python", "core python", "python programming", "learn python"],
+        "javascript": ["javascript", "vanilla javascript", "modern javascript", "learn javascript"],
+        "machine learning": ["machine learning", "ml fundamentals"],
+        "sql": ["sql", "sql fundamentals", "rdbms"],
+        "docker": ["docker", "docker fundamentals"],
+        "soft skills": ["soft skills", "soft skill", "interpersonal skills"]
     }
-    for alias, target in aliases.items():
-        if alias in topic_lower:
-            return SYLLABUS_KNOWLEDGE_BASE.get(target)
 
-    # Return dynamically generated high-fidelity curriculum for any technical topic
+    for key, aliases_list in exact_matches.items():
+        if topic_lower in aliases_list:
+            return SYLLABUS_KNOWLEDGE_BASE.get(key)
+
+    # Return dynamically generated high-fidelity curriculum tailored strictly to this specific skill!
     return generate_smart_curriculum(topic)
