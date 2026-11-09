@@ -32,8 +32,14 @@ users_col = get_collection(COLLECTIONS["users"])
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USERS_STORE_FILE = os.path.join(BASE_DIR, "database", "users_store.json")
 
-# In-memory OTP storage: key -> {"otp": str, "expires_at": float, "attempts": int, ...}
+# In-memory OTP storage: key -> {"otp_hash": str, "expires_at": float, "attempts": int, ...}
 _otp_store: Dict[str, dict] = {}
+OTP_SALT = "ai_resume_analyzer_otp_salt_v1_"
+
+
+def hash_otp(otp: str) -> str:
+    """Hash one-time password with salt for secure storage."""
+    return hashlib.sha256((OTP_SALT + str(otp).strip()).encode("utf-8")).hexdigest()
 
 
 BULK_ALLOWED_ROLES = {
@@ -276,34 +282,50 @@ def send_register_otp():
     if existing_user and (existing_user.get("username") or "").lower() == username.lower():
         return error_response("USERNAME_TAKEN", f"Username '{username}' is already taken. Please choose another username.", 400)
 
-    # 3. Generate 6-digit OTP
-    otp = f"{secrets.randbelow(900000) + 100000}"
+    # 3. Rate limiting check (60 seconds cooldown)
     key = f"reg:{email.lower()}"
+    now = time.time()
+    existing_record = _otp_store.get(key)
+    if existing_record and (now - existing_record.get("created_at", 0)) < 60:
+        remaining = int(60 - (now - existing_record.get("created_at", 0)))
+        return error_response("RATE_LIMITED", f"Please wait {remaining} seconds before requesting a new OTP.", 429)
+
+    # 4. Generate 6-digit OTP and store hash (single-use, 5-minute expiry)
+    otp = f"{secrets.randbelow(900000) + 100000}"
+    is_testing = bool(current_app and current_app.config.get("TESTING"))
     _otp_store[key] = {
-        "otp": otp,
+        "otp_hash": hash_otp(otp),
         "email": email.lower(),
         "username": username,
         "full_name": full_name,
-        "expires_at": time.time() + 600,  # 10 minutes
+        "expires_at": now + 300,  # 5 minutes
+        "created_at": now,
         "attempts": 0,
     }
+    if is_testing:
+        _otp_store[key]["otp"] = otp
 
-    # 4. Dispatch via SMTP
+    # 5. Dispatch via SMTP (fail-closed)
     success, msg = send_otp_email(
         to_email=email,
         otp=otp,
         purpose="Registration",
         recipient_name=full_name
     )
+    if not success:
+        _otp_store.pop(key, None)
+        logger.error("Failed to deliver registration OTP to %s: %s", email, msg)
+        return error_response(
+            "EMAIL_DELIVERY_FAILED",
+            "Unable to deliver verification code to your email. Please check that your email address is correct and try again.",
+            500
+        )
 
     resp_payload = {
         "email": email,
-        "expires_in_seconds": 600,
+        "expires_in_seconds": 300,
         "sender": DEFAULT_SENDER,
     }
-    # Expose demo code if live SMTP is unconfigured for test environments
-    if not is_smtp_configured():
-        resp_payload["dev_otp"] = otp
 
     return success_response(resp_payload, f"Verification OTP successfully sent to {email}.")
 
@@ -357,7 +379,8 @@ def register():
             _otp_store.pop(key, None)
             return error_response("TOO_MANY_ATTEMPTS", "Too many invalid attempts. Please request a new OTP.", 429)
 
-        if otp_record.get("otp") != otp:
+        is_match = (otp_record.get("otp_hash") == hash_otp(otp)) or (otp_record.get("otp") == otp)
+        if not is_match:
             return error_response("INVALID_OTP", "Invalid verification code. Please check the OTP sent to your email.", 400)
 
         # OTP validated successfully: clear OTP record
@@ -415,25 +438,44 @@ def forgot_password_request():
     if not target_email or "@" not in target_email:
         return error_response("NO_EMAIL_ON_RECORD", "This account does not have a valid registered email on file.", 400)
 
-    # Generate 6-digit reset OTP
-    otp = f"{secrets.randbelow(900000) + 100000}"
+    # Rate limiting check (60 seconds cooldown)
     key = f"reset:{target_email.lower()}"
+    now = time.time()
+    existing_record = _otp_store.get(key)
+    if existing_record and (now - existing_record.get("created_at", 0)) < 60:
+        remaining = int(60 - (now - existing_record.get("created_at", 0)))
+        return error_response("RATE_LIMITED", f"Please wait {remaining} seconds before requesting a new password reset code.", 429)
+
+    # Generate 6-digit reset OTP and store hash (single-use, 5-minute expiry)
+    otp = f"{secrets.randbelow(900000) + 100000}"
+    is_testing = bool(current_app and current_app.config.get("TESTING"))
     _otp_store[key] = {
-        "otp": otp,
+        "otp_hash": hash_otp(otp),
         "email": target_email.lower(),
         "username": user.get("username"),
         "user_id": user.get("user_id"),
-        "expires_at": time.time() + 600,
+        "expires_at": now + 300,  # 5 minutes
+        "created_at": now,
         "attempts": 0,
     }
+    if is_testing:
+        _otp_store[key]["otp"] = otp
 
-    # Send OTP via SMTP
-    send_otp_email(
+    # Send OTP via SMTP (fail-closed)
+    success, msg = send_otp_email(
         to_email=target_email,
         otp=otp,
         purpose="Password Reset",
         recipient_name=user.get("full_name") or user.get("username")
     )
+    if not success:
+        _otp_store.pop(key, None)
+        logger.error("Failed to deliver reset OTP to %s: %s", target_email, msg)
+        return error_response(
+            "EMAIL_DELIVERY_FAILED",
+            "Unable to deliver password reset code to your email. Please try again later.",
+            500
+        )
 
     # Mask email for privacy (e.g. b***0@gmail.com)
     parts = target_email.split("@")
@@ -442,11 +484,9 @@ def forgot_password_request():
     resp_payload = {
         "email": target_email,
         "masked_email": masked_email,
-        "expires_in_seconds": 600,
+        "expires_in_seconds": 300,
         "sender": DEFAULT_SENDER,
     }
-    if not is_smtp_configured():
-        resp_payload["dev_otp"] = otp
 
     return success_response(
         resp_payload,
@@ -491,7 +531,8 @@ def reset_password():
         _otp_store.pop(key, None)
         return error_response("TOO_MANY_ATTEMPTS", "Too many invalid attempts. Please request a new OTP.", 429)
 
-    if otp_record.get("otp") != otp:
+    is_match = (otp_record.get("otp_hash") == hash_otp(otp)) or (otp_record.get("otp") == otp)
+    if not is_match:
         return error_response("INVALID_OTP", "Invalid verification code. Please check the OTP sent to your email.", 400)
 
     # Invalidate OTP immediately upon success

@@ -43,7 +43,7 @@ class LLMModel:
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "maxOutputTokens": max_tokens,
-                "temperature": 0.2,
+                "temperature": 0.0,
             }
         }
 
@@ -59,7 +59,7 @@ class LLMModel:
                         "Content-Type": "application/json",
                         "x-goog-api-key": key,
                     },
-                    timeout=2.5
+                    timeout=8.0
                 )
 
                 if response.status_code == 429:

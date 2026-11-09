@@ -650,14 +650,25 @@ def _grounded_fallback_validation(role: str, jd_text: str) -> Dict[str, Any]:
     stop_words = {"senior", "junior", "intern", "lead", "associate", "role", "job", "specialist"}
     role_tokens = [w for w in re.findall(r"\b[a-z]{3,}\b", r_clean) if w not in stop_words]
 
-    if role_tokens and not any(re.search(rf"\b{re.escape(t)}\b", jd_lower) for t in role_tokens):
-        # If none of the title tokens are in the JD, check if any domain match occurred
-        if role_dom and sum(1 for k in domain_map[role_dom]["jd_kws"] if re.search(rf"\b{re.escape(k)}\b", jd_lower)) == 0:
-            return {
-                "is_valid": False,
-                "error_message": f"Invalid job title and job description: The job description does not mention or relate to '{role}'. Please enter a proper job description according to the role.",
-                "failed_field": "alignment"
-            }
+    # Verify if role tokens appear in JD
+    has_token_overlap = any(re.search(rf"\b{re.escape(t)}\b", jd_lower) for t in role_tokens) if role_tokens else False
+    has_domain_support = bool(role_dom and sum(1 for k in domain_map[role_dom]["jd_kws"] if re.search(rf"\b{re.escape(k)}\b", jd_lower)) > 0)
+
+    # If role has no occupational noun and does not match the JD, it is invalid
+    if not has_noun and not has_token_overlap and not has_domain_support:
+        return {
+            "is_valid": False,
+            "error_message": f"Invalid job title and job description: '{role}' is not recognized as a job title for this description.",
+            "failed_field": "role"
+        }
+
+    # If role tokens do not exist in the JD and there is no domain match, reject mismatch
+    if role_tokens and not has_token_overlap and not has_domain_support:
+        return {
+            "is_valid": False,
+            "error_message": f"Invalid job title and job description: The job description does not mention or relate to '{role}'. Please enter a proper job description according to the role.",
+            "failed_field": "alignment"
+        }
 
     return {"is_valid": True, "error_message": "", "grounded": True}
 
@@ -768,9 +779,9 @@ def apply_ats_score_guardrails(
             cap_applied = True
             cap_reason = "No required technical skills matched between resume and job description (capped at <= 15%)."
 
-    # Guardrail 2: Sparse resume / name-only content (< 50 words or empty skills)
+    # Guardrail 2: Sparse resume / name-only content (< 15 words without skills, or < 30 words and no matched skills)
     resume_skills = resume.get("skills", [])
-    if word_count < 50 or (not resume_skills and len(matched_skills) == 0):
+    if (word_count < 15 and not resume_skills) or (word_count < 30 and len(matched_skills) == 0 and not resume_skills):
         if overall > 10.0:
             overall = min(10.0, round(overall * 0.15, 1))
             cap_applied = True

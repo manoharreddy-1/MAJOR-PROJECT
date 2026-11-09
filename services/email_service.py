@@ -110,6 +110,14 @@ def send_otp_email(
         f"Sent from: {SMTP_USER}\n"
     )
 
+    # Testing mode simulation for automated test suites
+    try:
+        from flask import current_app
+        if current_app and current_app.config.get("TESTING"):
+            return True, f"Verification OTP sent to {to_email} (Testing Mode)."
+    except Exception:
+        pass
+
     # If live SMTP password is configured, send through SMTP protocol
     if is_smtp_configured():
         try:
@@ -131,13 +139,8 @@ def send_otp_email(
             return True, f"Verification OTP sent to {to_email}."
         except Exception as exc:
             logger.error("SMTP delivery failed to %s: %s", to_email, exc)
-            # Log OTP so candidate/developer can proceed during development/testing
-            logger.warning("[FALLBACK OTP] To: %s | Code: %s | Purpose: %s", to_email, otp, purpose)
-            return True, f"OTP generated: {otp} (SMTP connection warning: {str(exc)[:60]})"
+            return False, f"Failed to deliver email: {str(exc)}"
 
-    # Development / Fallback mode when SMTP password is not set
-    logger.info(
-        "[LOCAL/DEV SMTP SIMULATION] From: %s | To: %s | Subject: %s | Code: %s",
-        SMTP_USER, to_email, subject, otp
-    )
-    return True, f"Verification OTP sent to {to_email}. (Dev Code: {otp})"
+    # If SMTP is not configured, fail closed without leaking OTP
+    logger.warning("SMTP credentials are not configured. Cannot dispatch live email to %s.", to_email)
+    return False, "SMTP email service is not configured. Please set SMTP_PASSWORD in environment variables."

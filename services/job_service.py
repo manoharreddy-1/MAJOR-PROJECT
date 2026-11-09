@@ -37,6 +37,9 @@ class JobService:
         clean_jd = sanitize_text(text)
         final_title = details.get("normalized_role") or effective_title
         parsed = self.parser.parse(clean_jd, title=final_title)
+        parsed["job_title"] = final_title
+        if details.get("detected_role"):
+            parsed["detected_title"] = details.get("detected_role")
 
         doc = {
             "user_id": user_id,

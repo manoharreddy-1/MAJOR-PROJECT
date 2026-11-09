@@ -487,14 +487,9 @@
           body: { email, username, full_name: fullName }
         });
 
-        let msg = `&#10003; OTP sent to <strong>${email}</strong> via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong>.`;
-        if (res.data?.dev_otp) {
-          msg += ` <br><span style="font-weight:700; color:#1d4ed8;">Demo Code: ${res.data.dev_otp}</span>`;
-          document.getElementById('regOtp').value = res.data.dev_otp;
-        }
-
+        let msg = `&#10003; Verification code sent to <strong>${email}</strong> via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong>. Please check your inbox and spam folder.`;
         showAlert(msg, false);
-        document.getElementById('regOtpStatus').innerHTML = `OTP sent! Expires in 10 minutes.`;
+        document.getElementById('regOtpStatus').innerHTML = `OTP sent! Expires in 5 minutes.`;
         document.getElementById('regOtp').focus();
 
         // 60-second cooldown on button
@@ -582,12 +577,7 @@
         verifiedForgotEmail = res.data?.email || identifier;
         document.getElementById('forgotTargetEmail').innerText = res.data?.masked_email || verifiedForgotEmail;
 
-        let msg = `&#10003; Password reset OTP dispatched via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong> to <strong>${res.data?.masked_email || verifiedForgotEmail}</strong>.`;
-        if (res.data?.dev_otp) {
-          msg += ` <br><span style="font-weight:700; color:#1d4ed8;">Demo Code: ${res.data.dev_otp}</span>`;
-          document.getElementById('resetOtp').value = res.data.dev_otp;
-        }
-
+        let msg = `&#10003; Password reset OTP dispatched via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong> to <strong>${res.data?.masked_email || verifiedForgotEmail}</strong>. Please check your inbox and spam folder.`;
         showAlert(msg, false);
 
         // Switch to Step 2

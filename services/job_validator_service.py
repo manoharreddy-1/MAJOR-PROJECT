@@ -291,11 +291,14 @@ class JobValidatorService:
             return True, "Job description contains no valid text."
 
         gibberish_count = 0
-        vowels = set("aeiou")
+        vowels = set("aeiouy")
+        known_tech_acronyms = {"nlp", "llm", "llms", "sql", "aws", "gcp", "css", "xml", "npm", "sdk", "api", "sde", "sdet", "devops", "ml", "ai", "rdbms", "crud", "ci/cd", "cicd", "k8s"}
 
         for w in words:
+            if w in known_tech_acronyms:
+                continue
             # Check 1: 5 or more consecutive consonants (e.g. ndjnsdc in iuendijnsdc)
-            if re.search(r"[bcdfghjklmnpqrstvwxyz]{5,}", w):
+            if re.search(r"[bcdfghjklmnpqrstvwxz]{5,}", w):
                 gibberish_count += 1
                 continue
             # Check 2: 4 or more consecutive vowels (e.g. aeiou)
@@ -312,7 +315,7 @@ class JobValidatorService:
                 continue
             # Check 5: High consonant ratio on words > 6 chars (e.g. aijdnia, iuendijnsdc)
             vowel_ratio = sum(1 for c in w if c in vowels) / len(w)
-            if len(w) >= 6 and (vowel_ratio < 0.15 or vowel_ratio > 0.70):
+            if len(w) >= 6 and (vowel_ratio < 0.12 or vowel_ratio > 0.70):
                 gibberish_count += 1
                 continue
 

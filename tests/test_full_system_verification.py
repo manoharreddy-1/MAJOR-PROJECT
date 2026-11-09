@@ -192,7 +192,19 @@ def test_job_service_update_requirements_mock():
     
     js = JobService()
     # Insert a dummy job
-    res = js.analyze_text("Senior Python Developer with Django and PostgreSQL experience.", title="Python Developer")
+    full_jd = """
+    Job Title: Senior Python Developer
+    About the Role:
+    We are seeking an experienced Senior Python Developer to join our backend engineering team.
+    Responsibilities:
+    - Design, develop, and maintain backend microservices and RESTful APIs using Python, Django, and FastAPI.
+    - Architect and optimize PostgreSQL databases, write efficient queries, and manage database migrations.
+    - Collaborate with cross-functional teams to integrate AWS cloud infrastructure, Docker, and CI/CD pipelines.
+    Requirements:
+    - Bachelor's degree in Computer Science or equivalent practical experience.
+    - Strong proficiency in Python, Django, PostgreSQL, Docker, Git, and Linux environments.
+    """
+    res = js.analyze_text(full_jd, title="Python Developer")
     job_id = res["job_description_id"]
     
     # Update requirements without crashing on matched_count
