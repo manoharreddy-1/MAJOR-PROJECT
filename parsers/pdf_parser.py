@@ -43,6 +43,20 @@ def _extract_with_fitz(file_bytes: bytes) -> Tuple[str, bool]:
         if page_text:
             text_parts.append(page_text)
 
+        # Extract structured tables if present (e.g. Education qualification tables)
+        try:
+            if hasattr(page, "find_tables"):
+                tabs = page.find_tables()
+                if tabs and getattr(tabs, "tables", None):
+                    for tab in tabs.tables:
+                        tab_rows = tab.extract()
+                        for row in tab_rows:
+                            cells = [str(c).strip().replace("\n", " ") for c in row if c is not None and str(c).strip()]
+                            if len(cells) >= 2:
+                                text_parts.append(" | ".join(cells))
+        except Exception as tab_err:
+            logger.debug("Table extraction skipped on page: %s", tab_err)
+
     doc.close()
     full_text = "\n".join(text_parts).strip()
     needs_ocr = len(full_text) < MIN_PDF_TEXT_LENGTH

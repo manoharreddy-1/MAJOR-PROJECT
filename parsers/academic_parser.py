@@ -37,11 +37,11 @@ LETTER_GRADE_SCALE = {
 
 
 def clean_spaced_digits(text: str) -> str:
-    """Normalize spaced digits like '8 . 7' -> '8.7', '9 8 %' -> '98%'."""
+    """Normalize spaced digits like '8 . 7' -> '8.7', '9 8 %' -> '98%' without fusing years."""
     # '8 . 7' or '8 .7' or '8. 7'
     s = re.sub(r"(\d)\s*\.\s*(\d)", r"\1.\2", text)
-    # '9 2 . 8 %'
-    s = re.sub(r"(\d)\s+(?=\d\.)", r"\1", s)
+    # '9 2.8' -> '92.8' only when first is an isolated single digit (never fuse 4-digit years like '2024 8.83')
+    s = re.sub(r"(?<!\d)(\d)\s+(?=\d\.\d+)", r"\1", s)
     # '85 %' -> '85%'
     s = re.sub(r"(\d)\s+%", r"\1%", s)
     # '9.8 / 10' -> '9.8/10'
@@ -70,32 +70,38 @@ def parse_numeric_score(
 
     cleaned = clean_spaced_digits(text.strip())
 
-    # Reject explicit negative numbers
-    if re.search(r"(?:^|[\s:=|])-\s*\d", cleaned):
+    # Reject explicit negative numbers (-5.0, -10), but allow hyphen/dash separators (e.g. ' - 9.8')
+    if re.search(r"(?:^|[\s:=|])-(?!\s)\d", cleaned):
         return None
 
+    # Strip rank annotations like 'Rank 17/100' or 'Rank: 1/50' to avoid misinterpreting ranks as marks
+    if re.search(r"(?i)\brank\b", cleaned):
+        cleaned = re.sub(r"(?i)\brank\s*[:=-]?\s*\d+\s*(?:/|out\s+of)\s*\d+", "", cleaned)
+
     # 1. Marks out of total: e.g. '470/500', '960/1000', '470 out of 500', '470 / 500'
-    m_marks = re.search(r"\b(\d{2,4})\s*(?:/|out\s+of)\s*(\d{2,4})\b", cleaned, re.I)
+    m_marks = re.search(r"(?<![-/\d])(\d{2,4})\s*(?:/|out\s+of)\s*(\d{2,4})(?![-/\d])", cleaned, re.I)
     if m_marks:
         obtained = float(m_marks.group(1))
         total = float(m_marks.group(2))
-        # Ignore years e.g. '2020/2024'
-        if not (1990 <= obtained <= 2035 and 1990 <= total <= 2035):
+        # Ignore years e.g. '2020/2024' or year ranges
+        if not (1990 <= obtained <= 2040 or 1990 <= total <= 2040):
             if total > 0 and 0 < obtained <= total:
                 pct = (obtained / total) * 100.0
-                cgpa = min(10.0, round(pct / CGPA_PERCENTAGE_DIVISOR, 2))
-                return {
-                    "standardized_cgpa": cgpa,
-                    "original_text": m_marks.group(0),
-                    "original_type": "marks",
-                    "source_snippet": snippet or cleaned,
-                    "needs_review": False,
-                }
+                # Must be a realistic passing percentage (>= 35%)
+                if pct >= 35.0:
+                    cgpa = min(10.0, round(pct / CGPA_PERCENTAGE_DIVISOR, 2))
+                    return {
+                        "standardized_cgpa": cgpa,
+                        "original_text": m_marks.group(0),
+                        "original_type": "marks",
+                        "source_snippet": snippet or cleaned,
+                        "needs_review": False,
+                    }
 
     # 2. Explicit percentage: e.g. '92.8%', '85%', '92.8 %', 'Percentage: 92.8'
     m_pct = re.search(r"\b(\d{1,3}(?:\.\d+)?)\s*%", cleaned)
     if not m_pct:
-        m_pct = re.search(r"(?i)(?:percentage|percent|aggregate|pct|score)\s*[:=-]?\s*(\d{1,3}(?:\.\d+)?)\b", cleaned)
+        m_pct = re.search(r"(?i)(?:percentage|percent|aggregate|pct|score|result|marks)\s*[:=-]?\s*(\d{1,3}(?:\.\d+)?)\b", cleaned)
         if m_pct:
             val = float(m_pct.group(1))
             if not (35.0 <= val <= 100.0):
@@ -103,7 +109,7 @@ def parse_numeric_score(
 
     if m_pct:
         pct = float(m_pct.group(1))
-        if 0 < pct <= 100.0:
+        if 35.0 <= pct <= 100.0:
             cgpa = min(10.0, round(pct / CGPA_PERCENTAGE_DIVISOR, 2))
             return {
                 "standardized_cgpa": cgpa,
@@ -186,11 +192,14 @@ def parse_numeric_score(
             v = float(tok_clean.replace(" ", ""))
             if v <= 0 or v > 100.0:
                 continue
-            # Skip years (e.g. 1990 - 2035) or single integer counts
-            if 1990 <= v <= 2035:
+            # Skip years (e.g. 1990 - 2040)
+            if 1990 <= v <= 2040:
                 continue
-            # For 10-point scale (<= 10.0): require a decimal point unless explicitly labeled
-            if 4.0 <= v <= 10.0 and "." in tok_clean:
+            # For 10-point scale (<= 10.0): allow decimal 4.0-10.0 OR integer 10 if not preceded by class/grade/rank
+            if 4.0 <= v <= 10.0 and ("." in tok_clean or v == 10.0):
+                # Ensure integer 10 is not 'Class 10' or 'Standard 10' or 'Rank 10'
+                if v == 10.0 and re.search(r"(?i)(?:class|std|standard|grade|rank)\s*10\b", cleaned):
+                    continue
                 return {
                     "standardized_cgpa": round(v, 2),
                     "original_text": tok_clean,
@@ -218,15 +227,15 @@ class AcademicParser:
     """Universal academic marks extraction, table parsing, and normalization."""
 
     DEGREE_PATTERNS = [
-        r"(?i)\b(?:b\.?tech|b\.?e\b|bachelor|undergraduate|degree|bca|mca|m\.?tech|b\.?s\b|b\.?sc\b|b\.?com\b|bba|dual\s*degree|integrated|graduation)\b"
+        r"(?i)\b(?:b\.?\s*tech|b\.?\s*e\.?\b|bachelor|undergraduate|degree|bca|mca|m\.?\s*tech|m\.?\s*e\.?\b|b\.?\s*s\b|b\.?\s*sc\b|b\.?\s*com\b|bba|dual\s*degree|integrated|graduation|post\s*graduation)\b"
     ]
 
     TWELFTH_PATTERNS = [
-        r"(?i)\b(?:12th|class\s*12\b|class\s*xii\b|xii\s*class\b|xii\b|twelfth|intermediate|inter\b|hsc|senior\s*secondary|higher\s*secondary|puc|plus\s*two|\+2\b|10\+2\b|junior\s*college|bieap\b|tsbie\b|mpc\b|bipc\b|aissce|isc\b|pre[- ]university)\b"
+        r"(?i)\b(?:12\s*th|class\s*[-–:]*\s*(?:12|xii)\b|standard\s*[-–:]*\s*(?:12|xii)\b|std\s*[-–:]*\s*(?:12|xii)\b|xii\s*class\b|xii\s*th\b|xiith\b|xii\b|twelfth|intermediate|inter(?:\s*\(mpc\)|\s*\(bipc\)|\s*college)?\b|hsc|senior\s*secondary|higher\s*secondary|puc|plus\s*two|\+2\b|10\s*\+\s*2\b|junior\s*college|bieap\b|tsbie\b|mpc\b|bipc\b|aissce|isc\b|pre[- ]?university)\b"
     ]
 
     TENTH_PATTERNS = [
-        r"(?i)\b(?:10th|class\s*10\b|class\s*x\b|x\s*class\b|x\b(?!\s*(?:ii|iv|v|vi|vii|viii|ix))\b|tenth|ssc\b|s\.s\.c\b|sslc\b|matriculation|secondary\s*school|high\s*school|bseap\b|bse\b|cbse\s*x\b|icse\s*x\b|aisse|hslc)\b"
+        r"(?i)\b(?:10\s*th|class\s*[-–:]*\s*(?:10|x)\b|standard\s*[-–:]*\s*(?:10|x)\b|std\s*[-–:]*\s*(?:10|x)\b|x\s*class\b|x\s*th\b|xth\b|x\b(?!\s*(?:ii|iv|v|vi|vii|viii|ix))\b|tenth|ssc\b|s\.s\.c\.?\b|sslc\b|s\.s\.l\.c\.?\b|matriculation|matric\b|(?<!senior\s)(?<!higher\s)secondary\s*(?:school|education|certificate|board)?|high\s*school(?:\s*education|\s*certificate)?|schooling\b|bseap\b|bse\b|cbse\s*x\b|icse\s*x\b|aisse|hslc)\b"
     ]
 
     DIPLOMA_PATTERNS = [
@@ -304,34 +313,35 @@ class AcademicParser:
         tenth_res = None
         diploma_res = None
 
-        # Pass 1: Table row & Pipe-delimited extraction
+        # Pass 1: Table row & multi-column extraction (pipes, tabs, or >= 2 column spaces)
         for line in lines:
-            if "|" in line or "\t" in line:
-                cells = [c.strip() for c in re.split(r"[|\t]+", line) if c.strip()]
-                line_lower = line.lower()
+            line_clean = clean_spaced_digits(line)
+            is_table_row = ("|" in line or "\t" in line or bool(re.search(r"\S\s{2,}\S", line)))
+            if is_table_row:
+                line_lower = line_clean.lower()
 
                 # Check 10th row
                 if any(re.search(p, line_lower) for p in self.TENTH_PATTERNS) and not any(re.search(p, line_lower) for p in self.TWELFTH_PATTERNS):
-                    parsed = parse_numeric_score(line, snippet=line)
+                    parsed = parse_numeric_score(line_clean, snippet=line_clean)
                     if parsed and not tenth_res:
                         tenth_res = parsed
 
                 # Check 12th row
                 elif any(re.search(p, line_lower) for p in self.TWELFTH_PATTERNS) and not any(re.search(p, line_lower) for p in self.TENTH_PATTERNS):
-                    parsed = parse_numeric_score(line, snippet=line)
+                    parsed = parse_numeric_score(line_clean, snippet=line_clean)
                     if parsed and not twelfth_res:
                         twelfth_res = parsed
 
                 # Check Diploma row
                 elif any(re.search(p, line_lower) for p in self.DIPLOMA_PATTERNS):
-                    parsed = parse_numeric_score(line, snippet=line)
+                    parsed = parse_numeric_score(line_clean, snippet=line_clean)
                     if parsed and not diploma_res:
                         diploma_res = parsed
                         diploma_res["is_diploma"] = True
 
                 # Check Degree row
                 elif any(re.search(p, line_lower) for p in self.DEGREE_PATTERNS):
-                    parsed = parse_numeric_score(line, snippet=line)
+                    parsed = parse_numeric_score(line_clean, snippet=line_clean)
                     if parsed and not degree_res:
                         degree_res = parsed
 
@@ -443,8 +453,15 @@ class AcademicParser:
             if not getattr(llm, "api_keys", None):
                 return current_res
 
-            # Isolate Education section or first 3000 chars of resume
-            edu_snippet = self._extract_education_section(text) or text[:3000]
+            # Isolate Education section or targeted resume snippet around education
+            edu_snippet = self._extract_education_section(text)
+            if not edu_snippet:
+                m = re.search(r"(?i)\b(?:education|academic|qualification)s?\b", text)
+                if m:
+                    idx = m.start()
+                    edu_snippet = text[max(0, idx - 100) : min(len(text), idx + 2500)]
+                else:
+                    edu_snippet = text[:3000]
 
             prompt = f"""You are an expert academic credentials parser for campus placement screening.
 Extract academic scores strictly from the candidate's Education section.

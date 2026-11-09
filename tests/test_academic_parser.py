@@ -63,9 +63,33 @@ class TestAcademicScoreParser:
         assert clean_spaced_digits("8 . 7") == "8.7"
         assert clean_spaced_digits("9 . 8 / 10") == "9.8/10"
         assert clean_spaced_digits("9 2 . 8 %") == "92.8%"
+        # Ensure 4-digit years are NEVER mashed with scores
+        assert clean_spaced_digits("2024 8.83") == "2024 8.83"
+        assert clean_spaced_digits("2020   9.5") == "2020   9.5"
 
         s = parse_numeric_score("8 . 7 CGPA")
         assert s["standardized_cgpa"] == 8.70
+
+    def test_integer_10_cgpa(self):
+        s1 = parse_numeric_score("10")
+        assert s1["standardized_cgpa"] == 10.00
+        assert s1["original_type"] == "assumed"
+
+        s2 = parse_numeric_score("10.0")
+        assert s2["standardized_cgpa"] == 10.00
+
+        # Class 10 is class level, not CGPA
+        assert parse_numeric_score("Class 10 2018") is None
+
+    def test_rank_and_year_rejection(self):
+        # Must not misinterpret Rank 17/100 as 17%
+        assert parse_numeric_score("Rank 17/100") is None
+        assert parse_numeric_score("2016-17/100") is None
+        assert parse_numeric_score("2020/2024") is None
+
+    def test_dash_separated_scores(self):
+        s = parse_numeric_score("Secondary Education - 9.8 GPA")
+        assert s["standardized_cgpa"] == 9.80
 
     def test_invalid_values(self):
         assert parse_numeric_score("-5.0") is None
@@ -146,6 +170,36 @@ class TestAcademicSectionExtraction:
         assert res["degree"]["standardized_cgpa"] == 8.90
         assert res["twelfth"]["standardized_cgpa"] == 9.63
         assert res["tenth"]["standardized_cgpa"] == 9.26
+
+    def test_space_separated_table_resumes(self, parser):
+        # Space-separated / borderless table format
+        text = """
+        Education
+        B. Tech in Computer Science and Engineering   Pragati Engineering College   2024   8.64/10
+        Intermediate (MPC)   Sri Chaitanya Junior College   2020   960/1000
+        Secondary School Certificate   Z.P. High School   2018   10.0
+        Skills: Java, React, SQL
+        """
+        res = parser.extract_academics(text, fallback_to_ai=False)
+        assert res["degree"]["standardized_cgpa"] == 8.64
+        assert res["twelfth"]["standardized_cgpa"] == 10.00
+        assert res["tenth"]["standardized_cgpa"] == 10.00
+
+    def test_b_tech_and_secondary_formats(self, parser):
+        text = """
+        Education:
+        B. Tech in Artificial Intelligence and Machine Learning
+        Pragati Engineering College, CGPA: 8.77/10
+        Intermediate Education (BIEAP)
+        Aditya Junior College, 2018-2020: 95.8%
+        Secondary Education (SSC)
+        ZPH School, 2016-17: 9.8 CGPA (Rank 17/100)
+        Skills: Java, Python, SQL
+        """
+        res = parser.extract_academics(text, fallback_to_ai=False)
+        assert res["degree"]["standardized_cgpa"] == 8.77
+        assert res["twelfth"]["standardized_cgpa"] == 10.00
+        assert res["tenth"]["standardized_cgpa"] == 9.80
 
     def test_value_before_label(self, parser):
         text = """

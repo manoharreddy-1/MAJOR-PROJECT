@@ -23,7 +23,18 @@ URL_PATTERN = re.compile(r"https?://[^\s]+|www\.[^\s]+")
 SECTION_KEYWORDS = {
     "skills": ["technical skills", "skills", "core competencies", "technologies", "tech stack", "tools & technologies"],
     "experience": ["experience", "work experience", "employment", "professional experience", "internship", "internships"],
-    "education": ["education", "academic background", "academics", "qualification", "qualifications"],
+    "education": [
+        "education",
+        "academic background",
+        "academics",
+        "qualification",
+        "qualifications",
+        "educational qualifications",
+        "academic qualifications",
+        "academic details",
+        "academic profile",
+        "education & training",
+    ],
     "projects": ["projects", "personal projects", "academic projects", "key projects"],
     "certifications": ["certifications", "certificates", "licenses"],
     "achievements": ["achievements", "awards", "honors", "accomplishments"],
@@ -185,7 +196,7 @@ class ResumeParser:
         if not hasattr(self, "academic_parser") or self.academic_parser is None:
             from parsers.academic_parser import AcademicParser
             self.academic_parser = AcademicParser()
-        return self.academic_parser.extract_academics(text, fallback_to_ai=False)
+        return self.academic_parser.extract_academics(text, fallback_to_ai=True)
 
     def _extract_cgpa(self, text: str) -> Optional[float]:
         """Extract CGPA/GPA value from text (normalized to 10 scale if <= 10)."""
