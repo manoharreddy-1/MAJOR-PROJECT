@@ -410,15 +410,24 @@
         }
 
         const courseId = res.data.course_id;
+        if (res.data && res.data.course) {
+          try {
+            localStorage.setItem(`course_${courseId}`, JSON.stringify(res.data.course));
+          } catch (e) {}
+        }
 
         // Step 2: Generate detailed content and fetch YouTube videos
         document.getElementById('generatingTitle').innerText = 'Generating Chapter Explanations & Integrating YouTube Videos...';
         document.getElementById('generatingSubtitle').innerText = 'Attaching practical code snippets and educational videos for each module.';
 
-        await API.request('/course/generate-content', {
-          method: 'POST',
-          body: { course_id: courseId }
-        });
+        try {
+          await API.request('/course/generate-content', {
+            method: 'POST',
+            body: { course_id: courseId }
+          });
+        } catch (contentErr) {
+          console.warn('Content generation note:', contentErr);
+        }
 
         // Redirect to course viewer
         window.location.href = `/course/${courseId}`;

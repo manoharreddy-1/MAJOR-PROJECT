@@ -167,6 +167,7 @@ def improve_resume():
     resume = resume_doc.get("extracted", resume_doc)
     job = job_doc.get("requirements", job_doc)
 
+    target_role = doc.get("target_role") or (data.get("target_role") if data else None)
     job_raw_text = job_doc.get("raw_text") or (job.get("raw_text") if isinstance(job, dict) else "")
     effective_role = (target_role or (job.get("job_title") if isinstance(job, dict) else "") or "").strip()
     if effective_role and job_raw_text:

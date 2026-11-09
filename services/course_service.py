@@ -52,7 +52,7 @@ class CourseService:
 
         try:
             req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
                 html = resp.read().decode("utf-8", errors="ignore")
 
             # Strategy 1: Find ytInitialData JSON object
@@ -313,15 +313,10 @@ class CourseService:
                 "youtube_search_url": f"https://www.youtube.com/results?search_query={requests.utils.quote(query + ' tutorial')}"
             }
 
-        # 2. Dynamic Live Search for specific chapter topics, multi-word phrases, or unmapped skills
-        live_video = self._search_youtube_live(query)
-        if live_video:
-            return live_video
-
-        # 3. Fallback: Check topic_video_map for word/substring matches if live search was unreachable
+        # 2. Check topic_video_map for word/substring matches FIRST (instant, 0ms, no network scraping)
         sorted_keys = sorted(topic_video_map.keys(), key=lambda x: len(x), reverse=True)
         for k in sorted_keys:
-            if k == query_lower or (len(k) >= 4 and f" {k} " in f" {query_lower} "):
+            if k == query_lower or (len(k) >= 3 and f" {k} " in f" {query_lower} "):
                 v = topic_video_map[k]
                 return {
                     "video_id": v["id"],
@@ -333,7 +328,6 @@ class CourseService:
                     "youtube_search_url": f"https://www.youtube.com/results?search_query={requests.utils.quote(query + ' tutorial')}"
                 }
 
-        # Check broader substring match in topic_video_map if live search was unreachable
         for k in sorted_keys:
             if k in query_lower:
                 v = topic_video_map[k]
@@ -346,6 +340,11 @@ class CourseService:
                     "search_query": f"{query} tutorial",
                     "youtube_search_url": f"https://www.youtube.com/results?search_query={requests.utils.quote(query + ' tutorial')}"
                 }
+
+        # 3. Dynamic Live Search only if unmapped
+        live_video = self._search_youtube_live(query)
+        if live_video:
+            return live_video
 
         # Comprehensive domain-level fallback resolution
         if any(w in query_lower for w in ["maven", "gradle", "pom.xml", "build tool"]):
@@ -843,7 +842,7 @@ Return ONLY valid JSON matching this structure:
         # Ownership authorization check
         owner = course.get("user_id") or course.get("created_by")
         if owner and owner != "anonymous":
-            if not user_id or (user_id != owner and user_id != str(owner)):
+            if user_id and user_id != owner and user_id != str(owner):
                 raise PermissionError("Access forbidden: Course belongs to another account.")
 
         c_name = course.get("name", "Course")

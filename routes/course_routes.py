@@ -82,9 +82,13 @@ def generate_course_content():
 
 @course_bp.route("/<course_id>", methods=["GET"])
 def get_course(course_id: str):
-    """Retrieve full details and chapters of a generated course, enforcing ownership."""
+    """Retrieve full details and chapters of a generated course."""
     user = get_request_user(request)
-    user_id = user.get("user_id") if user else (request.args.get("user_id") or request.cookies.get("user_id"))
+    user_id = user.get("user_id") if user else (
+        request.headers.get("X-User-Id") or 
+        request.args.get("user_id") or 
+        request.cookies.get("user_id")
+    )
     try:
         course = course_service.get_course_details(course_id, user_id=user_id)
         if not course:

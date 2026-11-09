@@ -21,8 +21,8 @@ class ImprovementService:
         job: Dict,
         analysis: Dict,
     ) -> Dict[str, Any]:
-        matched = [s["skill"] for s in analysis.get("skill_analysis", {}).get("matched", [])]
-        missing = [s["skill"] for s in analysis.get("skill_analysis", {}).get("missing", [])]
+        matched = [s["skill"] if isinstance(s, dict) else str(s) for s in analysis.get("skill_analysis", {}).get("matched", [])]
+        missing = [s["skill"] if isinstance(s, dict) else str(s) for s in analysis.get("skill_analysis", {}).get("missing", [])]
         weak_sections = self._identify_weak_sections(analysis)
 
         prompt = resume_improvement_prompt(

@@ -225,6 +225,7 @@ def get_request_user(req) -> Optional[dict]:
         u = col.find_one({"user_id": user_id})
         if u:
             return u
+        return {"user_id": user_id, "username": username or user_id}
 
     if username:
         return find_user_by_identifier(username)

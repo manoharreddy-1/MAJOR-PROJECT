@@ -155,3 +155,71 @@ class TestResumeOptimizerAPI:
         assert res.status_code == 200
         assert res.content_type == "application/pdf"
         assert res.data.startswith(b"%PDF")
+
+    def test_improve_resume_no_target_role_name_error(self, client):
+        """Verify POST /api/resume/improve does not crash with target_role undefined NameError."""
+        from database.mongodb import get_collection, COLLECTIONS
+        from bson import ObjectId
+
+        resumes_col = get_collection(COLLECTIONS["resumes"])
+        jobs_col = get_collection(COLLECTIONS["job_descriptions"])
+        analyses_col = get_collection(COLLECTIONS["analyses"])
+
+        resume_id = str(resumes_col.insert_one({
+            "raw_text": "Jane Doe. Python Developer.",
+            "extracted": {
+                "name": "Jane Doe",
+                "skills": ["Python", "Django", "SQL"],
+                "experience": [{"title": "Software Developer"}],
+                "education": [{"degree": "B.Tech"}]
+            }
+        }).inserted_id)
+
+        valid_jd = (
+            "Job Title: Python Developer\n"
+            "We are seeking an experienced Python Developer to build high-performance microservices and REST APIs. "
+            "Responsibilities include designing clean data models in PostgreSQL, integrating caching with Redis, "
+            "optimizing database queries, and writing robust automated unit tests. "
+            "Requirements include a Bachelor's degree in Computer Science, 3+ years of professional backend software development experience, "
+            "and deep familiarity with Python, Django, FastAPI, Docker, and Git version control."
+        )
+
+        job_id = str(jobs_col.insert_one({
+            "raw_text": valid_jd,
+            "requirements": {
+                "job_title": "Python Developer",
+                "required_skills": ["Python", "Django", "PostgreSQL"],
+                "responsibilities": ["Develop REST APIs."]
+            }
+        }).inserted_id)
+
+        analysis_id = str(analyses_col.insert_one({
+            "resume_id": ObjectId(resume_id),
+            "job_description_id": ObjectId(job_id),
+            "target_role": "Python Developer",
+            "scores": {"overall": 75.0},
+            "skill_analysis": {
+                "matched": ["Python", "Django"],
+                "missing": ["PostgreSQL"]
+            }
+        }).inserted_id)
+
+        res_imp = client.post("/api/resume/improve", json={"analysis_id": analysis_id})
+        assert res_imp.status_code == 200
+        data_imp = res_imp.get_json()
+        assert data_imp["success"] is True
+        assert "target_role" in data_imp["data"]
+        assert data_imp["data"]["target_role"] == "Python Developer"
+
+    def test_course_view_fast_loading_and_retrieval(self, client):
+        """Verify course generation and details retrieval is fast and non-blocking."""
+        res_gen = client.post("/api/course/generate-layout", json={"topic": "Spring Framework", "category": "Software & Coding"})
+        assert res_gen.status_code in [200, 201]
+        course_id = res_gen.get_json()["data"]["course_id"]
+
+        # Fast GET
+        res_get = client.get(f"/api/course/{course_id}")
+        assert res_get.status_code == 200
+        course_data = res_get.get_json()["data"]
+        assert course_data["course_id"] == course_id
+        assert len(course_data["chapters"]) > 0
