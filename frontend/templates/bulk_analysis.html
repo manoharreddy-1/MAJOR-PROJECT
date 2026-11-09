@@ -153,17 +153,27 @@
 
             <div class="cutoff-grid">
               <div class="cutoff-input-group">
-                <label>Min CGPA (/10)</label>
+                <label>Min Degree CGPA (/10)</label>
                 <input type="number" id="minCgpa" step="0.1" min="0" max="10" placeholder="e.g. 7.5">
               </div>
               <div class="cutoff-input-group">
-                <label>Min 10th Marks (%)</label>
-                <input type="number" id="minTenth" step="1" min="0" max="100" placeholder="e.g. 70">
+                <label>Min 10th Marks (%) or CGPA</label>
+                <input type="number" id="minTenth" step="1" min="0" max="100" placeholder="e.g. 70 or 7.5">
               </div>
               <div class="cutoff-input-group">
-                <label>Min 12th Marks (%)</label>
-                <input type="number" id="minTwelfth" step="1" min="0" max="100" placeholder="e.g. 70">
+                <label>Min 12th/Diploma (%) or CGPA</label>
+                <input type="number" id="minTwelfth" step="1" min="0" max="100" placeholder="e.g. 70 or 7.5">
               </div>
+            </div>
+            <div style="margin-top: 0.75rem; border-top: 1px dashed #e2e8f0; padding-top: 0.65rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                When a resume is missing marks:
+              </label>
+              <select id="missingPolicy" class="form-control" style="width: 100%; font-size: 0.8125rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: var(--radius); background: #ffffff;">
+                <option value="review" selected>Mark for review (Recommended &mdash; never rejects)</option>
+                <option value="ineligible">Treat as not eligible</option>
+                <option value="ignore">Ignore this criterion</option>
+              </select>
             </div>
           </div>
         </div>
@@ -243,7 +253,7 @@
       </div>
 
       <!-- Batch Aggregate Stat Cards -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
         <div class="bulk-stat-card">
           <div class="bulk-stat-val" id="statTotalResumes">0</div>
           <div class="bulk-stat-label">Total Resumes</div>
@@ -251,6 +261,10 @@
         <div class="bulk-stat-card" style="border-color: #86efac; background: #f0fdf4;">
           <div class="bulk-stat-val" style="color: #16a34a;" id="statEligibleCount">0</div>
           <div class="bulk-stat-label" style="color: #15803d;">Eligible Candidates</div>
+        </div>
+        <div class="bulk-stat-card" style="border-color: #fde047; background: #fefce8;">
+          <div class="bulk-stat-val" style="color: #ca8a04;" id="statReviewCount">0</div>
+          <div class="bulk-stat-label" style="color: #a16207;">Needs Review</div>
         </div>
         <div class="bulk-stat-card" style="border-color: #fca5a5; background: #fef2f2;">
           <div class="bulk-stat-val" style="color: #dc2626;" id="statIneligibleCount">0</div>
@@ -268,9 +282,10 @@
 
       <!-- Filter Controls & Search -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #ffffff; padding: 0.85rem 1.25rem; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem;">
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button class="btn btn-sm btn-primary" id="filterAllBtn" onclick="filterCandidates('all')">All Candidates (<span id="countAll">0</span>)</button>
           <button class="btn btn-sm btn-secondary" id="filterEligibleBtn" onclick="filterCandidates('eligible')">Eligible Only (<span id="countEligible">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="filterReviewBtn" onclick="filterCandidates('review')">Needs Review (<span id="countReview">0</span>)</button>
           <button class="btn btn-sm btn-secondary" id="filterBelowBtn" onclick="filterCandidates('below')">Below Cutoff (<span id="countBelow">0</span>)</button>
         </div>
         <div style="min-width: 260px;">
@@ -504,6 +519,8 @@ FastAPI, Kubernetes, SQL, LangChain.`;
       if (minCgpa) formData.append('min_cgpa', minCgpa);
       if (minTenth) formData.append('min_tenth', minTenth);
       if (minTwelfth) formData.append('min_twelfth', minTwelfth);
+      const missingPolicy = document.getElementById('missingPolicy') ? document.getElementById('missingPolicy').value : 'review';
+      formData.append('missing_policy', missingPolicy);
 
       selectedFiles.forEach((file) => {
         formData.append('files', file);
@@ -559,12 +576,14 @@ FastAPI, Kubernetes, SQL, LangChain.`;
 
       document.getElementById('statTotalResumes').innerText = batch.total_resumes || 0;
       document.getElementById('statEligibleCount').innerText = batch.eligible_count || 0;
+      if (document.getElementById('statReviewCount')) document.getElementById('statReviewCount').innerText = batch.needs_review_count || 0;
       document.getElementById('statIneligibleCount').innerText = batch.below_cutoff_count || 0;
       document.getElementById('statAvgScore').innerText = `${batch.avg_score || 0}%`;
       document.getElementById('statTopScore').innerText = `${batch.top_score || 0}%`;
 
       document.getElementById('countAll').innerText = batch.total_resumes || 0;
       document.getElementById('countEligible').innerText = batch.eligible_count || 0;
+      if (document.getElementById('countReview')) document.getElementById('countReview').innerText = batch.needs_review_count || 0;
       document.getElementById('countBelow').innerText = batch.below_cutoff_count || 0;
 
       filterCandidates('all');
@@ -574,15 +593,20 @@ FastAPI, Kubernetes, SQL, LangChain.`;
       currentCandidateFilter = type;
       document.getElementById('filterAllBtn').className = type === 'all' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
       document.getElementById('filterEligibleBtn').className = type === 'eligible' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+      if (document.getElementById('filterReviewBtn')) {
+        document.getElementById('filterReviewBtn').className = type === 'review' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
+      }
       document.getElementById('filterBelowBtn').className = type === 'below' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-secondary';
 
       if (!currentBatch || !currentBatch.candidates) return;
 
       let filtered = currentBatch.candidates;
       if (type === 'eligible') {
-        filtered = filtered.filter(c => c.is_eligible);
+        filtered = filtered.filter(c => c.eligibility_category === 'eligible' || (c.is_eligible && c.eligibility_category !== 'review'));
+      } else if (type === 'review') {
+        filtered = filtered.filter(c => c.eligibility_category === 'review' || c.needs_review);
       } else if (type === 'below') {
-        filtered = filtered.filter(c => !c.is_eligible);
+        filtered = filtered.filter(c => c.eligibility_category === 'below' || (!c.is_eligible && c.eligibility_category !== 'review'));
       }
 
       renderTableRows(filtered);
@@ -601,9 +625,14 @@ FastAPI, Kubernetes, SQL, LangChain.`;
         else if (c.rank === 2) rankBadgeClass = 'rank-silver';
         else if (c.rank === 3) rankBadgeClass = 'rank-bronze';
 
-        const cutoffBadge = c.is_eligible
-          ? `<span class="cutoff-pill cutoff-eligible">✓ Eligible</span>`
-          : `<span class="cutoff-pill cutoff-ineligible" title="${(c.cutoff_reasons || []).join(', ')}">✕ Below Cutoff</span>`;
+        let cutoffBadge = '';
+        if (c.eligibility_category === 'eligible' || (c.is_eligible && c.eligibility_category !== 'review')) {
+          cutoffBadge = `<span class="cutoff-pill cutoff-eligible">✓ Eligible</span>`;
+        } else if (c.eligibility_category === 'review' || c.needs_review) {
+          cutoffBadge = `<span class="cutoff-pill" style="background:#fef9c3; border:1px solid #fde047; color:#854d0e;" title="${(c.cutoff_reasons || []).join(', ')}">⚠ Needs Review</span>`;
+        } else {
+          cutoffBadge = `<span class="cutoff-pill cutoff-ineligible" title="${(c.cutoff_reasons || []).join(', ')}">✕ Below Cutoff</span>`;
+        }
 
         const scoreColor = c.ats_score >= 75 ? '#16a34a' : c.ats_score >= 50 ? '#0284c7' : '#dc2626';
 
@@ -623,9 +652,36 @@ FastAPI, Kubernetes, SQL, LangChain.`;
           return `<span class="skill-pill-badge" style="background:#fef2f2; border-color:#fecaca; color:#b91c1c; font-size:0.75rem;">${name}</span>`;
         }).join(' ') || '<span style="color:#16a34a; font-size:0.75rem;">None</span>';
 
-        const cgpaStr = c.cgpa !== null && c.cgpa !== undefined ? `${c.cgpa} / 10` : 'N/A';
-        const tenthStr = c.tenth_pct !== null && c.tenth_pct !== undefined ? `${c.tenth_pct}%` : 'N/A';
-        const twelfthStr = c.twelfth_pct !== null && c.twelfth_pct !== undefined ? `${c.twelfth_pct}%` : 'N/A';
+        const acad = c.academics || {};
+        const deg = acad.degree || {};
+        const tenth = acad.tenth || {};
+        const twelfth = acad.twelfth || {};
+
+        const degVal = deg.standardized_cgpa !== null && deg.standardized_cgpa !== undefined ? deg.standardized_cgpa : c.cgpa;
+        const degStr = degVal !== null && degVal !== undefined
+          ? `<strong>${Number(degVal).toFixed(2)} CGPA</strong>${deg.original_text && deg.original_text !== 'Not found' ? ` <span style="font-size:0.75rem; color:#64748b;">(${deg.original_text})</span>` : ''}`
+          : `<span style="color:#d97706;">Not found</span>`;
+
+        let tenthStr = '';
+        if (tenth.standardized_cgpa !== null && tenth.standardized_cgpa !== undefined) {
+          const orig = tenth.original_text && tenth.original_text !== 'Not found' ? ` (${tenth.original_text})` : '';
+          tenthStr = `<strong>${Number(tenth.standardized_cgpa).toFixed(2)} CGPA</strong><span style="font-size:0.75rem; color:#64748b;">${orig}</span>`;
+        } else if (c.tenth_pct !== null && c.tenth_pct !== undefined) {
+          tenthStr = `<strong>${c.tenth_pct}%</strong>`;
+        } else {
+          tenthStr = `<span style="color:#d97706;">Not found</span>`;
+        }
+
+        let twelfthStr = '';
+        const twLabel = (twelfth.is_diploma ? 'Diploma' : '12th');
+        if (twelfth.standardized_cgpa !== null && twelfth.standardized_cgpa !== undefined) {
+          const orig = twelfth.original_text && twelfth.original_text !== 'Not found' ? ` (${twelfth.original_text})` : '';
+          twelfthStr = `<strong>${Number(twelfth.standardized_cgpa).toFixed(2)} CGPA</strong><span style="font-size:0.75rem; color:#64748b;">${orig}</span>`;
+        } else if (c.twelfth_pct !== null && c.twelfth_pct !== undefined) {
+          twelfthStr = `<strong>${c.twelfth_pct}%</strong>`;
+        } else {
+          twelfthStr = `<span style="color:#d97706;">Not found</span>`;
+        }
 
         return `
           <tr>
@@ -648,8 +704,9 @@ FastAPI, Kubernetes, SQL, LangChain.`;
               <div style="font-size: 0.72rem; color: var(--text-muted);">${c.match_label || ''}</div>
             </td>
             <td style="font-size: 0.8125rem;">
-              <div><strong>CGPA:</strong> ${cgpaStr}</div>
-              <div><strong>10th:</strong> ${tenthStr} | <strong>12th:</strong> ${twelfthStr}</div>
+              <div><strong>Degree:</strong> ${degStr}</div>
+              <div><strong>10th:</strong> ${tenthStr}</div>
+              <div><strong>${twLabel}:</strong> ${twelfthStr}</div>
             </td>
             <td><div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">${matchedTags}</div></td>
             <td><div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">${missingTags}</div></td>

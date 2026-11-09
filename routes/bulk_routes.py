@@ -34,12 +34,15 @@ def analyze_bulk_resumes():
         min_cgpa = request.form.get("min_cgpa")
         min_tenth = request.form.get("min_tenth")
         min_twelfth = request.form.get("min_twelfth")
+        missing_policy = request.form.get("missing_policy")
         if min_cgpa:
             cutoffs["min_cgpa"] = min_cgpa
         if min_tenth:
             cutoffs["min_tenth"] = min_tenth
         if min_twelfth:
             cutoffs["min_twelfth"] = min_twelfth
+        if missing_policy:
+            cutoffs["missing_policy"] = missing_policy
 
         # Collect files
         raw_files = request.files.getlist("files") or request.files.getlist("resumes")

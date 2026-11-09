@@ -105,6 +105,13 @@ class BulkScreeningService:
         min_cgpa = float(cutoffs.get("min_cgpa")) if cutoffs.get("min_cgpa") is not None and str(cutoffs.get("min_cgpa")).strip() != "" else None
         min_tenth = float(cutoffs.get("min_tenth")) if cutoffs.get("min_tenth") is not None and str(cutoffs.get("min_tenth")).strip() != "" else None
         min_twelfth = float(cutoffs.get("min_twelfth")) if cutoffs.get("min_twelfth") is not None and str(cutoffs.get("min_twelfth")).strip() != "" else None
+        missing_policy = str(cutoffs.get("missing_policy") or "review").strip().lower()
+
+        # Standardize cutoffs to 10-point CGPA scale using global divisor
+        from config.settings import CGPA_PERCENTAGE_DIVISOR
+        std_min_cgpa = (min_cgpa / CGPA_PERCENTAGE_DIVISOR if min_cgpa > 10.0 else min_cgpa) if min_cgpa is not None else None
+        std_min_tenth = (min_tenth / CGPA_PERCENTAGE_DIVISOR if min_tenth > 10.0 else min_tenth) if min_tenth is not None else None
+        std_min_twelfth = (min_twelfth / CGPA_PERCENTAGE_DIVISOR if min_twelfth > 10.0 else min_twelfth) if min_twelfth is not None else None
 
         # Validate job title and job description alignment
         effective_title = (job_title or "").strip() or self.job_parser._extract_title(job_description)
@@ -140,42 +147,72 @@ class BulkScreeningService:
                     "academics": {"cgpa": None, "tenth_pct": None, "twelfth_pct": None},
                 }
 
-            # Academic Cutoff Verification
+            # Standardized 10-Point Academic Cutoff Verification
             academics = parsed_resume.get("academics") or {}
-            cgpa = academics.get("cgpa")
+            deg_obj = academics.get("degree") or {}
+            tenth_obj = academics.get("tenth") or {}
+            twelfth_obj = academics.get("twelfth") or {}
+
+            cand_deg_cgpa = deg_obj.get("standardized_cgpa") if isinstance(deg_obj, dict) else academics.get("cgpa")
+            cand_tenth_cgpa = tenth_obj.get("standardized_cgpa") if isinstance(tenth_obj, dict) else (
+                (academics.get("tenth_pct") / CGPA_PERCENTAGE_DIVISOR) if academics.get("tenth_pct") is not None else None
+            )
+            cand_twelfth_cgpa = twelfth_obj.get("standardized_cgpa") if isinstance(twelfth_obj, dict) else (
+                (academics.get("twelfth_pct") / CGPA_PERCENTAGE_DIVISOR) if academics.get("twelfth_pct") is not None else None
+            )
+
+            below_reasons = []
+            missing_fields = []
+
+            # 1. Degree Cutoff check
+            if std_min_cgpa is not None:
+                if cand_deg_cgpa is None:
+                    missing_fields.append(f"Degree CGPA not found (Min {std_min_cgpa:.2f} required)")
+                elif cand_deg_cgpa < (std_min_cgpa - 0.001):
+                    below_reasons.append(f"Degree CGPA {cand_deg_cgpa:.2f} < Min {std_min_cgpa:.2f}")
+
+            # 2. 10th Cutoff check
+            if std_min_tenth is not None:
+                if cand_tenth_cgpa is None:
+                    missing_fields.append(f"10th marks not found (Min {std_min_tenth:.2f} required)")
+                elif cand_tenth_cgpa < (std_min_tenth - 0.001):
+                    below_reasons.append(f"10th CGPA {cand_tenth_cgpa:.2f} < Min {std_min_tenth:.2f}")
+
+            # 3. 12th / Diploma Cutoff check
+            if std_min_twelfth is not None:
+                if cand_twelfth_cgpa is None:
+                    missing_fields.append(f"12th/Diploma marks not found (Min {std_min_twelfth:.2f} required)")
+                elif cand_twelfth_cgpa < (std_min_twelfth - 0.001):
+                    sec_label = "Diploma" if (isinstance(twelfth_obj, dict) and twelfth_obj.get("is_diploma")) else "12th"
+                    below_reasons.append(f"{sec_label} CGPA {cand_twelfth_cgpa:.2f} < Min {std_min_twelfth:.2f}")
+
+            # Determine eligibility category based on policy
+            if below_reasons:
+                is_eligible = False
+                eligibility_category = "below"
+                cutoff_status = f"Below Cutoff ({', '.join(below_reasons)})"
+            elif missing_fields:
+                if missing_policy == "ineligible":
+                    is_eligible = False
+                    eligibility_category = "below"
+                    cutoff_status = f"Below Cutoff ({', '.join(missing_fields)})"
+                elif missing_policy == "ignore":
+                    is_eligible = True
+                    eligibility_category = "eligible"
+                    cutoff_status = "Eligible (Missing criteria ignored)"
+                else:  # "review" (default)
+                    is_eligible = True  # Not rejected as below cutoff
+                    eligibility_category = "review"
+                    cutoff_status = f"Needs Review ({', '.join(missing_fields)})"
+            else:
+                is_eligible = True
+                eligibility_category = "eligible"
+                cutoff_status = "Eligible"
+
+            cgpa = cand_deg_cgpa
             tenth = academics.get("tenth_pct")
             twelfth = academics.get("twelfth_pct")
-
-            cutoff_reasons = []
-            if min_cgpa is not None:
-                if cgpa is None:
-                    cutoff_reasons.append(f"CGPA not found (Min {min_cgpa:.2f} required)")
-                else:
-                    eff_min_cgpa = min_cgpa / 9.5 if min_cgpa > 10.0 else min_cgpa
-                    eff_cgpa = cgpa / 9.5 if cgpa > 10.0 else cgpa
-                    if eff_cgpa < eff_min_cgpa:
-                        cutoff_reasons.append(f"CGPA {cgpa:.2f} < Min {min_cgpa:.2f}")
-
-            if min_tenth is not None:
-                if tenth is None:
-                    cutoff_reasons.append(f"10th % not found (Min {min_tenth:.1f}% required)")
-                else:
-                    eff_min_tenth = min_tenth * 9.5 if min_tenth <= 10.0 else min_tenth
-                    eff_tenth = tenth * 9.5 if tenth <= 10.0 else tenth
-                    if eff_tenth < eff_min_tenth:
-                        cutoff_reasons.append(f"10th {tenth:.1f}% < Min {min_tenth:.1f}%")
-
-            if min_twelfth is not None:
-                if twelfth is None:
-                    cutoff_reasons.append(f"12th/Inter % not found (Min {min_twelfth:.1f}% required)")
-                else:
-                    eff_min_twelfth = min_twelfth * 9.5 if min_twelfth <= 10.0 else min_twelfth
-                    eff_twelfth = twelfth * 9.5 if twelfth <= 10.0 else twelfth
-                    if eff_twelfth < eff_min_twelfth:
-                        cutoff_reasons.append(f"12th {twelfth:.1f}% < Min {min_twelfth:.1f}%")
-
-            is_eligible = len(cutoff_reasons) == 0
-            cutoff_status = "Eligible" if is_eligible else f"Below Cutoff ({', '.join(cutoff_reasons)})"
+            cutoff_reasons = below_reasons + missing_fields
 
             # ATS Scoring
             try:
@@ -244,6 +281,9 @@ class BulkScreeningService:
                 "cgpa": cgpa,
                 "tenth_pct": tenth,
                 "twelfth_pct": twelfth,
+                "academics": academics,
+                "eligibility_category": eligibility_category,
+                "needs_review": (eligibility_category == "review"),
                 "ats_score": round(overall_score, 1),
                 "skill_score": round(skill_score, 1),
                 "semantic_score": round(semantic_score, 1),
@@ -257,15 +297,24 @@ class BulkScreeningService:
             })
 
         # Rank candidates:
-        # 1. Eligibility conditions (Eligible candidates first, below cutoff last)
-        # 2. Higher qualification (B-Tech / Degree CGPA/percentage) people come first
-        # 3. Later show based on skills (ATS score / skill match score)
+        # 1. Eligibility status: Eligible (0), Needs Review (1), Below Cutoff (2)
+        # 2. Highest ATS match score first
+        # 3. Highest degree CGPA first (tie-breaker)
+        # 4. Candidate name (alphabetical tie-breaker)
         def candidate_ranking_key(c):
-            eligibility_rank = 0 if c["is_eligible"] else 1
-            btech_academic = float(c["cgpa"]) if c.get("cgpa") is not None else 0.0
+            cat = c.get("eligibility_category")
+            if cat == "eligible":
+                group_rank = 0
+            elif cat == "review":
+                group_rank = 1
+            elif c.get("is_eligible"):
+                group_rank = 0
+            else:
+                group_rank = 2
             ats_score = float(c.get("ats_score", 0.0))
-            skill_score = float(c.get("skill_score", 0.0))
-            return (eligibility_rank, -btech_academic, -ats_score, -skill_score)
+            deg_cgpa = float(c.get("cgpa") or 0.0)
+            cand_name = str(c.get("candidate_name") or "").lower()
+            return (group_rank, -ats_score, -deg_cgpa, cand_name)
 
         candidates.sort(key=candidate_ranking_key)
 
@@ -275,8 +324,13 @@ class BulkScreeningService:
 
         # Compute Batch Aggregates
         total_resumes = len(candidates)
-        eligible_count = sum(1 for c in candidates if c["is_eligible"])
-        below_cutoff_count = total_resumes - eligible_count
+        eligible_count = sum(1 for c in candidates if c.get("eligibility_category") == "eligible")
+        needs_review_count = sum(1 for c in candidates if c.get("eligibility_category") == "review")
+        below_cutoff_count = sum(1 for c in candidates if c.get("eligibility_category") == "below")
+        if eligible_count == 0 and needs_review_count == 0 and below_cutoff_count == 0:
+            eligible_count = sum(1 for c in candidates if c["is_eligible"])
+            below_cutoff_count = total_resumes - eligible_count
+
         avg_score = round(sum(c["ats_score"] for c in candidates) / total_resumes, 1) if total_resumes > 0 else 0.0
         top_score = max((c["ats_score"] for c in candidates), default=0.0)
 
@@ -292,9 +346,11 @@ class BulkScreeningService:
                 "min_cgpa": min_cgpa,
                 "min_tenth": min_tenth,
                 "min_twelfth": min_twelfth,
+                "missing_policy": missing_policy,
             },
             "total_resumes": total_resumes,
             "eligible_count": eligible_count,
+            "needs_review_count": needs_review_count,
             "below_cutoff_count": below_cutoff_count,
             "avg_score": avg_score,
             "top_score": top_score,
@@ -352,7 +408,7 @@ class BulkScreeningService:
 
     @staticmethod
     def generate_csv_export(batch: Dict[str, Any]) -> str:
-        """Generate formatted CSV string of ranked candidates."""
+        """Generate formatted CSV string of ranked candidates with standardized academics."""
         output = io.StringIO()
         writer = csv.writer(output)
 
@@ -360,14 +416,36 @@ class BulkScreeningService:
         writer.writerow(["Rank", "Candidate Name", "Eligibility Status", "ATS Score (%)", "CGPA", "10th (%)", "12th (%)", "Email", "Phone", "Matched Skills", "Missing Skills", "Filename"])
 
         for cand in batch.get("candidates", []):
+            acad = cand.get("academics") or {}
+            deg_val = acad.get("degree", {}).get("standardized_cgpa") or cand.get("cgpa")
+            deg_text = f"{deg_val:.2f}" if deg_val is not None else "Not found"
+
+            tenth_info = acad.get("tenth", {}) if isinstance(acad, dict) else {}
+            if tenth_info.get("standardized_cgpa") is not None:
+                orig = f" ({tenth_info['original_text']})" if tenth_info.get("original_text") else ""
+                tenth_text = f"{tenth_info['standardized_cgpa']:.2f} CGPA{orig}"
+            elif cand.get("tenth_pct") is not None:
+                tenth_text = f"{cand.get('tenth_pct')}%"
+            else:
+                tenth_text = "Not found"
+
+            twelfth_info = acad.get("twelfth", {}) if isinstance(acad, dict) else {}
+            if twelfth_info.get("standardized_cgpa") is not None:
+                orig = f" ({twelfth_info['original_text']})" if twelfth_info.get("original_text") else ""
+                twelfth_text = f"{twelfth_info['standardized_cgpa']:.2f} CGPA{orig}"
+            elif cand.get("twelfth_pct") is not None:
+                twelfth_text = f"{cand.get('twelfth_pct')}%"
+            else:
+                twelfth_text = "Not found"
+
             writer.writerow([
                 cand.get("rank"),
                 cand.get("candidate_name"),
                 cand.get("cutoff_status"),
                 cand.get("ats_score"),
-                cand.get("cgpa") if cand.get("cgpa") is not None else "N/A",
-                cand.get("tenth_pct") if cand.get("tenth_pct") is not None else "N/A",
-                cand.get("twelfth_pct") if cand.get("twelfth_pct") is not None else "N/A",
+                deg_text,
+                tenth_text,
+                twelfth_text,
                 cand.get("email"),
                 cand.get("phone"),
                 "; ".join(cand.get("matched_skills", [])),

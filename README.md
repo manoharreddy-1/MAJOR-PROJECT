@@ -139,5 +139,16 @@ All 33 test cases pass across the entire suite:
 
 ---
 
+## Academic Normalization (10-Point Scale Standard)
+
+The Bulk Resume Screening & Placement Cell module standardizes all candidate academic metrics (Degree, Class XII / Intermediate / Diploma, and Class X / SSC) to a unified 10-point CGPA scale:
+- **Direct CGPA**: Retained as-is (e.g., `8.7 CGPA`, `9.8/10`).
+- **Percentages**: Normalized to 10-point CGPA using `CGPA = percentage / CGPA_PERCENTAGE_DIVISOR` (configured in `config/settings.py` via `CGPA_PERCENTAGE_DIVISOR`, default `9.5`).
+- **Marks out of Total**: Computed to percentage first, then converted via `CGPA_PERCENTAGE_DIVISOR` (e.g., `470/500 = 94.0% -> 9.89 CGPA`, `960/1000 = 96.0% -> 10.00 CGPA`).
+- **Alternative Scales**: Proportionally scaled to 10 (e.g., `3.6/4 -> 9.00 CGPA`, `4.2/5 -> 8.40 CGPA`).
+- **Missing Data Handling**: Resumes lacking marks are tagged as `Needs Review (missing data)` rather than rejected as `Below Cutoff`. Recruiters can set missing policies: `Mark for review` (default), `Treat as not eligible`, or `Ignore this criterion`.
+
+---
+
 ## Disclaimer
 This is an AI-generated, project-specific match score based on research-grounded semantic embeddings and is not an official score used by any commercial ATS. The system enforces strict anti-hallucination policies and never fabricates candidate degrees, companies, or experience dates.

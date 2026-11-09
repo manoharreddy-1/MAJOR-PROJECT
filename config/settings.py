@@ -92,6 +92,9 @@ ATS_WEIGHTS = {
     "education": _get_float("ATS_WEIGHT_EDUCATION", 0.10),
 }
 
+# Academic Marks Normalization (10-Point Standard)
+CGPA_PERCENTAGE_DIVISOR = _get_float("CGPA_PERCENTAGE_DIVISOR", 9.5)
+
 # Skill Matching Thresholds
 HIGH_SKILL_THRESHOLD = _get_float("HIGH_SKILL_THRESHOLD", 0.72)
 MEDIUM_SKILL_THRESHOLD = _get_float("MEDIUM_SKILL_THRESHOLD", 0.55)
