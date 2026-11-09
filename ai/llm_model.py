@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from config.settings import GEMINI_API_KEY, GEMINI_API_KEY_ALT, GEMINI_API_KEYS_POOL, GEMINI_MODEL
+from config.settings import GEMINI_API_KEY, GEMINI_API_KEY_ALT, GEMINI_API_KEYS_POOL, GEMINI_MODEL, get_gemini_api_keys
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class LLMModel:
         if api_key is not None:
             self.api_keys = [api_key] if api_key.strip() else []
         else:
-            self.api_keys = list(GEMINI_API_KEYS_POOL)
+            self.api_keys = get_gemini_api_keys() or list(GEMINI_API_KEYS_POOL)
         # Clean API keys list of empty values
         self.api_keys = [key for key in self.api_keys if key and key.strip()]
 

@@ -45,14 +45,31 @@ GEMINI_API_KEY_ALT = os.getenv("GEMINI_API_KEY_ALT", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
 
 # Pool of available Gemini API keys with sequential rotation and fallback
-# Dynamically reads from GEMINI_API_KEYS (comma-separated list) or numbered GEMINI_API_KEY_1..10
-_env_key_list = [k.strip() for k in os.getenv("GEMINI_API_KEYS", "").split(",") if k.strip()]
-_numbered_keys = [
-    os.getenv(f"GEMINI_API_KEY_{i}", "").strip() for i in range(1, 11)
-]
-_all_candidate_keys = _env_key_list + _numbered_keys + [GEMINI_API_KEY, GEMINI_API_KEY_ALT]
-_seen_keys = set()
-GEMINI_API_KEYS_POOL = [k for k in _all_candidate_keys if k and not (k in _seen_keys or _seen_keys.add(k))]
+# Dynamically reads from GEMINI_API_KEYS (comma or newline separated), GEMINI_API_KEY_1..10, CLIENT_KEY_1..10, etc.
+def get_gemini_api_keys() -> list:
+    """Dynamically fetch all available Gemini API keys from environment variables."""
+    keys = []
+    raw_keys = os.getenv("GEMINI_API_KEYS", "") or os.getenv("CLIENT_KEYS", "")
+    if raw_keys:
+        import re
+        for part in re.split(r"[\s,\n]+", raw_keys):
+            if part.strip():
+                keys.append(part.strip())
+    for i in range(1, 11):
+        k1 = os.getenv(f"GEMINI_API_KEY_{i}", "").strip()
+        if k1:
+            keys.append(k1)
+        k2 = os.getenv(f"CLIENT_KEY_{i}", "").strip()
+        if k2:
+            keys.append(k2)
+    for direct in ["GEMINI_API_KEY", "GEMINI_API_KEY_ALT", "CLIENT_KEY"]:
+        val = os.getenv(direct, "").strip()
+        if val:
+            keys.append(val)
+    seen = set()
+    return [k for k in keys if k and not (k in seen or seen.add(k))]
+
+GEMINI_API_KEYS_POOL = get_gemini_api_keys()
 
 # YouTube Data API Key
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("NEXT_PUBLIC_YOUTUBE_API_KEY") or GEMINI_API_KEY
