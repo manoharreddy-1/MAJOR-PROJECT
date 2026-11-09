@@ -6,7 +6,7 @@
   <title>Login & Registration | AI Resume Analyzer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=2.5">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.6">
   <style>
     :root {
       --primary: #0f172a;
@@ -68,9 +68,6 @@
     .navbar-nav a.active {
       color: var(--accent);
     }
-    .nav-toggle {
-      display: none;
-    }
     .container {
       flex: 1;
       width: 100%;
@@ -96,6 +93,19 @@
     .btn-primary:hover {
       background: var(--accent-hover);
     }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    .btn-sm {
+      padding: 0.5rem 0.875rem;
+      font-size: 0.8125rem;
+      white-space: nowrap;
+    }
     .btn-lg {
       padding: 0.875rem 1.5rem;
       font-size: 1rem;
@@ -110,7 +120,7 @@
       margin-top: auto;
     }
     .auth-container {
-      max-width: 440px;
+      max-width: 480px;
       margin: 2rem auto;
       padding: 2.5rem;
       background: white;
@@ -121,7 +131,7 @@
     .auth-tabs {
       display: flex;
       border-bottom: 2px solid var(--border);
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
     }
     .auth-tab {
       flex: 1;
@@ -160,12 +170,41 @@
       outline: none;
       border-color: var(--accent);
     }
+    .input-with-action {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .input-with-action input {
+      flex: 1;
+    }
+    .field-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      line-height: 1.4;
+    }
+    .auth-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .auth-link:hover {
+      text-decoration: underline;
+    }
+    .otp-input {
+      letter-spacing: 4px;
+      font-size: 1.15rem !important;
+      font-weight: 700;
+      text-align: center;
+      color: var(--primary);
+    }
   </style>
 </head>
 <body>
   <nav class="navbar">
     <a href="/" class="navbar-brand">AI <span>Resume</span> Analyzer</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
     <ul class="navbar-nav">
       <li><a href="/login" class="active">Login</a></li>
     </ul>
@@ -174,55 +213,145 @@
   <div class="container">
     <div class="auth-container">
       <div style="text-align: center; margin-bottom: 1.5rem;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">&#128100;</div>
+        <div id="authIcon" style="font-size: 2.5rem; margin-bottom: 0.5rem;">&#128100;</div>
         <h2 id="authTitle" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">Sign In</h2>
-        <p style="color: var(--text-muted); font-size: 0.875rem;">Access your personalized ATS history, courses, and profile</p>
+        <p id="authSubtitle" style="color: var(--text-muted); font-size: 0.875rem;">Access your personalized ATS history, courses, and profile</p>
       </div>
 
-      <div class="auth-tabs">
+      <!-- Mode Tabs (Hidden in Forgot Password mode) -->
+      <div class="auth-tabs" id="tabContainer">
         <div class="auth-tab active" id="tabLogin" onclick="switchAuthMode('login')">Login</div>
         <div class="auth-tab" id="tabRegister" onclick="switchAuthMode('register')">Register</div>
       </div>
 
-      <div id="authAlert" style="display: none; padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1rem; font-size: 0.875rem;"></div>
+      <!-- Feedback / Alert Banner -->
+      <div id="authAlert" style="display: none; padding: 0.75rem 1rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.875rem; line-height: 1.4;"></div>
 
-      <form id="authForm" onsubmit="handleAuth(event)">
-        <div class="auth-field" id="fullNameGroup" style="display: none;">
-          <label for="fullNameInput">Full Name</label>
-          <input type="text" id="fullNameInput" placeholder="e.g. John Doe">
+      <!-- ================= FORM 1: LOGIN ================= -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="auth-field">
+          <label for="loginIdentifier">Username or Registered Email</label>
+          <input type="text" id="loginIdentifier" placeholder="Enter username or email address" required autofocus>
+          <div class="field-hint">You can sign in with your username or registered email address.</div>
         </div>
 
         <div class="auth-field">
-          <label for="usernameInput">Username</label>
-          <input type="text" id="usernameInput" placeholder="Enter username" required>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label for="loginPassword" style="margin-bottom: 0;">Password</label>
+            <a class="auth-link" onclick="switchAuthMode('forgot')">Forgot Password?</a>
+          </div>
+          <input type="password" id="loginPassword" placeholder="Enter your account password" required>
         </div>
 
-        <div class="auth-field" id="emailGroup" style="display: none;">
-          <label for="emailInput">Email Address</label>
-          <input type="email" id="emailInput" placeholder="e.g. user@gmail.com">
-        </div>
-
-        <div class="auth-field">
-          <label for="passwordInput">Password</label>
-          <input type="password" id="passwordInput" placeholder="Enter password" required>
-        </div>
-
-        <button type="submit" id="authSubmitBtn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
+        <button type="submit" id="loginSubmitBtn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
           Sign In &rarr;
         </button>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted);">
+          Don't have an account yet? <a class="auth-link" onclick="switchAuthMode('register')">Create an Account</a>
+        </div>
       </form>
 
-      <div style="text-align: center; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted);">
-        Please log in with your registered account credentials. Don't have an account yet? Click <strong>Register</strong> above to create one.
+      <!-- ================= FORM 2: REGISTER (with SMTP OTP Verification) ================= -->
+      <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
+        <div class="auth-field">
+          <label for="regFullName">Full Name</label>
+          <input type="text" id="regFullName" placeholder="e.g. John Doe" required>
+        </div>
+
+        <div class="auth-field">
+          <label for="regUsername">Username</label>
+          <input type="text" id="regUsername" placeholder="Choose a unique username" required>
+        </div>
+
+        <div class="auth-field">
+          <label for="regEmail">Email Address <span style="color: #ef4444;">*</span></label>
+          <div class="input-with-action">
+            <input type="email" id="regEmail" placeholder="e.g. user@gmail.com" required>
+            <button type="button" id="btnSendRegOtp" class="btn btn-secondary btn-sm" onclick="sendRegisterOtp()">
+              Send OTP
+            </button>
+          </div>
+          <div class="field-hint" style="color: #047857;">
+            &#10003; Only 1 account is accepted per email. OTP will be sent from <strong>bommareddymanoharreddy0@gmail.com</strong>.
+          </div>
+        </div>
+
+        <div class="auth-field" id="regOtpGroup">
+          <label for="regOtp">6-Digit Verification Code (OTP) <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="regOtp" class="otp-input" maxlength="6" placeholder="000000" required>
+          <div class="field-hint" id="regOtpStatus">Click <strong>Send OTP</strong> above to receive your verification code.</div>
+        </div>
+
+        <div class="auth-field">
+          <label for="regPassword">Password (Min 4 chars)</label>
+          <input type="password" id="regPassword" placeholder="Create a secure password" minlength="4" required>
+        </div>
+
+        <button type="submit" id="regSubmitBtn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
+          Verify OTP &amp; Register Account &rarr;
+        </button>
+
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted);">
+          Already have an account? <a class="auth-link" onclick="switchAuthMode('login')">Sign In</a>
+        </div>
+      </form>
+
+      <!-- ================= FORM 3: FORGOT PASSWORD (OTP-verified Reset) ================= -->
+      <div id="forgotPasswordContainer" style="display: none;">
+        <!-- Step 1: Request OTP -->
+        <form id="forgotStep1Form" onsubmit="handleForgotSendOtp(event)">
+          <div class="auth-field">
+            <label for="forgotIdentifier">Registered Email Address or Username</label>
+            <input type="text" id="forgotIdentifier" placeholder="Enter your registered email or username" required>
+            <div class="field-hint">We will dispatch a 6-digit password reset OTP to your registered email address via SMTP.</div>
+          </div>
+
+          <button type="submit" id="forgotStep1Btn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
+            Send Reset OTP &rarr;
+          </button>
+        </form>
+
+        <!-- Step 2: Verify OTP & Set New Password -->
+        <form id="forgotStep2Form" onsubmit="handleResetPassword(event)" style="display: none;">
+          <div id="forgotEmailBadge" style="background: #f1f5f9; border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.75rem; margin-bottom: 1.25rem; font-size: 0.8125rem; color: var(--primary);">
+            Reset OTP sent to: <strong id="forgotTargetEmail">email</strong>
+          </div>
+
+          <div class="auth-field">
+            <label for="resetOtp">Enter 6-Digit OTP</label>
+            <input type="text" id="resetOtp" class="otp-input" maxlength="6" placeholder="000000" required>
+            <div class="field-hint">Enter the 6-digit code received from bommareddymanoharreddy0@gmail.com</div>
+          </div>
+
+          <div class="auth-field">
+            <label for="resetNewPassword">New Password</label>
+            <input type="password" id="resetNewPassword" placeholder="Enter new password (min 4 chars)" minlength="4" required>
+          </div>
+
+          <div class="auth-field">
+            <label for="resetConfirmPassword">Confirm New Password</label>
+            <input type="password" id="resetConfirmPassword" placeholder="Re-enter new password" minlength="4" required>
+          </div>
+
+          <button type="submit" id="resetSubmitBtn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 0.5rem;">
+            Update Password &amp; Sign In &rarr;
+          </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 1.5rem;">
+          <a class="auth-link" onclick="switchAuthMode('login')">&larr; Back to Sign In</a>
+        </div>
       </div>
+
     </div>
   </div>
 
   <footer class="footer"><p>AI Resume Analyzer &mdash; Major Project</p></footer>
 
-  <script src="/static/js/app.js?v=2.5"></script>
+  <script src="/static/js/app.js?v=2.6"></script>
   <script>
-    // Bulletproof fallback in case external app.js is slow or blocked
+    // Resilient API fallback
     if (typeof API === 'undefined' || !window.API) {
       window.API = {
         async request(endpoint, options = {}) {
@@ -242,81 +371,284 @@
       };
     }
 
-    let mode = 'login';
+    let currentMode = 'login';
+    let otpCooldownTimer = null;
+    let verifiedForgotEmail = '';
 
     function switchAuthMode(newMode) {
-      mode = newMode;
-      const isLogin = mode === 'login';
-      document.getElementById('tabLogin').className = `auth-tab ${isLogin ? 'active' : ''}`;
-      document.getElementById('tabRegister').className = `auth-tab ${!isLogin ? 'active' : ''}`;
-      document.getElementById('authTitle').innerText = isLogin ? 'Sign In' : 'Create Account';
-      document.getElementById('authSubmitBtn').innerText = isLogin ? 'Sign In →' : 'Register Account →';
-      document.getElementById('fullNameGroup').style.display = isLogin ? 'none' : 'block';
-      document.getElementById('emailGroup').style.display = isLogin ? 'none' : 'block';
+      currentMode = newMode;
       hideAlert();
+
+      const isLogin = currentMode === 'login';
+      const isRegister = currentMode === 'register';
+      const isForgot = currentMode === 'forgot';
+
+      document.getElementById('tabContainer').style.display = isForgot ? 'none' : 'flex';
+      document.getElementById('tabLogin').className = `auth-tab ${isLogin ? 'active' : ''}`;
+      document.getElementById('tabRegister').className = `auth-tab ${isRegister ? 'active' : ''}`;
+
+      document.getElementById('loginForm').style.display = isLogin ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = isRegister ? 'block' : 'none';
+      document.getElementById('forgotPasswordContainer').style.display = isForgot ? 'block' : 'none';
+
+      if (isLogin) {
+        document.getElementById('authIcon').innerHTML = '&#128100;';
+        document.getElementById('authTitle').innerText = 'Sign In';
+        document.getElementById('authSubtitle').innerText = 'Access your personalized ATS history, courses, and profile';
+      } else if (isRegister) {
+        document.getElementById('authIcon').innerHTML = '&#128221;';
+        document.getElementById('authTitle').innerText = 'Create Account';
+        document.getElementById('authSubtitle').innerText = 'Register with email OTP verification (1 account per email)';
+      } else if (isForgot) {
+        document.getElementById('authIcon').innerHTML = '&#128273;';
+        document.getElementById('authTitle').innerText = 'Forgot Password';
+        document.getElementById('authSubtitle').innerText = 'Verify with OTP to reset your password';
+        document.getElementById('forgotStep1Form').style.display = 'block';
+        document.getElementById('forgotStep2Form').style.display = 'none';
+      }
     }
 
     function showAlert(msg, isError = true) {
       const alertBox = document.getElementById('authAlert');
       alertBox.style.display = 'block';
       alertBox.style.background = isError ? '#fef2f2' : '#f0fdf4';
-      alertBox.style.color = isError ? '#ef4444' : '#15803d';
+      alertBox.style.color = isError ? '#b91c1c' : '#15803d';
       alertBox.style.border = `1px solid ${isError ? '#fecaca' : '#bbf7d0'}`;
-      alertBox.innerText = msg;
+      alertBox.innerHTML = msg;
     }
 
     function hideAlert() {
       document.getElementById('authAlert').style.display = 'none';
     }
 
-    async function handleAuth(e) {
+    // ==========================================
+    // 1. LOGIN HANDLER
+    // ==========================================
+    async function handleLogin(e) {
       e.preventDefault();
       hideAlert();
-      const submitBtn = document.getElementById('authSubmitBtn');
+      const submitBtn = document.getElementById('loginSubmitBtn');
       submitBtn.disabled = true;
-      submitBtn.innerText = 'Processing...';
+      submitBtn.innerText = 'Signing In...';
 
-      const username = document.getElementById('usernameInput').value.trim();
-      const password = document.getElementById('passwordInput').value.trim();
-      const full_name = document.getElementById('fullNameInput').value.trim();
-      const email = document.getElementById('emailInput').value.trim();
-
-      const endpoint = mode === 'login' ? '/auth/login' : '/auth/register';
-      const payload = { username, password };
-      if (mode === 'register') {
-        payload.full_name = full_name;
-        payload.email = email;
-      }
+      const username = document.getElementById('loginIdentifier').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
 
       try {
-        const res = await API.request(endpoint, {
+        const res = await API.request('/auth/login', {
           method: 'POST',
-          body: payload
+          body: { username, password }
         });
 
         const user = res.data?.user || {};
-        // Save user into localStorage / sessionStorage
         localStorage.setItem('user', JSON.stringify(user));
         sessionStorage.setItem('user_id', user.user_id || username);
         sessionStorage.setItem('username', user.username || username);
+        if (user.role) sessionStorage.setItem('role', user.role);
 
-        showAlert('Success! Redirecting to dashboard...', false);
+        showAlert('&#10003; Login successful! Redirecting to dashboard...', false);
         setTimeout(() => {
           window.location.href = '/home';
         }, 500);
       } catch (err) {
-        showAlert(err.message, true);
+        showAlert(err.message || 'Login failed. Please check your credentials.', true);
         submitBtn.disabled = false;
-        submitBtn.innerText = mode === 'login' ? 'Sign In →' : 'Register Account →';
+        submitBtn.innerText = 'Sign In →';
       }
     }
 
-    // Auto-fill if already logged in
+    // ==========================================
+    // 2. REGISTRATION OTP & SUBMISSION
+    // ==========================================
+    async function sendRegisterOtp() {
+      hideAlert();
+      const email = document.getElementById('regEmail').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const fullName = document.getElementById('regFullName').value.trim();
+      const btn = document.getElementById('btnSendRegOtp');
+
+      if (!email || !email.includes('@')) {
+        showAlert('Please enter a valid email address first.', true);
+        document.getElementById('regEmail').focus();
+        return;
+      }
+      if (!username) {
+        showAlert('Please choose a username first.', true);
+        document.getElementById('regUsername').focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Sending...';
+
+      try {
+        const res = await API.request('/auth/send-register-otp', {
+          method: 'POST',
+          body: { email, username, full_name: fullName }
+        });
+
+        let msg = `&#10003; OTP sent to <strong>${email}</strong> via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong>.`;
+        if (res.data?.dev_otp) {
+          msg += ` <br><span style="font-weight:700; color:#1d4ed8;">Demo Code: ${res.data.dev_otp}</span>`;
+          document.getElementById('regOtp').value = res.data.dev_otp;
+        }
+
+        showAlert(msg, false);
+        document.getElementById('regOtpStatus').innerHTML = `OTP sent! Expires in 10 minutes.`;
+        document.getElementById('regOtp').focus();
+
+        // 60-second cooldown on button
+        let countdown = 60;
+        btn.innerText = `Resend (${countdown}s)`;
+        clearInterval(otpCooldownTimer);
+        otpCooldownTimer = setInterval(() => {
+          countdown--;
+          if (countdown <= 0) {
+            clearInterval(otpCooldownTimer);
+            btn.disabled = false;
+            btn.innerText = 'Send OTP';
+          } else {
+            btn.innerText = `Resend (${countdown}s)`;
+          }
+        }, 1000);
+      } catch (err) {
+        showAlert(err.message, true);
+        btn.disabled = false;
+        btn.innerText = 'Send OTP';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideAlert();
+      const submitBtn = document.getElementById('regSubmitBtn');
+
+      const full_name = document.getElementById('regFullName').value.trim();
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const otp = document.getElementById('regOtp').value.trim();
+      const password = document.getElementById('regPassword').value.trim();
+
+      if (!otp) {
+        showAlert('Please click "Send OTP" and enter the 6-digit verification code.', true);
+        document.getElementById('regOtp').focus();
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Verifying & Registering...';
+
+      try {
+        const res = await API.request('/auth/register', {
+          method: 'POST',
+          body: { full_name, username, email, password, otp }
+        });
+
+        const user = res.data?.user || {};
+        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('user_id', user.user_id || username);
+        sessionStorage.setItem('username', user.username || username);
+        if (user.role) sessionStorage.setItem('role', user.role);
+
+        showAlert('&#10003; Account verified and registered! Redirecting to dashboard...', false);
+        setTimeout(() => {
+          window.location.href = '/home';
+        }, 600);
+      } catch (err) {
+        showAlert(err.message, true);
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Verify OTP & Register Account →';
+      }
+    }
+
+    // ==========================================
+    // 3. FORGOT PASSWORD (OTP-VERIFIED RESET)
+    // ==========================================
+    async function handleForgotSendOtp(e) {
+      e.preventDefault();
+      hideAlert();
+      const identifier = document.getElementById('forgotIdentifier').value.trim();
+      const btn = document.getElementById('forgotStep1Btn');
+
+      btn.disabled = true;
+      btn.innerText = 'Sending OTP...';
+
+      try {
+        const res = await API.request('/auth/forgot-password', {
+          method: 'POST',
+          body: { email: identifier }
+        });
+
+        verifiedForgotEmail = res.data?.email || identifier;
+        document.getElementById('forgotTargetEmail').innerText = res.data?.masked_email || verifiedForgotEmail;
+
+        let msg = `&#10003; Password reset OTP dispatched via SMTP from <strong>bommareddymanoharreddy0@gmail.com</strong> to <strong>${res.data?.masked_email || verifiedForgotEmail}</strong>.`;
+        if (res.data?.dev_otp) {
+          msg += ` <br><span style="font-weight:700; color:#1d4ed8;">Demo Code: ${res.data.dev_otp}</span>`;
+          document.getElementById('resetOtp').value = res.data.dev_otp;
+        }
+
+        showAlert(msg, false);
+
+        // Switch to Step 2
+        document.getElementById('forgotStep1Form').style.display = 'none';
+        document.getElementById('forgotStep2Form').style.display = 'block';
+        document.getElementById('resetOtp').focus();
+      } catch (err) {
+        showAlert(err.message, true);
+        btn.disabled = false;
+        btn.innerText = 'Send Reset OTP →';
+      }
+    }
+
+    async function handleResetPassword(e) {
+      e.preventDefault();
+      hideAlert();
+
+      const otp = document.getElementById('resetOtp').value.trim();
+      const new_password = document.getElementById('resetNewPassword').value.trim();
+      const confirm_password = document.getElementById('resetConfirmPassword').value.trim();
+      const btn = document.getElementById('resetSubmitBtn');
+
+      if (new_password !== confirm_password) {
+        showAlert('New passwords do not match. Please re-enter.', true);
+        document.getElementById('resetConfirmPassword').focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Resetting Password...';
+
+      try {
+        const res = await API.request('/auth/reset-password', {
+          method: 'POST',
+          body: {
+            email: verifiedForgotEmail,
+            otp: otp,
+            new_password: new_password
+          }
+        });
+
+        showAlert('&#10003; Password successfully reset! Please sign in with your new password.', false);
+        setTimeout(() => {
+          switchAuthMode('login');
+          document.getElementById('loginIdentifier').value = verifiedForgotEmail;
+          document.getElementById('loginPassword').value = '';
+          document.getElementById('loginPassword').focus();
+        }, 1500);
+      } catch (err) {
+        showAlert(err.message, true);
+        btn.disabled = false;
+        btn.innerText = 'Update Password & Sign In →';
+      }
+    }
+
+    // Auto-fill active user if present
     const activeUser = localStorage.getItem('user');
     if (activeUser) {
       try {
         const u = JSON.parse(activeUser);
-        if (u.username) document.getElementById('usernameInput').value = u.username;
+        if (u.username) document.getElementById('loginIdentifier').value = u.username;
       } catch (e) {}
     }
   </script>
