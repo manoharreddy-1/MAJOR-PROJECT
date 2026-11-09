@@ -315,9 +315,10 @@ def send_register_otp():
     if not success:
         _otp_store.pop(key, None)
         logger.error("Failed to deliver registration OTP to %s: %s", email, msg)
+        err_detail = "SMTP email service is not configured (missing SMTP_PASSWORD in Vercel environment variables)." if "not configured" in str(msg).lower() else f"Email dispatch failed: {msg}"
         return error_response(
             "EMAIL_DELIVERY_FAILED",
-            "Unable to deliver verification code to your email. Please check that your email address is correct and try again.",
+            err_detail,
             500
         )
 
@@ -471,9 +472,10 @@ def forgot_password_request():
     if not success:
         _otp_store.pop(key, None)
         logger.error("Failed to deliver reset OTP to %s: %s", target_email, msg)
+        err_detail = "SMTP email service is not configured (missing SMTP_PASSWORD in Vercel environment variables)." if "not configured" in str(msg).lower() else f"Email dispatch failed: {msg}"
         return error_response(
             "EMAIL_DELIVERY_FAILED",
-            "Unable to deliver password reset code to your email. Please try again later.",
+            err_detail,
             500
         )
 
