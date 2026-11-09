@@ -31,7 +31,11 @@ def _extract_with_fitz(file_bytes: bytes) -> Tuple[str, bool]:
     """Extract text using PyMuPDF."""
     text_parts = []
     doc = fitz.open(stream=file_bytes, filetype="pdf")
+    if doc.is_encrypted:
+        doc.close()
+        raise ValueError("The uploaded PDF is password-protected. Please upload an unprotected PDF resume.")
     if doc.page_count == 0:
+        doc.close()
         return "", False
 
     for page in doc:
@@ -48,6 +52,8 @@ def _extract_with_fitz(file_bytes: bytes) -> Tuple[str, bool]:
 def _extract_with_pypdf(file_bytes: bytes) -> Tuple[str, bool]:
     """Extract text using pure-Python pypdf."""
     reader = PdfReader(io.BytesIO(file_bytes))
+    if getattr(reader, "is_encrypted", False):
+        raise ValueError("The uploaded PDF is password-protected. Please upload an unprotected PDF resume.")
     text_parts = []
     for page in reader.pages:
         page_text = page.extract_text()
@@ -78,15 +84,24 @@ def extract_text_from_pdf(file_bytes: bytes) -> Tuple[str, bool]:
     Extract text from PDF bytes.
     Tries PyMuPDF -> pypdf -> raw stream fallback.
     """
+    if not file_bytes:
+        raise ValueError("The uploaded file is empty.")
+    if not file_bytes.startswith(b"%PDF"):
+        raise ValueError("The uploaded file is corrupted or not a valid PDF document.")
+
     if _FITZ_AVAILABLE:
         try:
             return _extract_with_fitz(file_bytes)
+        except ValueError:
+            raise
         except Exception as exc:
             logger.warning("PyMuPDF failed: %s; falling back to pypdf/basic.", exc)
 
     if _PYPDF_AVAILABLE:
         try:
             return _extract_with_pypdf(file_bytes)
+        except ValueError:
+            raise
         except Exception as exc:
             logger.warning("pypdf failed: %s; falling back to basic extraction.", exc)
 

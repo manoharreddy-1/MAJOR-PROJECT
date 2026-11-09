@@ -89,6 +89,7 @@
     const jobStatus = document.getElementById('jobStatus');
     const jobRequirements = document.getElementById('jobRequirements');
     const runBtn = document.getElementById('runAnalysisBtn');
+    const analyzeJobBtn = document.getElementById('analyzeJobBtn');
 
     UI.initTabs(document.getElementById('inputTabs'));
     initUploadZone('jobUploadZone', 'jobFile', handleJobFile);
@@ -99,7 +100,41 @@
 
     if (jobId) loadJob(jobId);
 
-    document.getElementById('analyzeJobBtn').addEventListener('click', onAnalyzeClick);
+    // Invalidate previously extracted requirements whenever inputs change
+    function resetExtractedRequirements() {
+      jobId = null;
+      Store.remove('job_id');
+      Store.remove('job_data');
+      runBtn.classList.add('hidden');
+      runBtn.disabled = true;
+      jobRequirements.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">&#128188;</div>
+          <p>Analyze a job description to see requirements</p>
+        </div>`;
+      if (jobStatus.innerHTML && !jobStatus.innerHTML.includes('loading-overlay')) {
+        jobStatus.innerHTML = '';
+      }
+    }
+
+    document.getElementById('jobTitle').addEventListener('input', resetExtractedRequirements);
+    document.getElementById('jobText').addEventListener('input', resetExtractedRequirements);
+    document.getElementById('jobFile').addEventListener('change', resetExtractedRequirements);
+
+    window.applySuggestedRole = function(suggestedRole) {
+      const titleInput = document.getElementById('jobTitle');
+      if (titleInput) {
+        titleInput.value = suggestedRole;
+        jobStatus.innerHTML = `<div class="alert alert-info" style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:10px 14px; border-radius:8px;">Updated Target Role to <strong>${suggestedRole}</strong>. Click 'Analyze Job Description' to proceed.</div>`;
+        jobRequirements.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">&#128188;</div>
+            <p>Target role updated to "<strong>${suggestedRole}</strong>". Click "Analyze Job Description" to proceed.</p>
+          </div>`;
+      }
+    };
+
+    analyzeJobBtn.addEventListener('click', onAnalyzeClick);
     runBtn.addEventListener('click', runAnalysis);
 
     async function onAnalyzeClick() {
@@ -128,23 +163,50 @@
         return;
       }
 
+      analyzeJobBtn.disabled = true;
+      const originalBtnText = analyzeJobBtn.textContent;
+      analyzeJobBtn.textContent = 'Validating & Analyzing...';
       jobStatus.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div><p>Validating role alignment and analyzing requirements...</p></div>';
+
       try {
         const res = await API.request('/job/analyze', { method: 'POST', body: { text, title } });
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully.</div>';
+
+        if (res.data.is_partial_match || res.data.warning) {
+          jobStatus.innerHTML = `
+            <div class="alert alert-warning" style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:12px 14px; border-radius:8px; line-height:1.5;">
+              <strong>⚠️ Role Alignment Note:</strong> ${res.data.warning || 'The job description partially aligns with the specified role.'}
+            </div>`;
+        } else {
+          jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully.</div>';
+        }
+
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
       } catch (err) {
-        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}</div>`;
+        let suggestionHtml = '';
+        const match = err.message && err.message.match(/Did you mean ['"]([^'"]+)['"]/i);
+        if (match && match[1]) {
+          const suggestedRole = match[1];
+          suggestionHtml = `
+            <div style="margin-top:10px;">
+              <button type="button" class="btn btn-outline btn-sm" style="background:#fff; border:1px solid #3b82f6; color:#1d4ed8; font-weight:600; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="applySuggestedRole('${suggestedRole.replace(/'/g, "\\'")}')">
+                👉 Use suggested role: "${suggestedRole}"
+              </button>
+            </div>`;
+        }
+        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}${suggestionHtml}</div>`;
         jobRequirements.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#b91c1c; font-weight:600;">${err.message}</p><p class="text-muted" style="margin-top:6px;">Please enter a proper job description according to the role '${title}'.</p></div>`;
         runBtn.classList.add('hidden');
         runBtn.disabled = true;
         Store.remove('job_id');
         Store.remove('job_data');
+      } finally {
+        analyzeJobBtn.disabled = false;
+        analyzeJobBtn.textContent = originalBtnText;
       }
     }
 
@@ -165,23 +227,50 @@
         zone.innerHTML = `<div class="upload-icon">&#9989;</div><p><strong>${file.name}</strong></p><p>${(file.size / 1024).toFixed(1)} KB &bull; Selected</p>`;
       }
 
+      analyzeJobBtn.disabled = true;
+      const originalBtnText = analyzeJobBtn.textContent;
+      analyzeJobBtn.textContent = 'Validating & Analyzing...';
       jobStatus.innerHTML = `<div class="loading-overlay"><div class="loading-spinner"></div><p>Validating role and analyzing file (${file.name})...</p></div>`;
+
       try {
         const res = await API.upload('/job/analyze', formData);
         jobId = res.data.job_description_id;
         Store.set('job_id', jobId);
         Store.set('job_data', res.data.requirements);
-        jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully from file.</div>';
+
+        if (res.data.is_partial_match || res.data.warning) {
+          jobStatus.innerHTML = `
+            <div class="alert alert-warning" style="background:#fffbeb; border:1px solid #fde68a; color:#92400e; padding:12px 14px; border-radius:8px; line-height:1.5;">
+              <strong>⚠️ Role Alignment Note:</strong> ${res.data.warning || 'The job description partially aligns with the specified role.'}
+            </div>`;
+        } else {
+          jobStatus.innerHTML = '<div class="success-state">✅ Job description matched and analyzed successfully from file.</div>';
+        }
+
         renderRequirements(res.data.requirements);
         runBtn.classList.remove('hidden');
         runBtn.disabled = false;
       } catch (err) {
-        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}</div>`;
+        let suggestionHtml = '';
+        const match = err.message && err.message.match(/Did you mean ['"]([^'"]+)['"]/i);
+        if (match && match[1]) {
+          const suggestedRole = match[1];
+          suggestionHtml = `
+            <div style="margin-top:10px;">
+              <button type="button" class="btn btn-outline btn-sm" style="background:#fff; border:1px solid #3b82f6; color:#1d4ed8; font-weight:600; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="applySuggestedRole('${suggestedRole.replace(/'/g, "\\'")}')">
+                👉 Use suggested role: "${suggestedRole}"
+              </button>
+            </div>`;
+        }
+        jobStatus.innerHTML = `<div class="alert alert-danger" style="background:#fef2f2; border:1px solid #fecaca; color:#991b1b; padding:12px 14px; border-radius:8px; line-height:1.5;"><strong>❌ Job Role Mismatch / Validation Error:</strong><br>${err.message}${suggestionHtml}</div>`;
         jobRequirements.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:#b91c1c; font-weight:600;">${err.message}</p><p class="text-muted" style="margin-top:6px;">Please enter a proper job description according to the role '${title}'.</p></div>`;
         runBtn.classList.add('hidden');
         runBtn.disabled = true;
         Store.remove('job_id');
         Store.remove('job_data');
+      } finally {
+        analyzeJobBtn.disabled = false;
+        analyzeJobBtn.textContent = originalBtnText;
       }
     }
 

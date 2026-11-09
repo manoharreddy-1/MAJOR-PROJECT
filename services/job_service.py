@@ -11,6 +11,7 @@ from parsers.pdf_parser import extract_text_from_pdf
 from services.job_validator_service import JobValidatorService
 from utils.text_cleaner import clean_text
 from utils.validators import validate_text
+from validation import validate_role_and_job_description, sanitize_text
 
 logger = logging.getLogger(__name__)
 
@@ -25,26 +26,24 @@ class JobService:
 
     def analyze_text(self, text: str, title: str = None, user_id: str = None) -> Dict[str, Any]:
         """Parse pasted job description text with role alignment validation."""
-        valid, msg = validate_text(text, "Job description", min_length=20)
-        if not valid:
-            raise ValueError(msg)
-
         effective_title = (title or "").strip()
-        if not effective_title:
-            effective_title = self.parser._extract_title(text)
 
-        # Validate Job Title vs Job Description
-        is_valid, error_msg, details = self.validator.validate_title_and_description(effective_title, text)
+        # Run 6-stage validation pipeline
+        is_valid, error_msg, details = validate_role_and_job_description(effective_title, text)
         if not is_valid:
             logger.warning("Job validation failed for title '%s': %s", effective_title, error_msg)
             raise ValueError(error_msg)
 
-        parsed = self.parser.parse(text, title=effective_title)
+        clean_jd = sanitize_text(text)
+        final_title = details.get("normalized_role") or effective_title
+        parsed = self.parser.parse(clean_jd, title=final_title)
 
         doc = {
             "user_id": user_id,
-            "raw_text": clean_text(text),
+            "raw_text": clean_text(clean_jd),
             "requirements": parsed,
+            "is_partial_match": details.get("is_partial_match", False),
+            "warning": details.get("warning"),
             "created_at": utc_now(),
         }
         result = self.collection.insert_one(doc)
@@ -53,6 +52,8 @@ class JobService:
         return {
             "job_description_id": str(result.inserted_id),
             "requirements": parsed,
+            "is_partial_match": details.get("is_partial_match", False),
+            "warning": details.get("warning"),
         }
 
     def analyze_file(self, file_bytes: bytes, filename: str, title: str = None, user_id: str = None) -> Dict[str, Any]:

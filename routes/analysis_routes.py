@@ -61,7 +61,8 @@ def run_analysis():
     job_raw_text = job_doc.get("raw_text") or (job.get("raw_text") if isinstance(job, dict) else "")
     effective_role = (target_role or (job.get("job_title") if isinstance(job, dict) else "") or "").strip()
     if effective_role and job_raw_text:
-        is_valid, err_msg, _ = job_service.validator.validate_title_and_description(effective_role, job_raw_text)
+        from validation import validate_role_and_job_description
+        is_valid, err_msg, _ = validate_role_and_job_description(effective_role, job_raw_text)
         if not is_valid:
             return error_response("INVALID_JOB_ROLE_ALIGNMENT", err_msg, 400)
 
@@ -169,7 +170,8 @@ def improve_resume():
     job_raw_text = job_doc.get("raw_text") or (job.get("raw_text") if isinstance(job, dict) else "")
     effective_role = (target_role or (job.get("job_title") if isinstance(job, dict) else "") or "").strip()
     if effective_role and job_raw_text:
-        is_valid, err_msg, _ = job_service.validator.validate_title_and_description(effective_role, job_raw_text)
+        from validation import validate_role_and_job_description
+        is_valid, err_msg, _ = validate_role_and_job_description(effective_role, job_raw_text)
         if not is_valid:
             return error_response("INVALID_JOB_ROLE_ALIGNMENT", err_msg, 400)
 

@@ -6,6 +6,7 @@ from config.settings import ATS_WEIGHTS
 from services.matching_service import MatchingService
 from services.skill_gap_service import SkillGapService
 from utils.scoring import calculate_weighted_ats_score, get_match_label, score_breakdown
+from validation import apply_ats_score_guardrails
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ class ATSService:
         experience_score = semantic_scores.get("experience_semantic")
         projects_score = semantic_scores.get("projects_semantic")
 
+        cand_words = len(resume.get("raw_text", "").split())
+        cand_has_substance = cand_words >= 50 or bool(resume.get("skills")) or bool(resume.get("experience")) or bool(resume.get("projects"))
+
         if experience_score is not None and projects_score is not None:
             experience_score = max(experience_score, projects_score)
             experience_note = None
@@ -52,14 +56,17 @@ class ATSService:
         elif projects_score is not None:
             experience_score = projects_score
             experience_note = "Evaluated on technical projects"
-        else:
-            experience_score = 75.0  # Neutral baseline when not specified/extractable
+        elif cand_has_substance:
+            experience_score = 50.0  # Moderate baseline when candidate has profile content
             experience_note = "Evaluated on profile skills and background"
+        else:
+            experience_score = 0.0  # Zero experience when profile is empty or sparse
+            experience_note = "No substantive experience or projects found on resume"
 
         # Education score - only if job specifies requirements
         education_score = semantic_scores.get("education_semantic")
         if education_score is None:
-            education_score = 75.0  # Neutral when not specified
+            education_score = 50.0 if cand_has_substance else 0.0
             education_note = "Not specified in job description"
         else:
             education_note = None
@@ -76,6 +83,9 @@ class ATSService:
             education=education_score,
         )
 
+        # Apply Stage 5 ATS scoring guardrails (hard caps on 0 matched skills, keyword stuffing, sparse resume)
+        breakdown = apply_ats_score_guardrails(breakdown, skill_analysis, resume, job)
+
         # Project relevance
         project_analysis = self.matching.analyze_project_relevance(
             resume.get("projects", []),
@@ -86,19 +96,22 @@ class ATSService:
         strengths = self._identify_strengths(skill_analysis, semantic_scores, resume, experience_score)
         improvements = self._identify_improvements(skill_analysis, semantic_scores, experience_score)
 
+        overall_score = breakdown["overall"]
+
         return {
             "target_role": target_role or job.get("job_title", "Target Role"),
             "scores": {
-                "overall": breakdown["overall"],
+                "overall": overall_score,
                 "semantic": round(semantic_score, 1),
                 "skills": round(skill_score, 1),
                 "experience": round(experience_score, 1),
                 "education": round(education_score, 1),
             },
-            "match_label": get_match_label(breakdown["overall"]),
+            "match_label": get_match_label(overall_score),
             "score_breakdown": breakdown,
             "education_note": education_note,
             "experience_note": experience_note,
+            "guardrail_note": breakdown.get("guardrail_note"),
             "skill_analysis": skill_analysis,
             "project_analysis": project_analysis,
             "semantic_details": semantic_scores,

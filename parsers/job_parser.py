@@ -241,13 +241,26 @@ class JobDescriptionParser:
                 "the role",
             ],
         )
-        source = section if section else text
+        if not section:
+            # Only extract lines from full text if they clearly look like action-verb duty bullet points
+            bullet_lines = [l.strip() for l in text.split("\n") if re.match(r"^[-*•\d.]\s+", l.strip())]
+            duty_verbs = (
+                "develop", "design", "maintain", "implement", "collaborate", "drive", "deliver",
+                "manage", "coordinate", "perform", "support", "lead", "ensure", "execute",
+                "operate", "prepare", "conduct", "write", "build", "create", "test", "analyze"
+            )
+            cleaned = []
+            for bl in bullet_lines:
+                cl = clean_text(re.sub(r"^[-*•\d.]\s*", "", bl))
+                if 20 < len(cl) < 300 and any(cl.lower().startswith(v) for v in duty_verbs):
+                    cleaned.append(cl)
+            return cleaned[:15]
 
-        items = re.split(r"\n\s*[•\-\*]\s*|\n\s*\d+\.\s*", source)
+        items = re.split(r"\n\s*[•\-\*]\s*|\n\s*\d+\.\s*", section)
         cleaned = [clean_text(i) for i in items if 15 < len(i.strip()) < 300]
 
         if not cleaned:
-            line_items = [clean_text(line) for line in source.split("\n") if 15 < len(line.strip()) < 300]
+            line_items = [clean_text(line) for line in section.split("\n") if 15 < len(line.strip()) < 300]
             exclude_keywords = {"requirements", "qualifications", "skills", "experience", "education", "salary", "apply"}
             for line in line_items:
                 if not any(line.lower().startswith(kw) for kw in exclude_keywords):

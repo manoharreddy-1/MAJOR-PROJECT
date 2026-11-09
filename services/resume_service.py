@@ -11,6 +11,7 @@ from parsers.ocr_parser import extract_text_with_ocr
 from parsers.resume_parser import ResumeParser
 from ai.ner_model import NERModel
 from utils.text_cleaner import clean_text
+from validation import validate_resume_document
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,9 @@ class ResumeService:
                 text = ocr_text
 
         text = clean_text(text, preserve_newlines=True)
-        if len(text) < 50:
-            raise ValueError(
-                "We could not extract enough text from this PDF. "
-                "Please upload a clearer resume or a text-based PDF."
-            )
+        is_valid_res, resume_err = validate_resume_document(text)
+        if not is_valid_res:
+            raise ValueError(resume_err)
 
         parsed = self.parser.parse(text)
 
